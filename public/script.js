@@ -1,6 +1,7 @@
 // Importações dos serviços do Firebase.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+// ** LINHA CORRIGIDA **: Adicionamos o 'onAuthStateChanged' que estava faltando.
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- CONFIGURAÇÃO ---
@@ -167,11 +168,8 @@ function loadUserDataOrShowLogin() {
     const savedUser = localStorage.getItem(`rifaUser`);
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
-        // A função showApp() agora é chamada DENTRO do setupFirestoreListener
-        // para garantir que só mostramos o app depois de carregar os dados.
         setupFirestoreListener();
     } else {
-        // Se não há usuário salvo, paramos de carregar e mostramos a tela de login.
         loadingSection.classList.add('hidden');
         userSection.classList.remove('hidden');
         appSection.classList.add('hidden');
@@ -185,21 +183,16 @@ function showApp() {
     appSection.classList.remove('hidden');
 }
 
-// ** FUNÇÃO ATUALIZADA **
 function setupFirestoreListener() {
     onSnapshot(rifaDocRef, (doc) => {
-        // Sucesso ao conectar e ler os dados
         numbersData = doc.exists() ? doc.data() : {};
         renderNumberGrid();
         if (numbersData.winner) {
             displayWinner(numbersData.winner.number, numbersData.winner.player);
         }
-        // Só agora que temos certeza que tudo carregou, mostramos o app.
         showApp(); 
     }, (error) => {
-        // Erro ao conectar
         console.error("Erro ao ouvir o Firestore:", error);
-        // Mostra uma mensagem de erro clara para o usuário.
         const errorMessage = `<div class="text-center p-8"><h2 class="text-2xl font-bold text-red-400 mb-4">Erro de Conexão com o Banco de Dados</h2><p class="text-gray-300">Não foi possível carregar os números da rifa. Verifique as regras de segurança do seu Firestore no painel do Firebase.</p></div>`;
         mainContainer.innerHTML = errorMessage;
     });
@@ -268,8 +261,7 @@ function saveUserData() {
             pix: pixInput.value.trim(),
         };
         localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
-        // Chama o listener do Firestore DEPOIS de salvar o usuário
-        loadingSection.classList.remove('hidden'); // Mostra o loading de novo
+        loadingSection.classList.remove('hidden');
         userSection.classList.add('hidden');
         setupFirestoreListener();
     } else {
