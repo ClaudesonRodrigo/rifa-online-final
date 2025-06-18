@@ -4,7 +4,6 @@ import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/1
 import { getFirestore, doc, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- CONFIGURAÇÃO ---
-// ATENÇÃO: Cole a configuração do seu projeto Firebase aqui.
 const firebaseConfig = {
     apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
     authDomain: "cemvezesmais-1ab48.firebaseapp.com",
@@ -14,13 +13,12 @@ const firebaseConfig = {
     appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
     measurementId: "G-G3BX961SHY"
 };
-// A chave do Gemini foi removida daqui para sua segurança!
 
 // --- INICIALIZAÇÃO DOS SERVIÇOS ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-const rifaDocRef = doc(db, "rifas", "rifa-100"); // Define um caminho padrão para os dados da rifa
+const rifaDocRef = doc(db, "rifas", "rifa-100");
 
 // --- ELEMENTOS DO DOM ---
 const mainContainer = document.getElementById('main-container');
@@ -114,17 +112,17 @@ async function generateShareMessage() {
     copyShareMessageBtn.classList.add('hidden');
 
     try {
-        const functionUrl = `/.netlify/functions/getLuckyNumbers`; // Reutilizamos a mesma função para um prompt diferente
+        const functionUrl = `/.netlify/functions/getLuckyNumbers`; 
         const prompt = `Crie uma mensagem curta e animada para o WhatsApp que ${currentUser.name} possa compartilhar. A mensagem deve celebrar a escolha do número ${chosenNumberForModal} na rifa "Sorte Premiada" e convidar amigos para participar também. Inclua emojis e um espaço para o link da rifa. Seja criativo e divertido. Não inclua a estrutura JSON.`;
 
         const response = await fetch(functionUrl, {
             method: 'POST',
-            body: JSON.stringify({ theme: prompt }) // Usamos a propriedade 'theme' para enviar o prompt
+            body: JSON.stringify({ theme: prompt })
         });
 
         if (!response.ok) throw new Error('A resposta da função não foi OK.');
 
-        const message = await response.text(); // A resposta agora é texto puro
+        const message = await response.text();
         shareMessageTextarea.value = message;
         copyShareMessageBtn.classList.remove('hidden');
 
@@ -135,7 +133,6 @@ async function generateShareMessage() {
         setButtonLoading(generateShareMessageBtn, false);
     }
 }
-
 
 function copyShareMessage() {
     shareMessageTextarea.select();
@@ -170,9 +167,14 @@ function loadUserDataOrShowLogin() {
     const savedUser = localStorage.getItem(`rifaUser`);
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
-        showApp();
+        // A função showApp() agora é chamada DENTRO do setupFirestoreListener
+        // para garantir que só mostramos o app depois de carregar os dados.
+        setupFirestoreListener();
     } else {
-        showUserSection();
+        // Se não há usuário salvo, paramos de carregar e mostramos a tela de login.
+        loadingSection.classList.add('hidden');
+        userSection.classList.remove('hidden');
+        appSection.classList.add('hidden');
     }
 }
 
@@ -181,27 +183,28 @@ function showApp() {
     loadingSection.classList.add('hidden');
     userSection.classList.add('hidden');
     appSection.classList.remove('hidden');
-    setupFirestoreListener();
 }
 
-function showUserSection() {
-    loadingSection.classList.add('hidden');
-    userSection.classList.remove('hidden');
-    appSection.classList.add('hidden');
-}
-
+// ** FUNÇÃO ATUALIZADA **
 function setupFirestoreListener() {
     onSnapshot(rifaDocRef, (doc) => {
+        // Sucesso ao conectar e ler os dados
         numbersData = doc.exists() ? doc.data() : {};
         renderNumberGrid();
         if (numbersData.winner) {
             displayWinner(numbersData.winner.number, numbersData.winner.player);
         }
+        // Só agora que temos certeza que tudo carregou, mostramos o app.
+        showApp(); 
     }, (error) => {
+        // Erro ao conectar
         console.error("Erro ao ouvir o Firestore:", error);
-        numberGrid.innerHTML = `<p class="text-red-400 col-span-full">Não foi possível carregar os números.</p>`;
+        // Mostra uma mensagem de erro clara para o usuário.
+        const errorMessage = `<div class="text-center p-8"><h2 class="text-2xl font-bold text-red-400 mb-4">Erro de Conexão com o Banco de Dados</h2><p class="text-gray-300">Não foi possível carregar os números da rifa. Verifique as regras de segurança do seu Firestore no painel do Firebase.</p></div>`;
+        mainContainer.innerHTML = errorMessage;
     });
 }
+
 
 function renderNumberGrid() {
     numberGrid.innerHTML = '';
@@ -265,7 +268,10 @@ function saveUserData() {
             pix: pixInput.value.trim(),
         };
         localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
-        showApp();
+        // Chama o listener do Firestore DEPOIS de salvar o usuário
+        loadingSection.classList.remove('hidden'); // Mostra o loading de novo
+        userSection.classList.add('hidden');
+        setupFirestoreListener();
     } else {
         alert("Por favor, preencha todos os campos.");
     }
@@ -314,4 +320,3 @@ closeModalBtn.addEventListener('click', () => {
 
 // --- INÍCIO DA APLICAÇÃO ---
 setupAuthListener();
-
