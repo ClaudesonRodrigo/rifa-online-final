@@ -11,8 +11,6 @@
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200 min-h-screen">
-
-    <!-- Tela de Login -->
     <div id="login-screen" class="flex flex-col items-center justify-center min-h-screen p-4">
         <div class="w-full max-w-sm p-8 bg-gray-800 rounded-2xl shadow-lg">
             <h1 class="text-2xl font-bold text-center text-blue-300 mb-6">Acesso Restrito</h1>
@@ -22,15 +20,11 @@
             <p id="login-error" class="text-red-400 text-center mt-4 hidden">Senha incorreta.</p>
         </div>
     </div>
-
-    <!-- Painel de Administração (escondido por padrão) -->
     <div id="admin-panel" class="hidden p-4 md:p-8">
         <header class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-blue-300">Painel de Administração</h1>
             <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold">Sair</button>
         </header>
-
-        <!-- Seção de Resumo -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div class="bg-gray-800 p-6 rounded-lg">
                 <h2 class="text-gray-400 text-lg">Números Vendidos</h2>
@@ -45,8 +39,6 @@
                 <p id="total-revenue" class="text-4xl font-bold">R$ 0,00</p>
             </div>
         </div>
-
-        <!-- Tabela de Participantes -->
         <div class="bg-gray-800 p-6 rounded-lg overflow-x-auto">
             <div class="flex justify-between items-center mb-4">
                  <h2 class="text-2xl font-semibold">Lista de Participantes</h2>
@@ -56,21 +48,19 @@
                 <thead>
                     <tr class="border-b border-gray-700">
                         <th class="p-3">Nome</th>
-                        <th class="p-3">Contato</th>
+                        <th class="p-3">Contacto</th>
                         <th class="p-3">Chave PIX</th>
                         <th class="p-3">Números Escolhidos</th>
                     </tr>
                 </thead>
                 <tbody id="participants-table-body">
-                    <!-- Linhas da tabela serão inseridas aqui pelo JavaScript -->
                     <tr>
-                        <td colspan="4" class="text-center p-8 text-gray-500">Carregando dados dos participantes...</td>
+                        <td colspan="4" class="text-center p-8 text-gray-500">A carregar dados dos participantes...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
-
     <script type="module" src="admin.js"></script>
 </body>
 </html>
