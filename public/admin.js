@@ -1,9 +1,10 @@
-// Importações do Firebase - Usamos as mesmas do nosso app principal
+// Importações do Firebase - Adicionamos o serviço de autenticação.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
 
 // --- CONFIGURAÇÃO ---
-// ATENÇÃO: Use a mesma configuração do seu arquivo script.js principal.
 const firebaseConfig = {
     apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
     authDomain: "cemvezesmais-1ab48.firebaseapp.com",
@@ -15,13 +16,13 @@ const firebaseConfig = {
 };
 
 // --- DEFINA SUA SENHA AQUI ---
-// Para um sistema real, usaríamos o Firebase Auth, mas para começar,
-// uma senha direto no código é mais simples.
-const ADMIN_PASSWORD = "admin"; // Mude para uma senha segura de sua preferência!
+const ADMIN_PASSWORD = "Cariocaju@2025"; // Mude para uma senha segura de sua preferência!
 
 // --- INICIALIZAÇÃO DOS SERVIÇOS ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+// **NOVO**: Inicializamos o serviço de autenticação
+const auth = getAuth(app);
 const rifaDocRef = doc(db, "rifas", "rifa-100");
 
 // --- ELEMENTOS DO DOM ---
@@ -37,12 +38,11 @@ const totalRevenueEl = document.getElementById('total-revenue');
 const participantsTableBody = document.getElementById('participants-table-body');
 const searchInput = document.getElementById('search-input');
 
-let allParticipantsData = []; // Array para guardar os dados para a busca
+let allParticipantsData = [];
 
 // --- LÓGICA DE LOGIN ---
 
 function checkLogin() {
-    // sessionStorage mantém o usuário logado apenas enquanto a aba estiver aberta.
     if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
@@ -84,37 +84,37 @@ function loadAdminData() {
 }
 
 function processRifaData(rifaData) {
-    const participants = {}; // Usamos um objeto para agrupar números por participante (pelo userId)
+    const participants = {};
     let soldCount = 0;
 
-    // Itera por todos os campos do documento da rifa
     for (const key in rifaData) {
-        // Verifica se a chave é um número de dois dígitos (00-99)
         if (!isNaN(key) && key.length === 2) {
             soldCount++;
             const playerData = rifaData[key];
             const userId = playerData.userId;
 
-            if (!participants[userId]) {
-                participants[userId] = {
-                    name: playerData.name,
-                    email: playerData.email,
-                    whatsapp: playerData.whatsapp,
-                    pix: playerData.pix,
-                    numbers: []
-                };
+            if (userId) { // Adiciona verificação para garantir que o userId existe
+                if (!participants[userId]) {
+                    participants[userId] = {
+                        name: playerData.name,
+                        email: playerData.email,
+                        whatsapp: playerData.whatsapp,
+                        pix: playerData.pix,
+                        numbers: []
+                    };
+                }
+                participants[userId].numbers.push(key);
             }
-            participants[userId].numbers.push(key);
         }
     }
 
-    allParticipantsData = Object.values(participants); // Converte o objeto em um array para a tabela
+    allParticipantsData = Object.values(participants);
     renderTable(allParticipantsData);
     updateSummary(soldCount, allParticipantsData.length);
 }
 
 function renderTable(dataToRender) {
-    participantsTableBody.innerHTML = ''; // Limpa a tabela
+    participantsTableBody.innerHTML = ''; 
 
     if (dataToRender.length === 0) {
         participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-gray-500">Nenhum participante encontrado.</td></tr>`;
@@ -122,7 +122,6 @@ function renderTable(dataToRender) {
     }
 
     dataToRender.forEach(player => {
-        // Ordena os números do jogador para melhor visualização
         player.numbers.sort();
 
         const row = document.createElement('tr');
@@ -159,7 +158,7 @@ function handleSearch() {
     const searchTerm = searchInput.value.toLowerCase();
     
     if (!searchTerm) {
-        renderTable(allParticipantsData); // Mostra todos se a busca estiver vazia
+        renderTable(allParticipantsData);
         return;
     }
 
@@ -181,5 +180,21 @@ passwordInput.addEventListener('keyup', (e) => {
 logoutBtn.addEventListener('click', handleLogout);
 searchInput.addEventListener('input', handleSearch);
 
+
 // --- INICIALIZAÇÃO ---
-checkLogin();
+// ** LÓGICA ATUALIZADA **
+// Função principal para garantir a autenticação antes de qualquer outra coisa.
+async function initializeAdmin() {
+    try {
+        // Pega o "crachá de visitante" para o painel de admin.
+        await signInAnonymously(auth);
+        console.log("Admin autenticado anonimamente com sucesso.");
+        // Agora que temos permissão, verificamos se o admin já logou com a senha.
+        checkLogin();
+    } catch (error) {
+        console.error("Erro na autenticação anônima do admin:", error);
+        document.body.innerHTML = `<div class="p-8 text-center text-red-400">Falha crítica na autenticação com o Firebase. Verifique o console.</div>`;
+    }
+}
+
+initializeAdmin();
