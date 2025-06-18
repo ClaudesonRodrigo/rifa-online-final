@@ -22,20 +22,24 @@ exports.handler = async function(event) {
     const response = await result.response;
     let text = response.text();
 
-    // ** LÓGICA DE CORREÇÃO ADICIONADA AQUI **
-    // Remove o "embrulho" de Markdown que a IA às vezes adiciona.
-    if (text.startsWith("```json")) {
-      text = text.substring(7, text.length - 3);
-    } else if (text.startsWith("```")) {
-       text = text.substring(3, text.length - 3);
+    // ** LÓGICA DE CORREÇÃO MAIS ROBUSTA **
+    // Se o pedido não for para o WhatsApp, extraímos apenas o JSON da resposta.
+    if (!theme.includes("WhatsApp")) {
+      const startIndex = text.indexOf('{');
+      const endIndex = text.lastIndexOf('}');
+
+      if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+        // Extrai apenas a string JSON, limpando qualquer texto ou markdown extra.
+        text = text.substring(startIndex, endIndex + 1);
+      } else {
+        // Se não encontrar um JSON, lança um erro para depuração.
+        throw new Error("A resposta da IA para o Oráculo não continha um JSON válido.");
+      }
     }
-    
-    // Remove espaços em branco desnecessários antes de enviar.
-    text = text.trim();
 
     return {
       statusCode: 200,
-      body: text, // Agora enviamos o JSON limpo.
+      body: text, // Enviamos o JSON limpo ou a mensagem de texto pura.
     };
 
   } catch (error) {
