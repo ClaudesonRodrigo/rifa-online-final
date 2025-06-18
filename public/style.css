@@ -1,44 +1,32 @@
-/* Estilo base, usando a fonte importada no HTML */
 body {
     font-family: 'Inter', sans-serif;
 }
-
-/* Efeito de brilho para números disponíveis */
 .number-available:hover {
     box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.6);
     transform: scale(1.05);
 }
-
-/* **NOVO ESTILO**: para números selecionados temporariamente */
 .number-selected {
-    background-color: #f59e0b; /* Amarelo/Laranja - bg-amber-500 */
-    color: #111827; /* Cor do texto escura para contraste */
+    background-color: #f59e0b;
+    color: #111827;
     transform: scale(1.1);
     box-shadow: 0 0 15px 5px rgba(245, 158, 11, 0.6);
 }
-
-
-/* Animação de pulso para o título principal */
 .title-pulse {
     animation: pulse-animation 2s infinite;
 }
-
 @keyframes pulse-animation {
     0% { transform: scale(1); }
     50% { transform: scale(1.03); }
     100% { transform: scale(1); }
 }
-
-/* Estilo da "dica" que aparece ao passar o mouse */
 .tooltip {
     position: relative;
     display: inline-block;
 }
-
 .tooltip .tooltiptext {
     visibility: hidden;
     width: 160px;
-    background-color: #374151; /* bg-gray-700 */
+    background-color: #374151;
     color: #fff;
     text-align: center;
     border-radius: 6px;
@@ -52,13 +40,10 @@ body {
     transition: opacity 0.3s;
     font-weight: normal;
 }
-
 .tooltip:hover .tooltiptext {
     visibility: visible;
     opacity: 1;
 }
-
-/* Fundo escurecido para o modal */
 .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.7);
     display: flex;
