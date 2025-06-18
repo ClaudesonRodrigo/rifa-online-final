@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- CONFIGURAÇÃO ---
 const firebaseConfig = {
@@ -28,20 +28,21 @@ const appSection = document.getElementById('app-section');
 const numberGrid = document.getElementById('number-grid');
 const welcomeUserSpan = document.getElementById('welcome-user');
 const shoppingCartSection = document.getElementById('shopping-cart-section');
+const selectedNumbersList = document.getElementById('selected-numbers-list');
+const totalPriceEl = document.getElementById('total-price');
+const checkoutBtn = document.getElementById('checkout-btn');
+const paymentStatusEl = document.getElementById('payment-status');
 const nameInput = document.getElementById('name');
 const emailInput = document.getElementById('email');
 const whatsappInput = document.getElementById('whatsapp');
 const pixInput = document.getElementById('pix');
 const saveUserBtn = document.getElementById('save-user-btn');
-const checkoutBtn = document.getElementById('checkout-btn');
+const luckThemeInput = document.getElementById('luck-theme-input');
 const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
-
-// **NOVOS ELEMENTOS DO DOM PARA O RESULTADO**
 const winnerDisplaySection = document.getElementById('winner-display-section');
 const publicWinnerNumber = document.getElementById('public-winner-number');
 const publicWinnerName = document.getElementById('public-winner-name');
 const publicWinnerBoughtNumbers = document.getElementById('public-winner-bought-numbers');
-
 
 // --- ESTADO DO APLICATIVO ---
 let currentUser = null;
@@ -49,55 +50,38 @@ let userId = null;
 let numbersData = {};
 let selectedNumbers = [];
 
-
-// --- LÓGICA DE EXIBIÇÃO DO GANHADOR ---
+// --- FUNÇÕES DO APLICATIVO ---
 
 function displayPublicWinner(winnerData) {
-    // Se não houver um jogador para o número sorteado, não mostra a secção
     if (!winnerData || !winnerData.player) {
         winnerDisplaySection.classList.add('hidden');
         return;
     }
-    
     const { number, player } = winnerData;
     const winnerId = player.userId;
     const winnerNumbers = [];
-
-    // Encontra todos os números comprados pelo ganhador
     for (const numKey in numbersData) {
         if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
             winnerNumbers.push(numKey);
         }
     }
-    
-    // Preenche a secção do ganhador
     publicWinnerNumber.textContent = number;
     publicWinnerName.textContent = player.name;
-    
     publicWinnerBoughtNumbers.innerHTML = '';
     winnerNumbers.sort().forEach(num => {
         const span = document.createElement('span');
-        // Destaca o número sorteado
-        if (num === number) {
-            span.className = 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white';
-        } else {
-            span.className = 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
-        }
+        span.className = num === number 
+            ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' 
+            : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
         span.textContent = num;
         publicWinnerBoughtNumbers.appendChild(span);
     });
-    
-    // Mostra a secção e esconde o carrinho
     winnerDisplaySection.classList.remove('hidden');
     shoppingCartSection.classList.add('hidden');
 }
 
-
-// --- LÓGICA ATUALIZADA DO APLICATIVO ---
-
 function renderNumberGrid() {
-    const isRaffleOver = !!numbersData.winner; // Verifica se já há um ganhador
-
+    const isRaffleOver = !!numbersData.winner;
     numberGrid.innerHTML = '';
     for (let i = 0; i < 100; i++) {
         const numberStr = i.toString().padStart(2, '0');
@@ -106,59 +90,21 @@ function renderNumberGrid() {
         button.textContent = numberStr;
         button.dataset.number = numberStr;
         button.className = "p-2 rounded-lg text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
-        
         if (ownerData) {
             button.disabled = true;
-            // Estilo para números já comprados
-            if (ownerData.userId === userId) {
-                button.classList.add('bg-purple-600', 'cursor-not-allowed');
-            } else {
-                button.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-70');
-            }
+            button.classList.add(ownerData.userId === userId ? 'bg-purple-600' : 'bg-gray-600', 'cursor-not-allowed', 'opacity-70');
         } else {
-            // **NOVO**: Se a rifa já acabou, desativa todos os números restantes
             if (isRaffleOver) {
                 button.disabled = true;
                 button.classList.add('bg-gray-700', 'cursor-not-allowed', 'opacity-50');
             } else {
-                // Lógica normal para números disponíveis
-                if (selectedNumbers.includes(numberStr)) {
-                    button.classList.add('number-selected');
-                } else {
-                    button.classList.add('bg-blue-500', 'hover:bg-blue-400', 'number-available');
-                }
+                button.classList.add(selectedNumbers.includes(numberStr) ? 'number-selected' : 'bg-blue-500', 'hover:bg-blue-400', 'number-available');
                 button.addEventListener('click', handleNumberClick);
             }
         }
         numberGrid.appendChild(button);
     }
 }
-
-function setupFirestoreListener() {
-    onSnapshot(rifaDocRef, (doc) => {
-        numbersData = doc.exists() ? doc.data() : {};
-        welcomeUserSpan.textContent = currentUser.name;
-        
-        // 1. Verifica primeiro se há um ganhador
-        if (numbersData.winner) {
-            displayPublicWinner(numbersData.winner);
-        }
-
-        // 2. Renderiza a grade (que saberá se deve ser desativada)
-        renderNumberGrid();
-        
-        // 3. Mostra o aplicativo e verifica o estado do pagamento
-        loadingSection.classList.add('hidden');
-        appSection.classList.remove('hidden');
-        checkPaymentStatus();
-
-    }, (error) => {
-        console.error("Erro ao carregar dados do Firestore:", error);
-        mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
-    });
-}
-
-// O resto do seu script.js (handleCheckout, handleNumberClick, etc.) continua igual.
 
 function handleNumberClick(event) {
     const numberStr = event.target.dataset.number;
@@ -167,25 +113,20 @@ function handleNumberClick(event) {
     if (index > -1) {
         selectedNumbers.splice(index, 1);
         button.classList.remove('number-selected');
-        button.classList.add('number-available');
+        button.classList.add('number-available', 'bg-blue-500');
     } else {
         selectedNumbers.push(numberStr);
         button.classList.add('number-selected');
-        button.classList.remove('number-available');
+        button.classList.remove('number-available', 'bg-blue-500');
     }
     updateShoppingCart();
 }
 
 function updateShoppingCart() {
-    const shoppingCartSection = document.getElementById('shopping-cart-section');
-    const selectedNumbersList = document.getElementById('selected-numbers-list');
-    const totalPriceEl = document.getElementById('total-price');
-
     if (selectedNumbers.length === 0) {
         shoppingCartSection.classList.add('hidden');
         return;
     }
-
     shoppingCartSection.classList.remove('hidden');
     selectedNumbersList.innerHTML = '';
     selectedNumbers.sort().forEach(num => {
@@ -200,11 +141,91 @@ function updateShoppingCart() {
 }
 
 async function handleCheckout() {
-    // ... código existente para o checkout ...
+    if (selectedNumbers.length === 0) return;
+    checkoutBtn.classList.add('pointer-events-none', 'opacity-50');
+    checkoutBtn.textContent = 'A gerar link...';
+    paymentStatusEl.textContent = 'Aguarde, estamos a preparar o seu pagamento...';
+    paymentStatusEl.classList.remove('hidden');
+    const items = selectedNumbers.map(number => ({
+        id: number, title: `Rifa - Número ${number}`, quantity: 1, unit_price: PRICE_PER_NUMBER, currency_id: 'BRL'
+    }));
+    const payerData = { ...currentUser, userId };
+    try {
+        const response = await fetch('/.netlify/functions/create-payment', {
+            method: 'POST', body: JSON.stringify({ items, payerData }),
+        });
+        if (!response.ok) throw new Error('Falha ao gerar o link de pagamento.');
+        const data = await response.json();
+        if (data.checkoutUrl) {
+            localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers));
+            window.location.href = data.checkoutUrl;
+        }
+    } catch (error) {
+        console.error("Erro no checkout:", error);
+        paymentStatusEl.textContent = 'Erro ao gerar o link de pagamento. Tente novamente.';
+        checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
+        checkoutBtn.textContent = 'Pagar com Mercado Pago';
+    }
 }
 
 function checkPaymentStatus() {
-    // ... código existente para verificar o estado do pagamento ...
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const pendingNumbers = localStorage.getItem('pendingNumbers');
+    if (status === 'approved' && pendingNumbers) {
+        paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(pendingNumbers).join(', ')} foram reservados. Boa sorte!`;
+        paymentStatusEl.className = 'text-center text-green-400 mt-4';
+        paymentStatusEl.classList.remove('hidden');
+        localStorage.removeItem('pendingNumbers');
+    } else if (status === 'failure') {
+        paymentStatusEl.textContent = 'O pagamento falhou. Por favor, tente novamente.';
+        paymentStatusEl.className = 'text-center text-red-400 mt-4';
+        paymentStatusEl.classList.remove('hidden');
+        localStorage.removeItem('pendingNumbers');
+    }
+    if(window.history.replaceState){
+        window.history.replaceState(null, null, window.location.pathname);
+    }
+}
+
+function setupFirestoreListener() {
+    onSnapshot(rifaDocRef, (doc) => {
+        numbersData = doc.exists() ? doc.data() : {};
+        if (numbersData.winner) {
+            displayPublicWinner(numbersData.winner);
+        }
+        renderNumberGrid();
+        loadingSection.classList.add('hidden');
+        appSection.classList.remove('hidden');
+        checkPaymentStatus();
+    }, (error) => {
+        console.error("Erro ao carregar dados do Firestore:", error);
+        mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
+    });
+}
+
+function loadUserDataOrShowLogin() {
+    const savedUser = localStorage.getItem(`rifaUser`);
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        welcomeUserSpan.textContent = currentUser.name;
+        setupFirestoreListener();
+    } else {
+        loadingSection.classList.add('hidden');
+        userSection.classList.remove('hidden');
+    }
+}
+
+function saveUserData() {
+    if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
+        currentUser = { name: nameInput.value.trim(), email: emailInput.value.trim(), whatsapp: whatsappInput.value.trim(), pix: pixInput.value.trim() };
+        localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
+        userSection.classList.add('hidden');
+        loadingSection.classList.remove('hidden');
+        loadUserDataOrShowLogin();
+    } else {
+        alert("Por favor, preencha todos os campos.");
+    }
 }
 
 function setupAuthListener() {
@@ -218,33 +239,58 @@ function setupAuthListener() {
     });
 }
 
-function loadUserDataOrShowLogin() {
-    const savedUser = localStorage.getItem(`rifaUser`);
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        setupFirestoreListener();
-    } else {
-        loadingSection.classList.add('hidden');
-        const userForm = document.getElementById('user-section');
-        if (userForm) userForm.classList.remove('hidden');
+function setButtonLoading(button, isLoading) {
+    const text = button.querySelector('.gemini-button-text');
+    const spinner = button.querySelector('i.fa-spinner');
+    if (button && text && spinner) {
+        if (isLoading) {
+            button.disabled = true;
+            text.classList.add('hidden');
+            spinner.classList.remove('hidden');
+        } else {
+            button.disabled = false;
+            text.classList.remove('hidden');
+            spinner.classList.add('hidden');
+        }
     }
 }
 
-function saveUserData() {
-    if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
-        currentUser = { name: nameInput.value.trim(), email: emailInput.value.trim(), whatsapp: whatsappInput.value.trim(), pix: pixInput.value.trim() };
-        localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
-        userSection.classList.add('hidden');
-        loadingSection.classList.remove('hidden');
-        setupFirestoreListener();
-    } else {
-        alert("Por favor, preencha todos os campos.");
+async function getLuckyNumbers() {
+    const luckThemeInput = document.getElementById('luck-theme-input');
+    const luckyNumbersResult = document.getElementById('lucky-numbers-result');
+    const theme = luckThemeInput.value.trim();
+    if (!theme) {
+        luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
+        return;
+    }
+    setButtonLoading(getLuckyNumbersBtn, true);
+    luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
+    try {
+        const functionUrl = `/.netlify/functions/getLuckyNumbers`;
+        const response = await fetch(functionUrl, {
+            method: "POST",
+            body: JSON.stringify({ theme: theme }),
+        });
+        if (!response.ok) throw new Error('A resposta da função não foi OK.');
+        const data = await response.json();
+        let html = '<div class="grid md:grid-cols-3 gap-4">';
+        data.sugestoes.forEach(s => {
+            html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500"><p class="text-2xl font-bold text-purple-300 mb-2">${s.numero}</p><p class="text-sm text-gray-300">${s.explicacao}</p></div>`;
+        });
+        html += '</div>';
+        luckyNumbersResult.innerHTML = html;
+    } catch (error) {
+        console.error("Erro ao chamar a função da Netlify:", error);
+        luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente novamente mais tarde.</p>`;
+    } finally {
+        setButtonLoading(getLuckyNumbersBtn, false);
     }
 }
 
-// Event Listeners
-if(checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-if(saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
-if(getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+// --- EVENT LISTENERS ---
+checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+saveUserBtn.addEventListener('click', saveUserData);
+getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
 
+// --- INÍCIO DA APLICAÇÃO ---
 setupAuthListener();
