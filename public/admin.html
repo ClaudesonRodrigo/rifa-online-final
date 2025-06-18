@@ -12,7 +12,13 @@
 <body class="bg-gray-900 text-gray-200 min-h-screen">
 
     <div id="login-screen" class="flex flex-col items-center justify-center min-h-screen p-4">
-        <!-- ... secção de login sem alterações ... -->
+        <div class="w-full max-w-sm p-8 bg-gray-800 rounded-2xl shadow-lg">
+            <h1 class="text-2xl font-bold text-center text-blue-300 mb-6">Acesso Restrito</h1>
+            <p class="text-center text-gray-400 mb-6">Este é o painel de administração. Por favor, insira a senha.</p>
+            <input type="password" id="password-input" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-blue-500 focus:border-blue-500" placeholder="Senha">
+            <button id="login-btn" class="w-full mt-4 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">Entrar</button>
+            <p id="login-error" class="text-red-400 text-center mt-4 hidden">Senha incorreta.</p>
+        </div>
     </div>
 
     <div id="admin-panel" class="hidden p-4 md:p-8">
@@ -21,11 +27,9 @@
             <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold">Sair</button>
         </header>
 
-        <!-- **NOVA SECÇÃO: GESTÃO DE RIFAS** -->
         <div class="bg-gray-800 p-6 rounded-lg mb-8">
             <h2 class="text-2xl font-semibold mb-4">Gerir Rifas</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Formulário para Criar Nova Rifa -->
                 <div>
                     <h3 class="text-xl font-semibold text-teal-300 mb-3">Criar Nova Rifa</h3>
                     <div class="space-y-4">
@@ -40,7 +44,6 @@
                         <button id="create-raffle-btn" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-semibold">Criar Rifa</button>
                     </div>
                 </div>
-                <!-- Lista de Rifas Existentes -->
                 <div>
                     <h3 class="text-xl font-semibold text-blue-300 mb-3">Rifas Ativas e Encerradas</h3>
                     <div id="raffles-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
@@ -50,17 +53,62 @@
             </div>
         </div>
 
-        <!-- Secção de Detalhes da Rifa Selecionada -->
         <div id="raffle-details-section" class="hidden">
             <h2 class="text-2xl font-semibold mb-4">Detalhes da Rifa: <span id="details-raffle-name" class="text-yellow-400"></span></h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <!-- ... cards de resumo (números vendidos, etc.) ... -->
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h2 class="text-gray-400 text-lg">Números Vendidos</h2>
+                    <p id="sold-numbers" class="text-4xl font-bold">0</p>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h2 class="text-gray-400 text-lg">Total de Participantes</h2>
+                    <p id="total-participants" class="text-4xl font-bold">0</p>
+                </div>
+                <div class="bg-gray-800 p-6 rounded-lg">
+                    <h2 class="text-gray-400 text-lg">Arrecadação</h2>
+                    <p id="total-revenue" class="text-4xl font-bold">R$ 0,00</p>
+                </div>
             </div>
             <div class="bg-gray-800 p-6 rounded-lg mb-8">
-                 <!-- ... secção para declarar ganhador ... -->
+                <h2 class="text-2xl font-semibold mb-4">Declarar Resultado do Sorteio</h2>
+                <div id="declare-winner-area">
+                    <p class="text-gray-400 mb-4">Insira os 2 últimos dígitos do 1º prémio da Loteria Federal para finalizar a rifa.</p>
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <input type="number" id="winning-number-input" class="p-3 bg-gray-700 border border-gray-600 rounded-lg w-full sm:w-auto" placeholder="Nº Sorteado (00-99)">
+                        <button id="declare-winner-btn" class="w-full sm:w-auto p-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors">Declarar Ganhador</button>
+                    </div>
+                </div>
+                <div id="winner-info-admin" class="mt-6 hidden">
+                    <h3 class="text-xl font-bold text-green-400"><i class="fas fa-trophy mr-2"></i>Sorteio Finalizado!</h3>
+                    <div class="mt-2 bg-gray-900/50 p-4 rounded-lg">
+                        <p><strong>Número Sorteado:</strong> <span id="admin-winner-number" class="font-bold text-2xl"></span></p>
+                        <p><strong>Ganhador:</strong> <span id="admin-winner-name" class="font-bold"></span></p>
+                        <p><strong>Contacto:</strong> <span id="admin-winner-contact"></span></p>
+                        <p><strong>Chave PIX para pagamento:</strong> <strong id="admin-winner-pix" class="text-yellow-300"></strong></p>
+                    </div>
+                </div>
+                 <div id="no-winner-info-admin" class="mt-6 hidden bg-red-900/50 p-4 rounded-lg">
+                    <p class="text-yellow-400"><i class="fas fa-exclamation-triangle mr-2"></i>O número sorteado não foi escolhido por ninguém. Sorteio encerrado sem ganhador.</p>
+                </div>
             </div>
             <div class="bg-gray-800 p-6 rounded-lg overflow-x-auto">
-                <!-- ... tabela de participantes ... -->
+                <div class="flex justify-between items-center mb-4">
+                     <h2 class="text-2xl font-semibold">Lista de Participantes</h2>
+                     <input type="text" id="search-input" placeholder="Buscar por nome ou número..." class="p-2 bg-gray-700 border border-gray-600 rounded-lg">
+                </div>
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="border-b border-gray-700">
+                            <th class="p-3">Nome</th>
+                            <th class="p-3">Contacto</th>
+                            <th class="p-3">Chave PIX</th>
+                            <th class="p-3">Números Escolhidos</th>
+                        </tr>
+                    </thead>
+                    <tbody id="participants-table-body">
+                        <tr><td colspan="4" class="text-center p-8 text-gray-500">Selecione uma rifa acima para ver os detalhes.</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
