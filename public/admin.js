@@ -30,7 +30,6 @@ const totalParticipantsEl = document.getElementById('total-participants');
 const totalRevenueEl = document.getElementById('total-revenue');
 const participantsTableBody = document.getElementById('participants-table-body');
 const searchInput = document.getElementById('search-input');
-// **NOVOS ELEMENTOS DO DOM**
 const declareWinnerArea = document.getElementById('declare-winner-area');
 const winningNumberInput = document.getElementById('winning-number-input');
 const declareWinnerBtn = document.getElementById('declare-winner-btn');
@@ -42,13 +41,9 @@ const adminWinnerPix = document.getElementById('admin-winner-pix');
 const noWinnerInfoAdmin = document.getElementById('no-winner-info-admin');
 
 let allParticipantsData = [];
-let rawRifaData = {}; // Guarda os dados brutos para encontrar o ganhador
+let rawRifaData = {};
 
 // --- LÓGICA DE LOGIN ---
-function checkLogin() { /* ... código existente ... */ }
-function handleLogin() { /* ... código existente ... */ }
-function handleLogout() { /* ... código existente ... */ }
-// ... (copie as funções de login daqui)
 function checkLogin() {
     if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
         loginScreen.classList.add('hidden');
@@ -56,6 +51,7 @@ function checkLogin() {
         loadAdminData();
     }
 }
+
 function handleLogin() {
     if (passwordInput.value === ADMIN_PASSWORD) {
         sessionStorage.setItem('isAdminLoggedIn', 'true');
@@ -65,24 +61,23 @@ function handleLogin() {
         passwordInput.value = '';
     }
 }
+
 function handleLogout() {
     sessionStorage.removeItem('isAdminLoggedIn');
     loginScreen.classList.remove('hidden');
     adminPanel.classList.add('hidden');
+    window.location.reload();
 }
 
-
 // --- LÓGICA DO PAINEL ---
-
 function loadAdminData() {
     onSnapshot(rifaDocRef, (doc) => {
         if (!doc.exists()) {
             participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-gray-500">Nenhum dado encontrado para esta rifa.</td></tr>`;
             return;
         }
-        rawRifaData = doc.data(); // Guarda os dados brutos
+        rawRifaData = doc.data();
         processRifaData(rawRifaData);
-        // **NOVO**: Verifica se já há um ganhador
         if (rawRifaData.winner) {
             showWinnerInAdminPanel(rawRifaData.winner);
         }
@@ -93,7 +88,6 @@ function loadAdminData() {
 }
 
 function processRifaData(rifaData) {
-    // ... (código existente sem alterações)
     const participants = {};
     let soldCount = 0;
     for (const key in rifaData) {
@@ -117,7 +111,6 @@ function processRifaData(rifaData) {
 }
 
 function renderTable(dataToRender) {
-    // ... (código existente sem alterações)
     participantsTableBody.innerHTML = ''; 
     if (dataToRender.length === 0) {
         participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8 text-gray-500">Nenhum participante encontrado.</td></tr>`;
@@ -133,7 +126,6 @@ function renderTable(dataToRender) {
 }
 
 function updateSummary(soldCount, participantCount) {
-    // ... (código existente sem alterações)
     soldNumbersEl.textContent = soldCount;
     totalParticipantsEl.textContent = participantCount;
     const pricePerNumber = 10;
@@ -141,7 +133,6 @@ function updateSummary(soldCount, participantCount) {
 }
 
 function handleSearch() {
-    // ... (código existente sem alterações)
     const searchTerm = searchInput.value.toLowerCase();
     if (!searchTerm) {
         renderTable(allParticipantsData);
@@ -155,7 +146,6 @@ function handleSearch() {
     renderTable(filteredData);
 }
 
-// **NOVAS FUNÇÕES PARA DECLARAR O GANHADOR**
 async function declareWinner() {
     const number = winningNumberInput.value.trim();
     if (!number || number.length > 2 || parseInt(number, 10) < 0 || parseInt(number, 10) > 99) {
@@ -180,7 +170,6 @@ async function declareWinner() {
             }
         });
         alert(`Sorteio finalizado! O resultado foi guardado.`);
-        // A UI será atualizada automaticamente pelo `onSnapshot`
     } catch (error) {
         console.error("Erro ao declarar o ganhador:", error);
         alert("Ocorreu um erro ao guardar o resultado. Tente novamente.");
@@ -188,7 +177,7 @@ async function declareWinner() {
 }
 
 function showWinnerInAdminPanel(winnerInfo) {
-    declareWinnerArea.classList.add('hidden'); // Esconde o formulário
+    declareWinnerArea.classList.add('hidden');
     const { number, player } = winnerInfo;
 
     if (player) {
@@ -209,11 +198,9 @@ loginBtn.addEventListener('click', handleLogin);
 passwordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
 logoutBtn.addEventListener('click', handleLogout);
 searchInput.addEventListener('input', handleSearch);
-declareWinnerBtn.addEventListener('click', declareWinner); // **NOVO**
+declareWinnerBtn.addEventListener('click', declareWinner);
 
 // --- INICIALIZAÇÃO ---
-async function initializeAdmin() { /* ... código existente ... */ }
-// ... (copie a função initializeAdmin daqui)
 async function initializeAdmin() {
     try {
         await signInAnonymously(auth);
@@ -225,4 +212,3 @@ async function initializeAdmin() {
     }
 }
 initializeAdmin();
-
