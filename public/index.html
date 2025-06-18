@@ -12,23 +12,19 @@
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <!-- Container Principal -->
     <div id="main-container" class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
-
-        <!-- Seção de Carregamento -->
         <div id="loading-section" class="text-center">
             <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
-            <p class="mt-4 text-lg">Carregando rifa...</p>
+            <p class="mt-4 text-lg">A carregar rifa...</p>
         </div>
 
-        <!-- Seção para coletar dados do usuário -->
         <div id="user-section" class="hidden">
             <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo à Rifa!</h2>
-            <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha seus dados abaixo.</p>
+            <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha os seus dados abaixo.</p>
             <div class="max-w-md mx-auto">
                 <div class="mb-4">
                     <label for="name" class="block mb-2 text-sm font-medium text-gray-300">Nome Completo</label>
-                    <input type="text" id="name" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Seu nome" required>
+                    <input type="text" id="name" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="O seu nome" required>
                 </div>
                 <div class="mb-4">
                     <label for="email" class="block mb-2 text-sm font-medium text-gray-300">E-mail</label>
@@ -39,42 +35,36 @@
                     <input type="tel" id="whatsapp" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="(99) 99999-9999" required>
                 </div>
                 <div class="mb-6">
-                    <label for="pix" class="block mb-2 text-sm font-medium text-gray-300">Chave PIX (para receber o prêmio)</label>
-                    <input type="text" id="pix" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="CPF, e-mail, telefone ou chave aleatória" required>
+                    <label for="pix" class="block mb-2 text-sm font-medium text-gray-300">Chave PIX (para receber o prémio)</label>
+                    <input type="text" id="pix" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="CPF, e-mail, telemóvel ou chave aleatória" required>
                 </div>
                 <button id="save-user-btn" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar e Escolher Números</button>
             </div>
         </div>
 
-        <!-- Seção principal do aplicativo -->
         <div id="app-section" class="hidden">
             <header class="text-center mb-8">
                 <h1 class="text-3xl md:text-4xl font-bold title-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">Rifa Online - Sorte Premiada</h1>
                 <p class="text-gray-400 mt-2">Bem-vindo(a), <span id="welcome-user" class="font-semibold text-blue-300"></span>!</p>
             </header>
-
             <div id="number-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8"></div>
-            
-            <!-- **NOVA SEÇÃO: CARRINHO DE APOSTAS** -->
             <div id="shopping-cart-section" class="hidden bg-gray-900/50 p-6 rounded-lg border border-teal-500 mb-8">
-                <h3 class="text-xl font-semibold mb-4 text-teal-300">Sua Seleção</h3>
-                <div id="selected-numbers-list" class="flex flex-wrap gap-3 mb-4">
-                    <!-- Números selecionados aparecerão aqui -->
-                </div>
+                <h3 class="text-xl font-semibold mb-4 text-teal-300">A sua Seleção</h3>
+                <div id="selected-numbers-list" class="flex flex-wrap gap-3 mb-4"></div>
                 <div class="border-t border-gray-700 pt-4 flex justify-between items-center">
                     <div>
                         <p class="text-gray-400">Total a pagar:</p>
                         <p id="total-price" class="text-2xl font-bold text-white">R$ 0,00</p>
                     </div>
-                    <button id="finalize-bet-btn" class="px-6 py-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-bold text-lg transition-colors">
-                        Finalizar Aposta
-                    </button>
+                    <a id="checkout-btn" href="#" class="px-6 py-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-bold text-lg text-white text-center transition-colors pointer-events-none opacity-50">
+                        Pagar com Mercado Pago
+                    </a>
                 </div>
+                 <p id="payment-status" class="text-center text-yellow-400 mt-4 hidden"></p>
             </div>
-
             <div id="gemini-luck-section" class="bg-gray-900/50 p-6 rounded-lg border border-dashed border-purple-400 mb-8">
                 <h3 class="text-xl font-semibold mb-4 text-purple-300 text-center"><i class="fas fa-star-of-life mr-2"></i>Oráculo da Sorte</h3>
-                <p class="text-center text-gray-400 mb-4">Em dúvida? Digite um tema e deixe a IA sugerir seus números!</p>
+                <p class="text-center text-gray-400 mb-4">Em dúvida? Digite um tema e deixe a IA sugerir os seus números!</p>
                 <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
                     <input type="text" id="luck-theme-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full sm:w-auto p-2.5" placeholder="Digite um tema (ex: amor, sonho)">
                     <button id="get-lucky-numbers-btn" class="w-full sm:w-auto text-white bg-purple-600 hover:bg-purple-700 font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center gap-2">
@@ -84,24 +74,8 @@
                 </div>
                 <div id="lucky-numbers-result" class="mt-6 text-center"></div>
             </div>
-
-            <div id="admin-section" class="bg-gray-900/50 p-6 rounded-lg border border-gray-700">
-                <h3 class="text-xl font-semibold mb-4 text-teal-300">Área do Organizador</h3>
-                <div class="flex flex-col sm:flex-row items-center gap-4">
-                    <input type="number" id="winning-number-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block w-full sm:w-auto p-2.5" placeholder="Nº sorteado (00-99)">
-                    <button id="declare-winner-btn" class="w-full sm:w-auto text-white bg-teal-600 hover:bg-teal-700 font-medium rounded-lg text-sm px-5 py-2.5">Declarar Ganhador</button>
-                </div>
-                <div id="winner-info" class="mt-6 hidden bg-gray-800 p-4 rounded-lg">
-                    <!-- ... Conteúdo do ganhador ... -->
-                </div>
-            </div>
         </div>
     </div>
-    
-    <div id="share-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
-        <!-- ... Conteúdo do modal de compartilhamento ... -->
-    </div>
-
     <script type="module" src="script.js"></script>
 </body>
 </html>
