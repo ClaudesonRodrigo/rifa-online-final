@@ -9,6 +9,15 @@ body {
     transform: scale(1.05);
 }
 
+/* **NOVO ESTILO**: para números selecionados temporariamente */
+.number-selected {
+    background-color: #f59e0b; /* Amarelo/Laranja - bg-amber-500 */
+    color: #111827; /* Cor do texto escura para contraste */
+    transform: scale(1.1);
+    box-shadow: 0 0 15px 5px rgba(245, 158, 11, 0.6);
+}
+
+
 /* Animação de pulso para o título principal */
 .title-pulse {
     animation: pulse-animation 2s infinite;
