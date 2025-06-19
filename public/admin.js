@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-// **NOVO**: Importa a função de exclusão 'deleteDoc'
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firestore.js";
+// **LINHA CORRIGIDA**: O correto é 'firebase-firestore.js'
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // --- CONFIGURAÇÃO ---
@@ -101,7 +101,6 @@ async function createRaffle() {
     }
 }
 
-// **NOVA FUNÇÃO PARA EXCLUIR RIFA**
 async function deleteRaffle(raffleId, raffleName) {
     const confirmation = window.confirm(`Tem a certeza de que pretende excluir permanentemente a rifa "${raffleName}"?\n\nTodos os dados dos participantes e números vendidos serão perdidos. Esta ação não pode ser desfeita.`);
 
@@ -110,7 +109,6 @@ async function deleteRaffle(raffleId, raffleName) {
             const docToDelete = doc(db, "rifas", raffleId);
             await deleteDoc(docToDelete);
             alert(`Rifa "${raffleName}" excluída com sucesso.`);
-            // Se a rifa excluída era a que estava a ser visualizada, esconde os detalhes
             if (currentRaffleId === raffleId) {
                 raffleDetailsSection.classList.add('hidden');
                 currentRaffleId = null;
@@ -150,7 +148,6 @@ function listenToAllRaffles() {
                 raffleEl.classList.add('ring-2', 'ring-blue-400');
             }
 
-            // Área clicável para selecionar
             const infoEl = document.createElement('div');
             infoEl.className = 'flex-grow cursor-pointer';
             infoEl.innerHTML = `
@@ -159,7 +156,6 @@ function listenToAllRaffles() {
             `;
             infoEl.onclick = () => selectRaffle(raffleId, raffle.name);
 
-            // Container para controlos (ID e botão de excluir)
             const controlsEl = document.createElement('div');
             controlsEl.className = 'flex items-center space-x-2';
             controlsEl.innerHTML = `
@@ -169,9 +165,8 @@ function listenToAllRaffles() {
                 </button>
             `;
             
-            // Adiciona o evento de clique ao botão de excluir
             controlsEl.querySelector('.delete-raffle-btn').onclick = (e) => {
-                e.stopPropagation(); // Impede que o clique selecione a rifa
+                e.stopPropagation(); 
                 deleteRaffle(raffleId, raffle.name);
             };
 
