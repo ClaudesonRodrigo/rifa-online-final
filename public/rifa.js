@@ -39,6 +39,12 @@ const saveUserBtn = document.getElementById('save-user-btn');
 const winnerDisplaySection = document.getElementById('winner-display-section');
 const publicWinnerNumber = document.getElementById('public-winner-number');
 const publicWinnerName = document.getElementById('public-winner-name');
+const publicWinnerBoughtNumbers = document.getElementById('public-winner-bought-numbers');
+// **ELEMENTOS DO ORÁCULO ADICIONADOS**
+const luckThemeInput = document.getElementById('luck-theme-input');
+const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
+const luckyNumbersResult = document.getElementById('lucky-numbers-result');
+
 
 // --- ESTADO DO APLICATIVO ---
 let currentUser = null;
@@ -262,7 +268,26 @@ function displayPublicWinner(winnerData) {
     const { number, player } = winnerData;
     if(publicWinnerNumber) publicWinnerNumber.textContent = number;
     if(publicWinnerName) publicWinnerName.textContent = player.name;
-    // ...código para mostrar os números do ganhador se necessário...
+    
+    if(publicWinnerBoughtNumbers) {
+        publicWinnerBoughtNumbers.innerHTML = '';
+        const winnerId = player.userId;
+        const winnerNumbers = [];
+        for (const numKey in numbersData) {
+            if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
+                winnerNumbers.push(numKey);
+            }
+        }
+        winnerNumbers.sort().forEach(num => {
+            const span = document.createElement('span');
+            span.className = num === number 
+                ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' 
+                : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
+            span.textContent = num;
+            publicWinnerBoughtNumbers.appendChild(span);
+        });
+    }
+
     if(winnerDisplaySection) winnerDisplaySection.classList.remove('hidden');
     if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
 }
@@ -292,6 +317,53 @@ function checkPaymentStatus() {
     }
 }
 
+// **FUNÇÃO DO ORÁCULO RESTAURADA**
+function setButtonLoading(button, isLoading) {
+    if(!button) return;
+    const text = button.querySelector('.gemini-button-text');
+    const spinner = button.querySelector('i.fa-spinner');
+    if (text && spinner) {
+        if (isLoading) {
+            button.disabled = true;
+            text.classList.add('hidden');
+            spinner.classList.remove('hidden');
+        } else {
+            button.disabled = false;
+            text.classList.remove('hidden');
+            spinner.classList.add('hidden');
+        }
+    }
+}
+
+async function getLuckyNumbers() {
+    const theme = luckThemeInput.value.trim();
+    if (!theme) {
+        luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
+        return;
+    }
+    setButtonLoading(getLuckyNumbersBtn, true);
+    luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
+    try {
+        const functionUrl = `/.netlify/functions/getLuckyNumbers`;
+        const response = await fetch(functionUrl, {
+            method: "POST",
+            body: JSON.stringify({ theme: theme }),
+        });
+        if (!response.ok) throw new Error('A resposta da função não foi OK.');
+        const data = await response.json();
+        let html = '<div class="grid md:grid-cols-3 gap-4">';
+        data.sugestoes.forEach(s => {
+            html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500"><p class="text-2xl font-bold text-purple-300 mb-2">${s.numero}</p><p class="text-sm text-gray-300">${s.explicacao}</p></div>`;
+        });
+        html += '</div>';
+        luckyNumbersResult.innerHTML = html;
+    } catch (error) {
+        console.error("Erro ao chamar a função da Netlify:", error);
+        luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente novamente mais tarde.</p>`;
+    } finally {
+        setButtonLoading(getLuckyNumbersBtn, false);
+    }
+}
 
 // --- INICIALIZAÇÃO E EVENTOS ---
 function main() {
@@ -318,6 +390,8 @@ function main() {
 
     if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
     if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+    // **EVENT LISTENER DO ORÁCULO RESTAURADO**
+    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
     
     setupAuthListener();
 }
