@@ -1,237 +1,96 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Online - Participe Agora!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
 
-// --- CONFIGURAÇÃO ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
-    authDomain: "cemvezesmais-1ab48.firebaseapp.com",
-    projectId: "cemvezesmais-1ab48",
-    storageBucket: "cemvezesmais-1ab48.firebasestorage.app",
-    messagingSenderId: "206492928997",
-    appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
-    measurementId: "G-G3BX961SHY"
-};
+    <div id="main-container" class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        <div id="loading-section" class="text-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
+            <p class="mt-4 text-lg">A carregar rifa...</p>
+        </div>
 
-// --- INICIALIZAÇÃO DOS SERVIÇOS ---
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+        <div id="user-section" class="hidden">
+            <div class="max-w-md mx-auto">
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo à Rifa!</h2>
+                <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha os seus dados abaixo.</p>
+                <div class="mb-4">
+                    <label for="name" class="block mb-2 text-sm font-medium text-gray-300">Nome Completo</label>
+                    <input type="text" id="name" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="O seu nome" required>
+                </div>
+                <div class="mb-4">
+                    <label for="email" class="block mb-2 text-sm font-medium text-gray-300">E-mail</label>
+                    <input type="email" id="email" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="seu.email@exemplo.com" required>
+                </div>
+                <div class="mb-4">
+                    <label for="whatsapp" class="block mb-2 text-sm font-medium text-gray-300">WhatsApp</label>
+                    <input type="tel" id="whatsapp" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="(99) 99999-9999" required>
+                </div>
+                <div class="mb-6">
+                    <label for="pix" class="block mb-2 text-sm font-medium text-gray-300">Chave PIX (para receber o prémio)</label>
+                    <input type="text" id="pix" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="CPF, e-mail, telemóvel ou chave aleatória" required>
+                </div>
+                <button id="save-user-btn" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar e Escolher Números</button>
+            </div>
+        </div>
 
-// --- ELEMENTOS DO DOM ---
-const mainContainer = document.getElementById('main-container');
-const loadingSection = document.getElementById('loading-section');
-const userSection = document.getElementById('user-section');
-const appSection = document.getElementById('app-section');
-const raffleTitle = document.getElementById('raffle-title');
-const numberGrid = document.getElementById('number-grid');
-const welcomeUserSpan = document.getElementById('welcome-user');
-const shoppingCartSection = document.getElementById('shopping-cart-section');
-const selectedNumbersList = document.getElementById('selected-numbers-list');
-const totalPriceEl = document.getElementById('total-price');
-const checkoutBtn = document.getElementById('checkout-btn');
-const paymentStatusEl = document.getElementById('payment-status');
-const nameInput = document.getElementById('name');
-const emailInput = document.getElementById('email');
-const whatsappInput = document.getElementById('whatsapp');
-const pixInput = document.getElementById('pix');
-const saveUserBtn = document.getElementById('save-user-btn');
-const luckThemeInput = document.getElementById('luck-theme-input');
-const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
-const winnerDisplaySection = document.getElementById('winner-display-section');
-const publicWinnerNumber = document.getElementById('public-winner-number');
-const publicWinnerName = document.getElementById('public-winner-name');
-const publicWinnerBoughtNumbers = document.getElementById('public-winner-bought-numbers');
+        <div id="app-section" class="hidden">
+            <header class="text-center mb-8">
+                <a href="/" class="text-blue-400 hover:text-blue-300 mb-4 inline-block">&larr; Voltar para todas as rifas</a>
+                <h1 id="raffle-title" class="text-3xl md:text-4xl font-bold title-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300"></h1>
+                <p class="text-gray-400 mt-2">Bem-vindo(a), <span id="welcome-user" class="font-semibold text-blue-300"></span>!</p>
+            </header>
 
-// --- ESTADO DO APLICATIVO ---
-let currentUser = null;
-let userId = null;
-let numbersData = {};
-let selectedNumbers = [];
-let rifaDocRef;
-let PRICE_PER_NUMBER = 10;
+            <div id="winner-display-section" class="hidden p-6 mb-8 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-lg text-gray-900 shadow-lg text-center">
+                <h2 class="text-3xl font-bold mb-2">🎉 Temos um Ganhador! 🎉</h2>
+                <p class="text-lg">O número sorteado, com base nos 2 últimos dígitos da Loteria Federal, foi o</p>
+                <p id="public-winner-number" class="text-6xl font-black my-2"></p>
+                <div class="mt-4 bg-yellow-100/50 p-4 rounded-md">
+                    <p class="text-xl">Parabéns para <strong id="public-winner-name" class="underline"></strong>!</p>
+                    <p class="mt-2">Números comprados pelo ganhador:</p>
+                    <div id="public-winner-bought-numbers" class="flex flex-wrap justify-center gap-2 mt-2"></div>
+                </div>
+            </div>
 
-// --- FUNÇÕES DE LÓGICA ---
-
-function setupAuthListener() {
-    onAuthStateChanged(auth, user => {
-        if (user) {
-            userId = user.uid;
-            loadUserDataOrShowLogin();
-        } else {
-            signInAnonymously(auth).catch(err => {
-                console.error("Auth Error", err);
-                if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação. Verifique as configurações do Firebase.</p>`;
-            });
-        }
-    });
-}
-
-function loadUserDataOrShowLogin() {
-    const savedUser = localStorage.getItem(`rifaUser`);
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        setupFirestoreListener();
-    } else {
-        if(loadingSection) loadingSection.classList.add('hidden');
-        if(userSection) userSection.classList.remove('hidden');
-    }
-}
-
-function setupFirestoreListener() {
-    onSnapshot(rifaDocRef, (doc) => {
-        if (!doc.exists()) {
-            if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
-            return;
-        }
-        numbersData = doc.data();
-        PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
-        
-        if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
-        if (raffleTitle) raffleTitle.textContent = numbersData.name;
-        
-        if (numbersData.winner) {
-            displayPublicWinner(numbersData.winner);
-        }
-        renderNumberGrid();
-        
-        if(loadingSection) loadingSection.classList.add('hidden');
-        if(appSection) appSection.classList.remove('hidden');
-        checkPaymentStatus();
-
-    }, (error) => {
-        console.error("Erro ao carregar dados do Firestore:", error);
-        if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa. Verifique as regras de segurança.</p>`;
-    });
-}
-
-function renderNumberGrid() {
-    const isRaffleOver = !!numbersData.winner;
-    if (!numberGrid) return;
-    numberGrid.innerHTML = '';
-    for (let i = 0; i < 100; i++) {
-        const numberStr = i.toString().padStart(2, '0');
-        const ownerData = numbersData[numberStr];
-        const button = document.createElement('button');
-        button.textContent = numberStr;
-        button.dataset.number = numberStr;
-        button.className = "p-2 rounded-lg text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
-        if (ownerData) {
-            button.disabled = true;
-            button.classList.add(ownerData.userId === userId ? 'bg-purple-600' : 'bg-gray-600', 'cursor-not-allowed', 'opacity-70');
-        } else {
-            if (isRaffleOver) {
-                button.disabled = true;
-                button.classList.add('bg-gray-700', 'cursor-not-allowed', 'opacity-50');
-            } else {
-                button.classList.add(selectedNumbers.includes(numberStr) ? 'number-selected' : 'bg-blue-500', 'hover:bg-blue-400', 'number-available');
-                button.addEventListener('click', handleNumberClick);
-            }
-        }
-        numberGrid.appendChild(button);
-    }
-}
-
-function handleNumberClick(event) {
-    const numberStr = event.target.dataset.number;
-    const button = event.target;
-    const index = selectedNumbers.indexOf(numberStr);
-    if (index > -1) {
-        selectedNumbers.splice(index, 1);
-        button.classList.remove('number-selected');
-        button.classList.add('number-available', 'bg-blue-500');
-    } else {
-        selectedNumbers.push(numberStr);
-        button.classList.add('number-selected');
-        button.classList.remove('number-available', 'bg-blue-500');
-    }
-    updateShoppingCart();
-}
-
-function updateShoppingCart() {
-    if (selectedNumbers.length === 0) {
-        if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
-        return;
-    }
-    if (shoppingCartSection) shoppingCartSection.classList.remove('hidden');
-    if (selectedNumbersList) selectedNumbersList.innerHTML = '';
-    selectedNumbers.sort().forEach(num => {
-        const numberEl = document.createElement('span');
-        numberEl.className = 'bg-amber-500 text-gray-900 font-bold px-3 py-1 rounded-full text-lg';
-        numberEl.textContent = num;
-        if (selectedNumbersList) selectedNumbersList.appendChild(numberEl);
-    });
-    const totalPrice = selectedNumbers.length * PRICE_PER_NUMBER;
-    if (totalPriceEl) totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    if (checkoutBtn) checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
-}
-
-function saveUserData() {
-    if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
-        currentUser = { name: nameInput.value.trim(), email: emailInput.value.trim(), whatsapp: whatsappInput.value.trim(), pix: pixInput.value.trim() };
-        localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
-        if (userSection) userSection.classList.add('hidden');
-        if (loadingSection) loadingSection.classList.remove('hidden');
-        setupFirestoreListener();
-    } else {
-        alert("Por favor, preencha todos os campos.");
-    }
-}
-
-function displayPublicWinner(winnerData) {
-    if (!winnerData || !winnerData.player) {
-        if(winnerDisplaySection) winnerDisplaySection.classList.add('hidden');
-        return;
-    }
-    const { number, player } = winnerData;
-    const winnerId = player.userId;
-    const winnerNumbers = [];
-    for (const numKey in numbersData) {
-        if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
-            winnerNumbers.push(numKey);
-        }
-    }
-    if(publicWinnerNumber) publicWinnerNumber.textContent = number;
-    if(publicWinnerName) publicWinnerName.textContent = player.name;
-    if(publicWinnerBoughtNumbers) publicWinnerBoughtNumbers.innerHTML = '';
-    winnerNumbers.sort().forEach(num => {
-        const span = document.createElement('span');
-        span.className = num === number 
-            ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' 
-            : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
-        span.textContent = num;
-        if(publicWinnerBoughtNumbers) publicWinnerBoughtNumbers.appendChild(span);
-    });
-    if(winnerDisplaySection) winnerDisplaySection.classList.remove('hidden');
-    if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
-}
-
-async function handleCheckout() { /* ... código existente ... */ }
-function checkPaymentStatus() { /* ... código existente ... */ }
-function setButtonLoading(button, isLoading) { /* ... código existente ... */ }
-async function getLuckyNumbers() { /* ... código existente ... */ }
-
-
-// --- INICIALIZAÇÃO E EVENTOS ---
-
-function main() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const raffleId = urlParams.get('id');
-
-    if (!raffleId) {
-        if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
-        setTimeout(() => { window.location.href = '/'; }, 3000);
-        return;
-    }
+            <div id="number-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8"></div>
+            
+            <div id="shopping-cart-section" class="hidden bg-gray-900/50 p-6 rounded-lg border border-teal-500 mb-8">
+                 <h3 class="text-xl font-semibold mb-4 text-teal-300">A sua Seleção</h3>
+                <div id="selected-numbers-list" class="flex flex-wrap gap-3 mb-4"></div>
+                <div class="border-t border-gray-700 pt-4 flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-400">Total a pagar:</p>
+                        <p id="total-price" class="text-2xl font-bold text-white">R$ 0,00</p>
+                    </div>
+                    <a id="checkout-btn" href="#" class="px-6 py-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-bold text-lg text-white text-center transition-colors pointer-events-none opacity-50">
+                        Pagar com Mercado Pago
+                    </a>
+                </div>
+                 <p id="payment-status" class="text-center text-yellow-400 mt-4 hidden"></p>
+            </div>
+            
+            <div id="gemini-luck-section" class="bg-gray-900/50 p-6 rounded-lg border border-dashed border-purple-400">
+                <h3 class="text-xl font-semibold mb-4 text-purple-300 text-center"><i class="fas fa-star-of-life mr-2"></i>Oráculo da Sorte</h3>
+                <p class="text-center text-gray-400 mb-4">Em dúvida? Digite um tema e deixe a IA sugerir os seus números!</p>
+                <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
+                    <input type="text" id="luck-theme-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full sm:w-auto p-2.5" placeholder="Digite um tema (ex: amor, sonho)">
+                    <button id="get-lucky-numbers-btn" class="w-full sm:w-auto text-white bg-purple-600 hover:bg-purple-700 font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center gap-2">
+                        <span class="gemini-button-text">✨ Sugerir Números</span>
+                        <i class="fas fa-spinner fa-spin hidden"></i>
+                    </button>
+                </div>
+                <div id="lucky-numbers-result" class="mt-6 text-center"></div>
+            </div>
+        </div>
+    </div>
     
-    rifaDocRef = doc(db, "rifas", raffleId);
-
-    if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
-    if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
-    
-    setupAuthListener();
-}
-
-main();
-
+    <script type="module" src="rifa.js"></script>
+</body>
+</html>
