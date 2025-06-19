@@ -1,6 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-// **LINHA CORRIGIDA**: O correto é 'firebase-firestore.js'
 import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// **NOVA IMPORTAÇÃO**: Adicionamos o serviço de autenticação
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
 
 // --- CONFIGURAÇÃO ---
 const firebaseConfig = {
@@ -16,6 +18,8 @@ const firebaseConfig = {
 // --- INICIALIZAÇÃO ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+// **NOVO**: Inicializamos o serviço de autenticação
+const auth = getAuth(app);
 const rafflesCollectionRef = collection(db, "rifas");
 
 // --- ELEMENTOS DO DOM ---
@@ -32,7 +36,7 @@ function listenToActiveRaffles() {
         rafflesContainer.innerHTML = ''; // Limpa o container
         if (snapshot.empty) {
             rafflesContainer.innerHTML = `
-                <div class="text-center md:col-span-2 lg:col-span-3">
+                <div class="text-center md:col-span-2 lg:col-span-3 py-10">
                     <p class="text-xl text-gray-500">Nenhuma rifa ativa no momento. Volte em breve!</p>
                 </div>`;
             return;
@@ -63,9 +67,22 @@ function listenToActiveRaffles() {
         });
     }, (error) => {
         console.error("Erro ao buscar rifas:", error);
-        if(rafflesContainer) rafflesContainer.innerHTML = `<p class="text-red-400">Erro ao carregar as rifas.</p>`;
+        if(rafflesContainer) rafflesContainer.innerHTML = `<p class="text-red-400">Erro ao carregar as rifas. Verifique as regras de segurança do seu banco de dados.</p>`;
     });
 }
 
 // --- INÍCIO ---
-listenToActiveRaffles();
+async function main() {
+    try {
+        // Tenta fazer o login anónimo primeiro para obter permissão
+        await signInAnonymously(auth);
+        console.log("Página principal autenticada anonimamente.");
+        // Só depois de ter permissão é que tenta ler as rifas
+        listenToActiveRaffles();
+    } catch (error) {
+        console.error("Falha na autenticação da página principal:", error);
+        if(rafflesContainer) rafflesContainer.innerHTML = `<p class="text-red-400">Erro de autenticação. Não foi possível carregar as rifas.</p>`;
+    }
+}
+
+main();
