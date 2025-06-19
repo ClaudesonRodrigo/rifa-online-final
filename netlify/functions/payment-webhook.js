@@ -30,16 +30,20 @@ exports.handler = async function(event) {
       console.log('Status do Pagamento do MP:', paymentInfo.status);
 
       if (paymentInfo.status === 'approved' && paymentInfo.metadata) {
-        const { user_data, selected_numbers, raffle_id } = paymentInfo.metadata;
+        // **LÓGICA CORRIGIDA**: Capturamos o user_id separadamente para garantir que ele existe.
+        const { user_data, selected_numbers, raffle_id, user_id } = paymentInfo.metadata;
 
         if (!raffle_id) {
             console.error("Erro Crítico: ID da rifa não encontrado no metadata do pagamento.");
             return { statusCode: 400, body: 'ID da rifa em falta.' };
         }
+        if (!user_id) {
+            console.error("Erro Crítico: ID do utilizador não encontrado no metadata do pagamento.");
+            return { statusCode: 400, body: 'ID do utilizador em falta.' };
+        }
 
         const rifaDocRef = db.collection('rifas').doc(raffle_id);
 
-        // **NOVA LÓGICA DE TRANSAÇÃO SEGURA**
         await db.runTransaction(async (transaction) => {
             const rifaDoc = await transaction.get(rifaDocRef);
             if (!rifaDoc.exists) {
@@ -47,24 +51,19 @@ exports.handler = async function(event) {
             }
 
             const rifaData = rifaDoc.data();
-            
-            // Verifica se algum dos números selecionados já foi comprado
             const alreadyTaken = selected_numbers.filter(num => rifaData[num]);
             
             if (alreadyTaken.length > 0) {
-                // Se algum número já foi comprado, a transação falha.
-                // Isto previne a venda duplicada.
                 console.error(`FALHA NA COMPRA para o utilizador ${user_data.email}. Números já ocupados: ${alreadyTaken.join(', ')}`);
                 throw new Error(`Os números ${alreadyTaken.join(', ')} já não estão disponíveis.`);
             }
 
-            // Se todos os números estiverem disponíveis, prepara a atualização
             const updates = {};
             selected_numbers.forEach(number => {
-                updates[number] = { ...user_data };
+                // **LÓGICA CORRIGIDA**: Garantimos que o userId está sempre presente no objeto a ser guardado.
+                updates[number] = { ...user_data, userId: user_id };
             });
 
-            // Realiza a atualização dentro da transação
             transaction.update(rifaDocRef, updates);
         });
 
@@ -73,7 +72,6 @@ exports.handler = async function(event) {
 
     } catch (error) {
       console.error("Erro ao processar o webhook do Mercado Pago ou na transação do Firestore:", error);
-      // Retorna um erro para que o Mercado Pago possa tentar novamente
       return { statusCode: 500, body: 'Erro interno do servidor ao processar o pagamento.' };
     }
   }
