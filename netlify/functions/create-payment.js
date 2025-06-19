@@ -1,4 +1,4 @@
-const { MercadoPagoConfig, Preference } = require('mercadopago');
+import { MercadoPagoConfig, Preference } from 'mercadopago';
 
 exports.handler = async function(event) {
   const { items, payerData } = JSON.parse(event.body);
@@ -29,8 +29,11 @@ exports.handler = async function(event) {
           pending: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
         },
         auto_return: "approved",
+        // **LÓGICA CORRIGIDA**: Enviamos o 'userId' como um campo de nível superior
+        // para garantir que ele não se perca na comunicação.
         metadata: {
             user_data: payerData,
+            user_id: payerData.userId, // Enviado separadamente para segurança
             selected_numbers: items.map(item => item.id),
             raffle_id: payerData.raffleId
         },
