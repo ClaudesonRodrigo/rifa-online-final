@@ -24,16 +24,15 @@ exports.handler = async function(event) {
           email: payerData.email,
         },
         back_urls: {
-          success: "https://wonderful-fudge-37038e.netlify.app/",
-          failure: "https://wonderful-fudge-37038e.netlify.app/",
-          pending: "https://wonderful-fudge-37038e.netlify.app/",
+          success: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
+          failure: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
+          pending: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
         },
         auto_return: "approved",
         metadata: {
-            user_id: payerData.userId,
             user_data: payerData,
             selected_numbers: items.map(item => item.id),
-            raffle_id: payerData.raffleId // Adicionado para saber qual rifa atualizar
+            raffle_id: payerData.raffleId
         },
         notification_url: `https://wonderful-fudge-37038e.netlify.app/.netlify/functions/payment-webhook`,
       }
