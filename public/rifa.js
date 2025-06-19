@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-// Adicionamos 'getDoc' e 'updateDoc' para a função de teste
 import { getFirestore, doc, onSnapshot, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- CONFIGURAÇÃO ---
@@ -37,6 +36,9 @@ const emailInput = document.getElementById('email');
 const whatsappInput = document.getElementById('whatsapp');
 const pixInput = document.getElementById('pix');
 const saveUserBtn = document.getElementById('save-user-btn');
+const winnerDisplaySection = document.getElementById('winner-display-section');
+const publicWinnerNumber = document.getElementById('public-winner-number');
+const publicWinnerName = document.getElementById('public-winner-name');
 
 // --- ESTADO DO APLICATIVO ---
 let currentUser = null;
@@ -45,7 +47,7 @@ let numbersData = {};
 let selectedNumbers = [];
 let rifaDocRef;
 let PRICE_PER_NUMBER = 10;
-let isTestMode = false; // Variável para controlar o modo de teste
+let isTestMode = false;
 
 // --- LÓGICA DE TESTE ---
 async function handleTestCheckout() {
@@ -62,7 +64,6 @@ async function handleTestCheckout() {
     checkoutBtn.textContent = 'A processar teste...';
 
     try {
-        // Lógica de transação segura, executada diretamente no frontend (apenas para teste)
         const rifaDocSnapshot = await getDoc(rifaDocRef);
         const currentRifaData = rifaDocSnapshot.data() || {};
         const alreadyTaken = selectedNumbers.filter(num => currentRifaData[num]);
@@ -92,16 +93,14 @@ async function handleTestCheckout() {
 }
 
 
-// --- FUNÇÕES DE LÓGICA (Com adaptações) ---
+// --- FUNÇÕES DE LÓGICA ---
 
 async function handleCheckout() {
-    // Se estiver em modo de teste, executa a função de teste
     if (isTestMode) {
         await handleTestCheckout();
         return;
     }
     
-    // Senão, continua com o fluxo normal do Mercado Pago
     const raffleId = rifaDocRef.id;
     if (selectedNumbers.length === 0) return;
     
@@ -133,7 +132,6 @@ async function handleCheckout() {
         checkoutBtn.textContent = 'Pagar com Mercado Pago';
     }
 }
-
 
 function setupAuthListener() {
     onAuthStateChanged(auth, user => {
@@ -170,7 +168,7 @@ function setupFirestoreListener() {
         if (raffleTitle) raffleTitle.textContent = numbersData.name;
         
         if (numbersData.winner) {
-            // ... lógica do ganhador
+            displayPublicWinner(numbersData.winner);
         }
         renderNumberGrid();
         
@@ -184,24 +182,122 @@ function setupFirestoreListener() {
 }
 
 function renderNumberGrid() {
-    // ... código sem alterações ...
+    const isRaffleOver = !!numbersData.winner;
+    if(!numberGrid) return;
+    numberGrid.innerHTML = '';
+    for (let i = 0; i < 100; i++) {
+        const numberStr = i.toString().padStart(2, '0');
+        const ownerData = numbersData[numberStr];
+        const button = document.createElement('button');
+        button.textContent = numberStr;
+        button.dataset.number = numberStr;
+        button.className = "p-2 rounded-lg text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+        if (ownerData) {
+            button.disabled = true;
+            button.classList.add(ownerData.userId === userId ? 'bg-purple-600' : 'bg-gray-600', 'cursor-not-allowed', 'opacity-70');
+        } else {
+            if (isRaffleOver) {
+                button.disabled = true;
+                button.classList.add('bg-gray-700', 'cursor-not-allowed', 'opacity-50');
+            } else {
+                button.classList.add(selectedNumbers.includes(numberStr) ? 'number-selected' : 'bg-blue-500', 'hover:bg-blue-400', 'number-available');
+                button.addEventListener('click', handleNumberClick);
+            }
+        }
+        numberGrid.appendChild(button);
+    }
 }
+
 function handleNumberClick(event) {
-    // ... código sem alterações ...
+    const numberStr = event.target.dataset.number;
+    const button = event.target;
+    const index = selectedNumbers.indexOf(numberStr);
+    if (index > -1) {
+        selectedNumbers.splice(index, 1);
+        button.classList.remove('number-selected');
+        button.classList.add('number-available', 'bg-blue-500');
+    } else {
+        selectedNumbers.push(numberStr);
+        button.classList.add('number-selected');
+        button.classList.remove('number-available', 'bg-blue-500');
+    }
+    updateShoppingCart();
 }
+
 function updateShoppingCart() {
-    // ... código sem alterações ...
+    if (selectedNumbers.length === 0) {
+        if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
+        return;
+    }
+    if(shoppingCartSection) shoppingCartSection.classList.remove('hidden');
+    if(selectedNumbersList) selectedNumbersList.innerHTML = '';
+    selectedNumbers.sort().forEach(num => {
+        const numberEl = document.createElement('span');
+        numberEl.className = 'bg-amber-500 text-gray-900 font-bold px-3 py-1 rounded-full text-lg';
+        numberEl.textContent = num;
+        if(selectedNumbersList) selectedNumbersList.appendChild(numberEl);
+    });
+    const totalPrice = selectedNumbers.length * PRICE_PER_NUMBER;
+    if(totalPriceEl) totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    if(checkoutBtn) checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
 }
+
 function saveUserData() {
-    // ... código sem alterações ...
+    if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
+        currentUser = { name: nameInput.value.trim(), email: emailInput.value.trim(), whatsapp: whatsappInput.value.trim(), pix: pixInput.value.trim() };
+        localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
+        if(userSection) userSection.classList.add('hidden');
+        if(loadingSection) loadingSection.classList.remove('hidden');
+        setupFirestoreListener();
+    } else {
+        alert("Por favor, preencha todos os campos.");
+    }
 }
-// ... (resto das funções)
+
+function displayPublicWinner(winnerData) {
+    if (!winnerData || !winnerData.player) {
+        if(winnerDisplaySection) winnerDisplaySection.classList.add('hidden');
+        return;
+    }
+    const { number, player } = winnerData;
+    if(publicWinnerNumber) publicWinnerNumber.textContent = number;
+    if(publicWinnerName) publicWinnerName.textContent = player.name;
+    // ...código para mostrar os números do ganhador se necessário...
+    if(winnerDisplaySection) winnerDisplaySection.classList.remove('hidden');
+    if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
+}
+
+function checkPaymentStatus() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const status = urlParams.get('status');
+    const pendingRaffleId = localStorage.getItem('pendingRaffleId');
+    if (status && rifaDocRef.id === pendingRaffleId) {
+        const pendingNumbers = localStorage.getItem('pendingNumbers');
+        if (status === 'approved' && pendingNumbers) {
+            paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(pendingNumbers).join(', ')} foram reservados. Boa sorte!`;
+            paymentStatusEl.className = 'text-center text-green-400 mt-4';
+            paymentStatusEl.classList.remove('hidden');
+        } else if (status === 'failure') {
+            paymentStatusEl.textContent = 'O pagamento falhou. Por favor, tente novamente.';
+            paymentStatusEl.className = 'text-center text-red-400 mt-4';
+            paymentStatusEl.classList.remove('hidden');
+        }
+        localStorage.removeItem('pendingNumbers');
+        localStorage.removeItem('pendingRaffleId');
+        if(window.history.replaceState){
+            const newUrl = new URL(window.location);
+            newUrl.search = '';
+            window.history.replaceState({path:newUrl.href}, '', newUrl.href);
+        }
+    }
+}
+
 
 // --- INICIALIZAÇÃO E EVENTOS ---
 function main() {
     const urlParams = new URLSearchParams(window.location.search);
     const raffleId = urlParams.get('id');
-    isTestMode = urlParams.get('test') === 'true'; // Verifica se está em modo de teste
+    isTestMode = urlParams.get('test') === 'true'; 
 
     if (!raffleId) {
         if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
@@ -227,4 +323,3 @@ function main() {
 }
 
 main();
-
