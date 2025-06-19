@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Dependências para as Netlify Functions da rifa.",
   "dependencies": {
-    "@google/generative-ai": "^0.11.3",
     "firebase-admin": "^12.1.0",
     "mercadopago": "^2.0.9"
   }
 }
+
