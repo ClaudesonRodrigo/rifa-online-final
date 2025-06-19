@@ -108,8 +108,12 @@ function listenToAllRaffles() {
             rafflesListEl.innerHTML = '<p class="text-gray-500">Nenhuma rifa criada ainda.</p>';
             return;
         }
-        // Ordena as rifas pela data de criação, da mais recente para a mais antiga
-        const sortedRaffles = snapshot.docs.sort((a, b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis());
+        // **LINHA CORRIGIDA**: Adicionada verificação para o campo 'createdAt'.
+        const sortedRaffles = snapshot.docs.sort((a, b) => {
+            const timeA = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
+            const timeB = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
+            return timeB - timeA;
+        });
         
         sortedRaffles.forEach(doc => {
             const raffle = doc.data();
