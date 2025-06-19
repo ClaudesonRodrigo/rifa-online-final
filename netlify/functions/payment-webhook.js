@@ -1,56 +1,90 @@
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { MercadoPagoConfig, Payment } from 'mercadopago';
+import admin from 'firebase-admin';
 
+// --- Função de Inicialização Segura ---
+// Esta função garante que o Firebase só é inicializado uma vez.
+function initializeFirebaseAdmin() {
+    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        throw new Error("A chave de serviço do Firebase (FIREBASE_SERVICE_ACCOUNT_KEY) não está configurada na Netlify.");
+    }
+    if (!admin.apps.length) {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+        });
+    }
+    return admin.firestore();
+}
+
+// --- Handler da Função ---
 exports.handler = async function(event) {
-  const { items, payerData } = JSON.parse(event.body);
+    const db = initializeFirebaseAdmin();
+    const body = JSON.parse(event.body);
 
-  if (!items || items.length === 0 || !payerData) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Dados da compra inválidos." }),
-    };
-  }
+    if (body.type !== 'payment') {
+        return { statusCode: 200, body: 'Notificação ignorada.' };
+    }
 
-  const client = new MercadoPagoConfig({ 
-    accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN 
-  });
-  const preference = new Preference(client);
+    try {
+        const paymentId = body.data.id;
+        const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN });
+        const payment = new Payment(client);
+        const paymentInfo = await payment.get({ id: paymentId });
 
-  try {
-    const result = await preference.create({
-      body: {
-        items: items,
-        payer: {
-          name: payerData.name,
-          email: payerData.email,
-        },
-        back_urls: {
-          success: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
-          failure: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
-          pending: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
-        },
-        auto_return: "approved",
-        // **LÓGICA CORRIGIDA**: Enviamos o 'userId' como um campo de nível superior
-        // para garantir que ele não se perca na comunicação.
-        metadata: {
-            user_data: payerData,
-            user_id: payerData.userId, // Enviado separadamente para segurança
-            selected_numbers: items.map(item => item.id),
-            raffle_id: payerData.raffleId
-        },
-        notification_url: `https://wonderful-fudge-37038e.netlify.app/.netlify/functions/payment-webhook`,
-      }
-    });
+        if (paymentInfo.status === 'approved' && paymentInfo.metadata) {
+            // Lemos os dados "planos" do metadata para garantir que nada se perde.
+            const {
+                selected_numbers,
+                raffle_id,
+                user_id,
+                user_name,
+                user_email,
+                user_whatsapp,
+                user_pix
+            } = paymentInfo.metadata;
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ checkoutUrl: result.init_point }),
-    };
+            if (!raffle_id || !user_id) {
+                console.error("ERRO CRÍTICO: ID da rifa ou do utilizador em falta no metadata.");
+                return { statusCode: 400, body: 'Dados essenciais em falta.' };
+            }
 
-  } catch (error) {
-    console.error("Erro ao criar preferência no Mercado Pago:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Falha ao comunicar com o Mercado Pago." }),
-    };
-  }
+            const rifaDocRef = db.collection('rifas').doc(raffle_id);
+
+            // Executa a operação como uma transação segura
+            await db.runTransaction(async (transaction) => {
+                const rifaDoc = await transaction.get(rifaDocRef);
+                if (!rifaDoc.exists) throw new Error(`Rifa ${raffle_id} não encontrada!`);
+
+                const rifaData = rifaDoc.data();
+                const alreadyTaken = selected_numbers.filter(num => rifaData[num]);
+
+                if (alreadyTaken.length > 0) {
+                    throw new Error(`Números já ocupados: ${alreadyTaken.join(', ')}`);
+                }
+
+                // Reconstrói o objeto do utilizador com todos os dados
+                const dataToSave = {
+                    name: user_name,
+                    email: user_email,
+                    whatsapp: user_whatsapp,
+                    pix: user_pix,
+                    userId: user_id
+                };
+
+                const updates = {};
+                selected_numbers.forEach(number => {
+                    updates[number] = dataToSave;
+                });
+
+                transaction.update(rifaDocRef, updates);
+            });
+
+            console.log(`SUCESSO: Transação concluída para ${user_name}.`);
+        }
+    } catch (error) {
+        console.error("ERRO no processamento do webhook:", error);
+        return { statusCode: 500, body: `Erro interno: ${error.message}` };
+    }
+
+    return { statusCode: 200, body: 'Webhook recebido com sucesso.' };
 };
