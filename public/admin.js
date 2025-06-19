@@ -1,5 +1,4 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-// **LINHA CORRIGIDA**: O correto é 'firebase-firestore.js'
 import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
@@ -108,7 +107,7 @@ function listenToAllRaffles() {
             rafflesListEl.innerHTML = '<p class="text-gray-500">Nenhuma rifa criada ainda.</p>';
             return;
         }
-        // **LINHA CORRIGIDA**: Adicionada verificação para o campo 'createdAt'.
+        
         const sortedRaffles = snapshot.docs.sort((a, b) => {
             const timeA = a.data().createdAt ? a.data().createdAt.toMillis() : 0;
             const timeB = b.data().createdAt ? b.data().createdAt.toMillis() : 0;
@@ -137,7 +136,6 @@ function selectRaffle(raffleId, raffleName) {
     detailsRaffleName.textContent = raffleName;
     raffleDetailsSection.classList.remove('hidden');
     
-    // Atualiza a aparência da lista para destacar o item selecionado
     listenToAllRaffles();
 
     if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
