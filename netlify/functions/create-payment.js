@@ -29,13 +29,16 @@ exports.handler = async function(event) {
           pending: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
         },
         auto_return: "approved",
-        // **LÓGICA CORRIGIDA**: Enviamos o 'userId' como um campo de nível superior
-        // para garantir que ele não se perca na comunicação.
+        // **LÓGICA CORRIGIDA**: Passamos todos os dados de forma explícita e "plana"
+        // para garantir que nada se perca na comunicação com o Mercado Pago.
         metadata: {
-            user_data: payerData,
-            user_id: payerData.userId, // Enviado separadamente para segurança
             selected_numbers: items.map(item => item.id),
-            raffle_id: payerData.raffleId
+            raffle_id: payerData.raffleId,
+            user_id: payerData.userId,
+            user_name: payerData.name,
+            user_email: payerData.email,
+            user_whatsapp: payerData.whatsapp,
+            user_pix: payerData.pix
         },
         notification_url: `https://wonderful-fudge-37038e.netlify.app/.netlify/functions/payment-webhook`,
       }
