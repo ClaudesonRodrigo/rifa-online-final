@@ -30,16 +30,12 @@ exports.handler = async function(event) {
       console.log('Status do Pagamento do MP:', paymentInfo.status);
 
       if (paymentInfo.status === 'approved' && paymentInfo.metadata) {
-        // **LÓGICA CORRIGIDA**: Capturamos o user_id separadamente para garantir que ele existe.
-        const { user_data, selected_numbers, raffle_id, user_id } = paymentInfo.metadata;
+        const { user_data, selected_numbers, raffle_id } = paymentInfo.metadata;
 
-        if (!raffle_id) {
-            console.error("Erro Crítico: ID da rifa não encontrado no metadata do pagamento.");
-            return { statusCode: 400, body: 'ID da rifa em falta.' };
-        }
-        if (!user_id) {
-            console.error("Erro Crítico: ID do utilizador não encontrado no metadata do pagamento.");
-            return { statusCode: 400, body: 'ID do utilizador em falta.' };
+        // **VERIFICAÇÃO DE SEGURANÇA ADICIONADA**
+        if (!raffle_id || !user_data || !user_data.userId) {
+            console.error("ERRO CRÍTICO: Dados essenciais (raffle_id ou user_data.userId) em falta no metadata do pagamento.");
+            return { statusCode: 400, body: 'Dados da rifa ou do utilizador em falta.' };
         }
 
         const rifaDocRef = db.collection('rifas').doc(raffle_id);
@@ -60,8 +56,8 @@ exports.handler = async function(event) {
 
             const updates = {};
             selected_numbers.forEach(number => {
-                // **LÓGICA CORRIGIDA**: Garantimos que o userId está sempre presente no objeto a ser guardado.
-                updates[number] = { ...user_data, userId: user_id };
+                // **LÓGICA CORRIGIDA**: Garantimos que o objeto 'user_data' completo, que já contém o 'userId', é guardado.
+                updates[number] = user_data;
             });
 
             transaction.update(rifaDocRef, updates);
