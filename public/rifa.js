@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 // **LINHA CORRIGIDA**: O correto é 'firebase-firestore.js'
-import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- CONFIGURAÇÃO ---
 const firebaseConfig = {
@@ -31,7 +31,7 @@ if (!raffleId) {
     const rifaDocRef = doc(db, "rifas", raffleId);
     let PRICE_PER_NUMBER = 10; // Valor padrão
 
-    // --- ELEMENTOS DO DOM (movidos para dentro do 'else') ---
+    // --- ELEMENTOS DO DOM ---
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
     const userSection = document.getElementById('user-section');
@@ -63,15 +63,7 @@ if (!raffleId) {
     let selectedNumbers = [];
     
     // --- FUNÇÕES DO APLICATIVO ---
-    // Todas as funções do antigo script.js são movidas para aqui
-    function renderNumberGrid() { /* ... */ }
-    function handleNumberClick(event) { /* ... */ }
-    function updateShoppingCart() { /* ... */ }
-    async function handleCheckout() { /* ... */ }
-    function setupFirestoreListener() { /* ... */ }
-    // ... e assim por diante.
 
-    // Colando toda a lógica aqui...
     function setupAuthListener() {
         onAuthStateChanged(auth, user => {
             if (user) {
@@ -103,8 +95,8 @@ if (!raffleId) {
             numbersData = doc.data();
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
             
-            welcomeUserSpan.textContent = currentUser.name;
-            raffleTitle.textContent = numbersData.name;
+            if(welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
+            if(raffleTitle) raffleTitle.textContent = numbersData.name;
             
             if (numbersData.winner) {
                 displayPublicWinner(numbersData.winner);
@@ -115,12 +107,13 @@ if (!raffleId) {
             checkPaymentStatus();
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
-            mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
+            if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
         });
     }
     
     function renderNumberGrid() {
         const isRaffleOver = !!numbersData.winner;
+        if(!numberGrid) return;
         numberGrid.innerHTML = '';
         for (let i = 0; i < 100; i++) {
             const numberStr = i.toString().padStart(2, '0');
@@ -163,20 +156,20 @@ if (!raffleId) {
     
     function updateShoppingCart() {
         if (selectedNumbers.length === 0) {
-            shoppingCartSection.classList.add('hidden');
+            if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
             return;
         }
-        shoppingCartSection.classList.remove('hidden');
-        selectedNumbersList.innerHTML = '';
+        if(shoppingCartSection) shoppingCartSection.classList.remove('hidden');
+        if(selectedNumbersList) selectedNumbersList.innerHTML = '';
         selectedNumbers.sort().forEach(num => {
             const numberEl = document.createElement('span');
             numberEl.className = 'bg-amber-500 text-gray-900 font-bold px-3 py-1 rounded-full text-lg';
             numberEl.textContent = num;
-            selectedNumbersList.appendChild(numberEl);
+            if(selectedNumbersList) selectedNumbersList.appendChild(numberEl);
         });
         const totalPrice = selectedNumbers.length * PRICE_PER_NUMBER;
-        totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
+        if(totalPriceEl) totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        if(checkoutBtn) checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
     }
     
     function saveUserData() {
@@ -191,18 +184,141 @@ if (!raffleId) {
         }
     }
 
-    // Adiciona as funções restantes que estavam no script.js original
-    function displayPublicWinner(winnerData) { /* ... */ }
-    async function handleCheckout() { /* ... */ }
-    function checkPaymentStatus() { /* ... */ }
-    async function getLuckyNumbers() { /* ... */ }
-    function setButtonLoading(button, isLoading) { /* ... */ }
+    function displayPublicWinner(winnerData) {
+        if (!winnerData || !winnerData.player) {
+            if(winnerDisplaySection) winnerDisplaySection.classList.add('hidden');
+            return;
+        }
+        const { number, player } = winnerData;
+        const winnerId = player.userId;
+        const winnerNumbers = [];
+        for (const numKey in numbersData) {
+            if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
+                winnerNumbers.push(numKey);
+            }
+        }
+        if(publicWinnerNumber) publicWinnerNumber.textContent = number;
+        if(publicWinnerName) publicWinnerName.textContent = player.name;
+        if(publicWinnerBoughtNumbers) publicWinnerBoughtNumbers.innerHTML = '';
+        winnerNumbers.sort().forEach(num => {
+            const span = document.createElement('span');
+            span.className = num === number 
+                ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' 
+                : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
+            span.textContent = num;
+            if(publicWinnerBoughtNumbers) publicWinnerBoughtNumbers.appendChild(span);
+        });
+        if(winnerDisplaySection) winnerDisplaySection.classList.remove('hidden');
+        if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
+    }
 
+    async function handleCheckout() {
+        if (selectedNumbers.length === 0) return;
+        checkoutBtn.classList.add('pointer-events-none', 'opacity-50');
+        checkoutBtn.textContent = 'A gerar link...';
+        paymentStatusEl.textContent = 'Aguarde, estamos a preparar o seu pagamento...';
+        paymentStatusEl.classList.remove('hidden');
+        const items = selectedNumbers.map(number => ({
+            id: number, title: `Rifa - Número ${number}`, quantity: 1, unit_price: PRICE_PER_NUMBER, currency_id: 'BRL'
+        }));
+        const payerData = { ...currentUser, userId };
+        try {
+            const response = await fetch('/.netlify/functions/create-payment', {
+                method: 'POST', body: JSON.stringify({ items, payerData }),
+            });
+            if (!response.ok) throw new Error('Falha ao gerar o link de pagamento.');
+            const data = await response.json();
+            if (data.checkoutUrl) {
+                localStorage.setItem('pendingRaffleId', raffleId);
+                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers));
+                window.location.href = data.checkoutUrl;
+            }
+        } catch (error) {
+            console.error("Erro no checkout:", error);
+            paymentStatusEl.textContent = 'Erro ao gerar o link de pagamento. Tente novamente.';
+            checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
+            checkoutBtn.textContent = 'Pagar com Mercado Pago';
+        }
+    }
+
+    function checkPaymentStatus() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        const pendingRaffleId = localStorage.getItem('pendingRaffleId');
+        
+        if (status && raffleId === pendingRaffleId) {
+            const pendingNumbers = localStorage.getItem('pendingNumbers');
+            if (status === 'approved' && pendingNumbers) {
+                paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(pendingNumbers).join(', ')} foram reservados. Boa sorte!`;
+                paymentStatusEl.className = 'text-center text-green-400 mt-4';
+                paymentStatusEl.classList.remove('hidden');
+            } else if (status === 'failure') {
+                paymentStatusEl.textContent = 'O pagamento falhou. Por favor, tente novamente.';
+                paymentStatusEl.className = 'text-center text-red-400 mt-4';
+                paymentStatusEl.classList.remove('hidden');
+            }
+            localStorage.removeItem('pendingNumbers');
+            localStorage.removeItem('pendingRaffleId');
+            
+            if(window.history.replaceState){
+                const newUrl = new URL(window.location);
+                newUrl.search = ''; // Remove todos os parâmetros da query
+                window.history.replaceState({path:newUrl.href}, '', newUrl.href);
+            }
+        }
+    }
+    
+    function setButtonLoading(button, isLoading) {
+        if(!button) return;
+        const text = button.querySelector('.gemini-button-text');
+        const spinner = button.querySelector('i.fa-spinner');
+        if (text && spinner) {
+            if (isLoading) {
+                button.disabled = true;
+                text.classList.add('hidden');
+                spinner.classList.remove('hidden');
+            } else {
+                button.disabled = false;
+                text.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }
+        }
+    }
+
+    async function getLuckyNumbers() {
+        const theme = luckThemeInput.value.trim();
+        if (!theme) {
+            luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
+            return;
+        }
+        setButtonLoading(getLuckyNumbersBtn, true);
+        luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
+        try {
+            const functionUrl = `/.netlify/functions/getLuckyNumbers`;
+            const response = await fetch(functionUrl, {
+                method: "POST",
+                body: JSON.stringify({ theme: theme }),
+            });
+            if (!response.ok) throw new Error('A resposta da função não foi OK.');
+            const data = await response.json();
+            let html = '<div class="grid md:grid-cols-3 gap-4">';
+            data.sugestoes.forEach(s => {
+                html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500"><p class="text-2xl font-bold text-purple-300 mb-2">${s.numero}</p><p class="text-sm text-gray-300">${s.explicacao}</p></div>`;
+            });
+            html += '</div>';
+            luckyNumbersResult.innerHTML = html;
+        } catch (error) {
+            console.error("Erro ao chamar a função da Netlify:", error);
+            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente novamente mais tarde.</p>`;
+        } finally {
+            setButtonLoading(getLuckyNumbersBtn, false);
+        }
+    }
 
     // EVENT LISTENERS
-    saveUserBtn.addEventListener('click', saveUserData);
-    checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    if(saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
+    if(checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+    if(getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
     
     // INÍCIO
     setupAuthListener();
