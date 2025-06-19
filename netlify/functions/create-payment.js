@@ -32,7 +32,8 @@ exports.handler = async function(event) {
         metadata: {
             user_id: payerData.userId,
             user_data: payerData,
-            selected_numbers: items.map(item => item.id)
+            selected_numbers: items.map(item => item.id),
+            raffle_id: payerData.raffleId // Adicionado para saber qual rifa atualizar
         },
         notification_url: `https://wonderful-fudge-37038e.netlify.app/.netlify/functions/payment-webhook`,
       }
