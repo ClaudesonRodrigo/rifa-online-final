@@ -27,6 +27,7 @@ function listenToActiveRaffles() {
     const q = query(rafflesCollectionRef, where("status", "==", "active"));
 
     onSnapshot(q, (snapshot) => {
+        if(!rafflesContainer) return;
         rafflesContainer.innerHTML = ''; // Limpa o container
         if (snapshot.empty) {
             rafflesContainer.innerHTML = `
@@ -36,7 +37,9 @@ function listenToActiveRaffles() {
             return;
         }
 
-        snapshot.docs.sort((a,b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis()).forEach(doc => {
+        const sortedRaffles = snapshot.docs.sort((a,b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis());
+
+        sortedRaffles.forEach(doc => {
             const raffle = doc.data();
             const raffleId = doc.id;
             
@@ -59,7 +62,7 @@ function listenToActiveRaffles() {
         });
     }, (error) => {
         console.error("Erro ao buscar rifas:", error);
-        rafflesContainer.innerHTML = `<p class="text-red-400">Erro ao carregar as rifas.</p>`;
+        if(rafflesContainer) rafflesContainer.innerHTML = `<p class="text-red-400">Erro ao carregar as rifas.</p>`;
     });
 }
 
