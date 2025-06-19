@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// **NOVO**: Importa a função de exclusão 'deleteDoc'
+import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // --- CONFIGURAÇÃO ---
@@ -100,6 +101,28 @@ async function createRaffle() {
     }
 }
 
+// **NOVA FUNÇÃO PARA EXCLUIR RIFA**
+async function deleteRaffle(raffleId, raffleName) {
+    const confirmation = window.confirm(`Tem a certeza de que pretende excluir permanentemente a rifa "${raffleName}"?\n\nTodos os dados dos participantes e números vendidos serão perdidos. Esta ação não pode ser desfeita.`);
+
+    if (confirmation) {
+        try {
+            const docToDelete = doc(db, "rifas", raffleId);
+            await deleteDoc(docToDelete);
+            alert(`Rifa "${raffleName}" excluída com sucesso.`);
+            // Se a rifa excluída era a que estava a ser visualizada, esconde os detalhes
+            if (currentRaffleId === raffleId) {
+                raffleDetailsSection.classList.add('hidden');
+                currentRaffleId = null;
+            }
+        } catch (error) {
+            console.error("Erro ao excluir a rifa:", error);
+            alert("Ocorreu um erro ao excluir a rifa. Verifique a consola para mais detalhes.");
+        }
+    }
+}
+
+
 function listenToAllRaffles() {
     onSnapshot(rafflesCollectionRef, (snapshot) => {
         rafflesListEl.innerHTML = '';
@@ -116,16 +139,44 @@ function listenToAllRaffles() {
         
         sortedRaffles.forEach(doc => {
             const raffle = doc.data();
+            const raffleId = doc.id;
             const raffleEl = document.createElement('div');
-            raffleEl.className = 'p-3 bg-gray-700 rounded-lg flex justify-between items-center cursor-pointer hover:bg-gray-600';
-            if (raffle.status === 'finished') {
+            
+            raffleEl.className = 'p-3 bg-gray-700 rounded-lg flex justify-between items-center';
+             if (raffle.status === 'finished') {
                 raffleEl.classList.add('opacity-60');
             }
             if (doc.id === currentRaffleId) {
                 raffleEl.classList.add('ring-2', 'ring-blue-400');
             }
-            raffleEl.innerHTML = `<div><p class="font-semibold">${raffle.name}</p><p class="text-xs text-gray-400">Status: ${raffle.status}</p></div><span class="text-xs font-mono text-blue-300">${doc.id.substring(0,6)}...</span>`;
-            raffleEl.onclick = () => selectRaffle(doc.id, raffle.name);
+
+            // Área clicável para selecionar
+            const infoEl = document.createElement('div');
+            infoEl.className = 'flex-grow cursor-pointer';
+            infoEl.innerHTML = `
+                <p class="font-semibold">${raffle.name}</p>
+                <p class="text-xs text-gray-400">Status: ${raffle.status}</p>
+            `;
+            infoEl.onclick = () => selectRaffle(raffleId, raffle.name);
+
+            // Container para controlos (ID e botão de excluir)
+            const controlsEl = document.createElement('div');
+            controlsEl.className = 'flex items-center space-x-2';
+            controlsEl.innerHTML = `
+                <span class="text-xs font-mono text-blue-300">${raffleId.substring(0,6)}...</span>
+                <button title="Excluir Rifa" class="delete-raffle-btn p-2 text-gray-500 hover:text-red-500 rounded-full transition-colors">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            
+            // Adiciona o evento de clique ao botão de excluir
+            controlsEl.querySelector('.delete-raffle-btn').onclick = (e) => {
+                e.stopPropagation(); // Impede que o clique selecione a rifa
+                deleteRaffle(raffleId, raffle.name);
+            };
+
+            raffleEl.appendChild(infoEl);
+            raffleEl.appendChild(controlsEl);
             rafflesListEl.appendChild(raffleEl);
         });
     });
