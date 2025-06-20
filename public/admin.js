@@ -12,17 +12,18 @@ const firebaseConfig = {
     appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
     measurementId: "G-G3BX961SHY"
 };
-
-// --- INICIALIZAÇÃO ---
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const rafflesCollectionRef = collection(db, "rifas");
+const ADMIN_PASSWORD = "Cariocaju@2025"; // Esta senha já não é usada, mas mantemo-la como referência.
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
 // Esta função organiza todo o código para garantir que os elementos HTML
 // já existem antes de tentarmos usá-los.
-function main() {
+function initializeAdminApp() {
+    // --- INICIALIZAÇÃO DOS SERVIÇOS ---
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const rafflesCollectionRef = collection(db, "rifas");
+
     // --- ELEMENTOS DO DOM ---
     const loginScreen = document.getElementById('login-screen');
     const adminPanel = document.getElementById('admin-panel');
@@ -60,19 +61,19 @@ function main() {
     let rawRifaData = {};
 
     // --- LÓGICA DE AUTENTICAÇÃO SEGURA ---
-    function handleAuthState(user) {
+    const handleAuthState = (user) => {
         if (user) {
             loginScreen.classList.add('hidden');
             adminPanel.classList.remove('hidden');
             adminEmailDisplay.textContent = `Logado como: ${user.email}`;
-            listenToAllRaffles(); 
+            listenToAllRaffles();
         } else {
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
-    }
+    };
 
-    async function handleLogin() {
+    const handleLogin = async () => {
         const email = adminEmailInput.value;
         const password = adminPasswordInput.value;
         loginError.classList.add('hidden');
@@ -82,14 +83,12 @@ function main() {
             console.error("Erro no login:", error.code);
             loginError.classList.remove('hidden');
         }
-    }
+    };
 
-    function handleLogout() {
-        signOut(auth);
-    }
+    const handleLogout = () => signOut(auth);
 
-    // --- LÓGICA DE GESTÃO DE RIFAS (COMPLETA) ---
-    async function createRaffle() {
+    // --- LÓGICA DE GESTÃO DE RIFAS ---
+    const createRaffle = async () => {
         const name = raffleNameInput.value.trim();
         const price = parseFloat(rafflePriceInput.value);
         if (!name || isNaN(price) || price <= 0) {
@@ -104,9 +103,9 @@ function main() {
             raffleNameInput.value = '';
             rafflePriceInput.value = '';
         } catch (error) { console.error("Erro ao criar rifa:", error); }
-    }
+    };
 
-    async function deleteRaffle(raffleId, raffleName) {
+    const deleteRaffle = async (raffleId, raffleName) => {
         if (window.confirm(`Tem a certeza de que pretende excluir permanentemente a rifa "${raffleName}"?`)) {
             try {
                 await deleteDoc(doc(db, "rifas", raffleId));
@@ -117,8 +116,8 @@ function main() {
                 }
             } catch (error) { console.error("Erro ao excluir a rifa:", error); }
         }
-    }
-
+    };
+    
     function listenToAllRaffles() {
         onSnapshot(rafflesCollectionRef, (snapshot) => {
             if(!rafflesListEl) return;
@@ -132,13 +131,21 @@ function main() {
                 const raffle = doc.data();
                 const el = document.createElement('div');
                 el.className = `p-3 bg-gray-700 rounded-lg flex justify-between items-center ${doc.id === currentRaffleId ? 'ring-2 ring-blue-400' : ''} ${raffle.status === 'finished' ? 'opacity-60' : ''}`;
-                el.innerHTML = `<div class="flex-grow cursor-pointer" data-id="${doc.id}" data-name="${raffle.name}"><p class="font-semibold">${raffle.name}</p><p class="text-xs text-gray-400">Status: ${raffle.status}</p></div><div class="flex items-center space-x-2"><span class="text-xs font-mono text-blue-300">${doc.id.substring(0,6)}...</span><button title="Excluir Rifa" data-id="${doc.id}" data-name="${raffle.name}" class="delete-raffle-btn p-2 text-gray-500 hover:text-red-500"><i class="fas fa-trash"></i></button></div>`;
+                el.innerHTML = `
+                    <div class="flex-grow cursor-pointer" data-id="${doc.id}" data-name="${raffle.name}">
+                        <p class="font-semibold">${raffle.name}</p>
+                        <p class="text-xs text-gray-400">Status: ${raffle.status}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-mono text-blue-300">${doc.id.substring(0,6)}...</span>
+                        <button title="Excluir Rifa" data-id="${doc.id}" data-name="${raffle.name}" class="delete-raffle-btn p-2 text-gray-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                    </div>`;
                 rafflesListEl.appendChild(el);
             });
         });
     }
 
-    function selectRaffle(raffleId, raffleName) {
+    window.selectRaffle = (raffleId, raffleName) => {
         currentRaffleId = raffleId;
         detailsRaffleName.textContent = raffleName;
         raffleDetailsSection.classList.remove('hidden');
@@ -157,7 +164,7 @@ function main() {
             }
         });
     }
-
+    
     function processRifaData(data) {
         const participants = {};
         let soldCount = 0;
@@ -232,14 +239,14 @@ function main() {
     }
 
     // --- EVENT LISTENERS ---
-    // Adicionamos verificações para garantir que os elementos existem antes de adicionar o listener
-    if(loginBtn) loginBtn.addEventListener('click', handleLogin);
-    if(adminPasswordInput) adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
-    if(logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-    if(createRaffleBtn) createRaffleBtn.addEventListener('click', createRaffle);
-    if(declareWinnerBtn) declareWinnerBtn.addEventListener('click', declareWinner);
-    if(searchInput) searchInput.addEventListener('input', handleSearch);
-    if(rafflesListEl) rafflesListEl.addEventListener('click', (e) => {
+    loginBtn.addEventListener('click', handleLogin);
+    adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
+    logoutBtn.addEventListener('click', handleLogout);
+    createRaffleBtn.addEventListener('click', createRaffle);
+    declareWinnerBtn.addEventListener('click', declareWinner);
+    searchInput.addEventListener('input', handleSearch);
+    
+    rafflesListEl.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-raffle-btn');
         if (deleteBtn) {
             e.stopPropagation();
@@ -247,7 +254,7 @@ function main() {
             return;
         }
         
-        const infoEl = e.target.closest('.flex-grow');
+        const infoEl = e.target.closest('.flex-grow[data-id]');
         if (infoEl) {
             selectRaffle(infoEl.dataset.id, infoEl.dataset.name);
         }
@@ -257,5 +264,6 @@ function main() {
     onAuthStateChanged(auth, handleAuthState);
 }
 
-// Inicia todo o script
-main();
+// Inicia todo o script apenas quando a página estiver completamente carregada
+document.addEventListener('DOMContentLoaded', initializeAdminApp);
+
