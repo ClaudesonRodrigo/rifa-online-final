@@ -235,27 +235,19 @@ createRaffleBtn.addEventListener('click', createRaffle);
 declareWinnerBtn.addEventListener('click', declareWinner);
 searchInput.addEventListener('input', handleSearch);
 
-// **LÓGICA DE EVENTOS CORRIGIDA**
-// Adiciona um único "ouvinte" à lista e usa a delegação de eventos.
 rafflesListEl.addEventListener('click', (e) => {
-    // Procura o botão de exclusão mais próximo do clique
     const deleteBtn = e.target.closest('.delete-raffle-btn');
     if (deleteBtn) {
-        // Se encontrou, chama a função de exclusão
-        e.stopPropagation(); // Impede que o clique selecione a rifa também
+        e.stopPropagation();
         deleteRaffle(deleteBtn.dataset.id, deleteBtn.dataset.name);
         return;
     }
     
-    // Se não clicou no botão de exclusão, procura a área de informação da rifa
     const infoEl = e.target.closest('.flex-grow');
     if (infoEl) {
-        // Se encontrou, chama a função para selecionar a rifa
         selectRaffle(infoEl.dataset.id, infoEl.dataset.name);
     }
 });
 
-
 // --- INICIALIZAÇÃO ---
-// A aplicação agora começa ouvindo o estado da autenticação
 onAuthStateChanged(auth, handleAuthState);
