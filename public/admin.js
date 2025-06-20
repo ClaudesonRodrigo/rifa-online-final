@@ -53,8 +53,9 @@ function initializeAdminApp() {
 
     // --- ESTADO GLOBAL ---
     let currentRaffleId = null;
-    let allRafflesUnsubscribe = null; // **NOVO**: para o "ouvido" da lista de rifas
+    let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
+    let allParticipantsData = [];
     let rawRifaData = {};
 
     // --- LÓGICA DE AUTENTICAÇÃO SEGURA ---
@@ -82,29 +83,45 @@ function initializeAdminApp() {
         }
     };
 
-    // **LÓGICA DE LOGOUT CORRIGIDA**
     const handleLogout = () => {
-        // Primeiro, "desliga os ouvidos" para evitar erros de permissão
-        if (allRafflesUnsubscribe) {
-            allRafflesUnsubscribe();
-        }
-        if (currentRaffleUnsubscribe) {
-            currentRaffleUnsubscribe();
-        }
-        // Só depois faz o logout
+        if (allRafflesUnsubscribe) allRafflesUnsubscribe();
+        if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
         signOut(auth);
     };
 
     // --- LÓGICA DE GESTÃO DE RIFAS ---
-    const createRaffle = async () => { /* ... código sem alterações ... */ };
-    const deleteRaffle = async (raffleId, raffleName) => { /* ... código sem alterações ... */ };
+    const createRaffle = async () => {
+        const name = raffleNameInput.value.trim();
+        const price = parseFloat(rafflePriceInput.value);
+        if (!name || isNaN(price) || price <= 0) {
+            alert("Por favor, preencha o nome do prémio e um preço válido.");
+            return;
+        }
+        try {
+            await addDoc(rafflesCollectionRef, {
+                name: name, pricePerNumber: price, createdAt: new Date(), status: 'active'
+            });
+            alert(`Rifa "${name}" criada com sucesso!`);
+            raffleNameInput.value = '';
+            rafflePriceInput.value = '';
+        } catch (error) { console.error("Erro ao criar rifa:", error); }
+    };
+
+    const deleteRaffle = async (raffleId, raffleName) => {
+        if (window.confirm(`Tem a certeza de que pretende excluir permanentemente a rifa "${raffleName}"?`)) {
+            try {
+                await deleteDoc(doc(db, "rifas", raffleId));
+                alert(`Rifa "${raffleName}" excluída com sucesso.`);
+                if (currentRaffleId === raffleId) {
+                    raffleDetailsSection.classList.add('hidden');
+                    currentRaffleId = null;
+                }
+            } catch (error) { console.error("Erro ao excluir a rifa:", error); }
+        }
+    };
     
     function listenToAllRaffles() {
-        // Se já existe um "ouvido" para a lista, desliga-o antes de criar um novo
-        if (allRafflesUnsubscribe) {
-            allRafflesUnsubscribe();
-        }
-        // Guarda a referência da função de "desligar"
+        if (allRafflesUnsubscribe) allRafflesUnsubscribe();
         allRafflesUnsubscribe = onSnapshot(rafflesCollectionRef, (snapshot) => {
             if(!rafflesListEl) return;
             rafflesListEl.innerHTML = '';
@@ -131,14 +148,98 @@ function initializeAdminApp() {
         });
     }
 
-    // A função 'selectRaffle' e as outras continuam iguais
-    function selectRaffle(raffleId, raffleName) { /* ... */ }
-    function processRifaData(data) { /* ... */ }
-    function renderTable(data) { /* ... */ }
-    function updateSummary(sold, parts, price = 0) { /* ... */ }
-    async function declareWinner() { /* ... */ }
-    function showWinnerInAdminPanel(info) { /* ... */ }
-    function handleSearch() { /* ... */ }
+    function selectRaffle(raffleId, raffleName) {
+        currentRaffleId = raffleId;
+        detailsRaffleName.textContent = raffleName;
+        raffleDetailsSection.classList.remove('hidden');
+        listenToAllRaffles(); 
+        if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
+        const ref = doc(db, "rifas", raffleId);
+        currentRaffleUnsubscribe = onSnapshot(ref, (doc) => {
+            rawRifaData = doc.data() || {};
+            processRifaData(rawRifaData);
+            if (rawRifaData.winner) {
+                showWinnerInAdminPanel(rawRifaData.winner);
+            } else {
+                declareWinnerArea.classList.remove('hidden');
+                winnerInfoAdmin.classList.add('hidden');
+                noWinnerInfoAdmin.classList.add('hidden');
+            }
+        });
+    }
+    
+    function processRifaData(data) {
+        const participants = {};
+        let soldCount = 0;
+        for (const key in data) {
+            if (!isNaN(key) && key.length === 2) {
+                soldCount++;
+                const pData = data[key];
+                if (pData?.userId) {
+                    if (!participants[pData.userId]) participants[pData.userId] = { ...pData, numbers: [] };
+                    participants[pData.userId].numbers.push(key);
+                }
+            }
+        }
+        allParticipantsData = Object.values(participants);
+        renderTable(allParticipantsData);
+        updateSummary(soldCount, allParticipantsData.length, data.pricePerNumber);
+    }
+
+    function renderTable(data) {
+        participantsTableBody.innerHTML = '';
+        if (data.length === 0) {
+            participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">Nenhum participante.</td></tr>`;
+            return;
+        }
+        data.forEach(p => {
+            p.numbers.sort();
+            const row = document.createElement('tr');
+            row.className = 'border-b border-gray-700';
+            row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3"><div class="flex flex-col"><span>${p.email}</span><span>${p.whatsapp}</span></div></td><td class="p-3">${p.pix}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
+            participantsTableBody.appendChild(row);
+        });
+    }
+
+    function updateSummary(sold, parts, price = 0) {
+        soldNumbersEl.textContent = sold;
+        totalParticipantsEl.textContent = parts;
+        totalRevenueEl.textContent = (sold * price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    async function declareWinner() {
+        if (!currentRaffleId) return alert("Nenhuma rifa selecionada.");
+        const num = winningNumberInput.value.trim().padStart(2, '0');
+        if (parseInt(num, 10) < 0 || parseInt(num, 10) > 99) return alert("Número inválido.");
+        const winnerData = rawRifaData[num] || null;
+        try {
+            await updateDoc(doc(db, "rifas", currentRaffleId), { winner: { number: num, player: winnerData }, status: 'finished' });
+            alert(`Sorteio finalizado!`);
+        } catch (e) { console.error("Erro ao declarar ganhador:", e); }
+    }
+
+    function showWinnerInAdminPanel(info) {
+        declareWinnerArea.classList.add('hidden');
+        const { number, player } = info;
+        if (player) {
+            adminWinnerNumber.textContent = number;
+            adminWinnerName.textContent = player.name;
+            adminWinnerContact.textContent = `${player.email} / ${player.whatsapp}`;
+            adminWinnerPix.textContent = player.pix;
+            winnerInfoAdmin.classList.remove('hidden');
+            noWinnerInfoAdmin.classList.add('hidden');
+        } else {
+            adminWinnerNumber.textContent = number;
+            noWinnerInfoAdmin.classList.remove('hidden');
+            winnerInfoAdmin.classList.add('hidden');
+        }
+    }
+
+    function handleSearch() {
+        const term = searchInput.value.toLowerCase();
+        const filtered = term ? allParticipantsData.filter(p => p.name.toLowerCase().includes(term) || p.numbers.some(n => n.includes(term))) : allParticipantsData;
+        renderTable(filtered);
+    }
 
     // --- EVENT LISTENERS ---
     if(loginBtn) loginBtn.addEventListener('click', handleLogin);
@@ -166,6 +267,4 @@ function initializeAdminApp() {
     onAuthStateChanged(auth, handleAuthState);
 }
 
-// Inicia todo o script apenas quando a página estiver completamente carregada
 document.addEventListener('DOMContentLoaded', initializeAdminApp);
-
