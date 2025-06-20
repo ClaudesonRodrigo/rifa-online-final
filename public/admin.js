@@ -57,23 +57,10 @@ function initializeAdminApp() {
     let currentRaffleId = null;
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
-    let allParticipantsData = [];
     let rawRifaData = {};
+    let allParticipantsData = [];
 
-    // --- LÓGICA DE AUTENTICAÇÃO E GESTÃO ---
-
-    const handleAuthState = (user) => {
-        if (user) {
-            loginScreen.classList.add('hidden');
-            adminPanel.classList.remove('hidden');
-            adminEmailDisplay.textContent = `Logado como: ${user.email}`;
-            listenToAllRaffles();
-        } else {
-            loginScreen.classList.remove('hidden');
-            adminPanel.classList.add('hidden');
-        }
-    };
-
+    // --- LÓGICA DE AUTENTICAÇÃO ---
     const handleLogin = async () => {
         const email = adminEmailInput.value;
         const password = adminPasswordInput.value;
@@ -91,7 +78,8 @@ function initializeAdminApp() {
         if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
         signOut(auth);
     };
-
+    
+    // --- LÓGICA DE GESTÃO DE RIFAS ---
     const createRaffle = async () => {
         const name = raffleNameInput.value.trim();
         const price = parseFloat(rafflePriceInput.value);
@@ -119,11 +107,11 @@ function initializeAdminApp() {
             } catch (error) { console.error("Erro ao excluir a rifa:", error); }
         }
     };
-
+    
     function listenToAllRaffles() {
         if (allRafflesUnsubscribe) allRafflesUnsubscribe();
         allRafflesUnsubscribe = onSnapshot(rafflesCollectionRef, (snapshot) => {
-            if (!rafflesListEl) return;
+            if(!rafflesListEl) return;
             rafflesListEl.innerHTML = '';
             if (snapshot.empty) {
                 rafflesListEl.innerHTML = '<p class="text-gray-500">Nenhuma rifa criada.</p>';
@@ -152,7 +140,7 @@ function initializeAdminApp() {
         currentRaffleId = raffleId;
         detailsRaffleName.textContent = raffleName;
         raffleDetailsSection.classList.remove('hidden');
-        listenToAllRaffles();
+        listenToAllRaffles(); 
         if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
         const ref = doc(db, "rifas", raffleId);
         currentRaffleUnsubscribe = onSnapshot(ref, (doc) => {
@@ -167,7 +155,7 @@ function initializeAdminApp() {
             }
         });
     };
-
+    
     const processRifaData = (data) => {
         const participants = {};
         let soldCount = 0;
@@ -181,7 +169,7 @@ function initializeAdminApp() {
                 }
             }
         }
-        const allParticipantsData = Object.values(participants);
+        allParticipantsData = Object.values(participants);
         renderTable(allParticipantsData);
         updateSummary(soldCount, allParticipantsData.length, data.pricePerNumber);
     };
@@ -263,9 +251,21 @@ function initializeAdminApp() {
         }
     });
 
-    // --- INICIALIZAÇÃO ---
-    onAuthStateChanged(auth, handleAuthState);
+    // --- VIGILANTE DE AUTENTICAÇÃO ---
+    onAuthStateChanged(auth, (user) => {
+        if (user && user.email) {
+            loginScreen.classList.add('hidden');
+            adminPanel.classList.remove('hidden');
+            adminEmailDisplay.textContent = `Logado como: ${user.email}`;
+            listenToAllRaffles();
+        } else {
+            if (user) signOut(auth);
+            loginScreen.classList.remove('hidden');
+            adminPanel.classList.add('hidden');
+        }
+    });
 }
 
 // Inicia todo o script apenas quando a página estiver completamente carregada
 document.addEventListener('DOMContentLoaded', initializeAdminApp);
+
