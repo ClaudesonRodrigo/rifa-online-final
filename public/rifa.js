@@ -2,19 +2,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// --- CONFIGURAÇÃO ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
-    authDomain: "cemvezesmais-1ab48.firebaseapp.com",
-    projectId: "cemvezesmais-1ab48",
-    storageBucket: "cemvezesmais-1ab48.firebasestorage.app",
-    messagingSenderId: "206492928997",
-    appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
-    measurementId: "G-G3BX961SHY"
-};
-
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
+// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
+    // --- CONFIGURAÇÃO ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
+        authDomain: "cemvezesmais-1ab48.firebaseapp.com",
+        projectId: "cemvezesmais-1ab48",
+        storageBucket: "cemvezesmais-1ab48.firebasestorage.app",
+        messagingSenderId: "206492928997",
+        appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
+        measurementId: "G-G3BX961SHY"
+    };
+
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -46,9 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressBar = document.getElementById('progress-bar');
     const progressPercentage = document.getElementById('progress-percentage');
     const recentBuyersList = document.getElementById('recent-buyers-list');
-    const luckThemeInput = document.getElementById('luck-theme-input');
-    const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
-    const luckyNumbersResult = document.getElementById('lucky-numbers-result');
+    const shareModal = document.getElementById('share-modal');
+    const closeShareModalBtn = document.getElementById('close-share-modal-btn');
+    const shareWhatsappBtn = document.getElementById('share-whatsapp-btn');
+    const shareFacebookBtn = document.getElementById('share-facebook-btn');
+    const shareTwitterBtn = document.getElementById('share-twitter-btn');
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -195,13 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayPublicWinner(winnerData) {
         if (!winnerData || !winnerData.player) {
-            if (winnerDisplaySection) winnerDisplaySection.classList.add('hidden');
+            if(winnerDisplaySection) winnerDisplaySection.classList.add('hidden');
             return;
         }
         const { number, player } = winnerData;
-        if (publicWinnerNumber) publicWinnerNumber.textContent = number;
-        if (publicWinnerName) publicWinnerName.textContent = player.name;
-        if (publicWinnerBoughtNumbers) {
+        if(publicWinnerNumber) publicWinnerNumber.textContent = number;
+        if(publicWinnerName) publicWinnerName.textContent = player.name;
+        if(publicWinnerBoughtNumbers) {
             publicWinnerBoughtNumbers.innerHTML = '';
             const winnerId = player.userId;
             const winnerNumbers = [];
@@ -219,8 +222,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 publicWinnerBoughtNumbers.appendChild(span);
             });
         }
-        if (winnerDisplaySection) winnerDisplaySection.classList.remove('hidden');
-        if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
+        if(winnerDisplaySection) winnerDisplaySection.classList.remove('hidden');
+        if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
     async function handleCheckout() {
@@ -274,7 +277,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 updates[number] = { ...currentUser, userId, raffleId, createdAt: new Date() };
             });
             await updateDoc(rifaDocRef, updates);
-            alert("Aposta de teste finalizada com sucesso!");
+            
+            paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${selectedNumbers.join(', ')} foram reservados.`;
+            paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
+            paymentStatusEl.classList.remove('hidden');
+            triggerConfetti();
+            if (shareModal) shareModal.style.display = 'flex';
+
             selectedNumbers = [];
             updateShoppingCart();
         } catch (error) {
@@ -297,6 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
                 paymentStatusEl.classList.remove('hidden');
                 triggerConfetti();
+                if (shareModal) shareModal.style.display = 'flex';
             } else if (status === 'failure') {
                 paymentStatusEl.textContent = 'O pagamento falhou. Por favor, tente novamente.';
                 paymentStatusEl.className = 'text-center text-red-400 mt-4';
@@ -352,50 +362,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    function setButtonLoading(button, isLoading) {
-        if(!button) return;
-        const text = button.querySelector('.gemini-button-text');
-        const spinner = button.querySelector('i.fa-spinner');
-        if (text && spinner) {
-            button.disabled = isLoading;
-            text.classList.toggle('hidden', isLoading);
-            spinner.classList.toggle('hidden', !isLoading);
+    function triggerConfetti() {
+        if (typeof confetti === 'function') {
+            confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
         }
     }
 
-    async function getLuckyNumbers() {
-        const theme = luckThemeInput.value.trim();
-        if (!theme) {
-            luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
-            return;
-        }
-        setButtonLoading(getLuckyNumbersBtn, true);
-        luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
-        try {
-            const functionUrl = `/.netlify/functions/getLuckyNumbers`;
-            const response = await fetch(functionUrl, {
-                method: "POST", body: JSON.stringify({ theme: theme }),
+    function setupShareButtons() {
+        const shareText = `Estou a participar na rifa para ganhar um "${numbersData.name}"! Garanta os seus números também!`;
+        const shareUrl = window.location.href.split('?')[0] + `?id=${rifaDocRef.id}`;
+        if (shareWhatsappBtn) {
+            shareWhatsappBtn.addEventListener('click', () => {
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+                window.open(whatsappUrl, '_blank');
             });
-            if (!response.ok) throw new Error('A resposta da função não foi OK.');
-            const data = await response.json();
-            let html = '<div class="grid md:grid-cols-3 gap-4">';
-            data.sugestoes.forEach(s => {
-                html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500"><p class="text-2xl font-bold text-purple-300 mb-2">${s.numero}</p><p class="text-sm text-gray-300">${s.explicacao}</p></div>`;
-            });
-            html += '</div>';
-            luckyNumbersResult.innerHTML = html;
-        } catch (error) {
-            console.error("Erro ao chamar a função da Netlify:", error);
-            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente novamente mais tarde.</p>`;
-        } finally {
-            setButtonLoading(getLuckyNumbersBtn, false);
         }
-    }
-    
-    function triggerConfetti() {
-        if (typeof confetti === 'function') {
-            confetti({
-                particleCount: 150, spread: 90, origin: { y: 0.6 }
+        if (shareFacebookBtn) {
+            shareFacebookBtn.addEventListener('click', () => {
+                const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+                window.open(facebookUrl, '_blank');
+            });
+        }
+        if (shareTwitterBtn) {
+            shareTwitterBtn.addEventListener('click', () => {
+                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+                window.open(twitterUrl, '_blank');
+            });
+        }
+        if(closeShareModalBtn) {
+            closeShareModalBtn.addEventListener('click', () => {
+                if(shareModal) shareModal.style.display = 'none';
             });
         }
     }
@@ -421,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
     if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
     
     setupAuthListener();
+    setupShareButtons();
 });
