@@ -14,7 +14,6 @@ const firebaseConfig = {
 };
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
-// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
@@ -70,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 signInAnonymously(auth).catch(err => {
                     console.error("Auth Error", err);
-                    if (mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
+                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
                 });
             }
         });
@@ -82,15 +81,15 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = JSON.parse(savedUser);
             setupFirestoreListener();
         } else {
-            if (loadingSection) loadingSection.classList.add('hidden');
-            if (userSection) userSection.classList.remove('hidden');
+            if(loadingSection) loadingSection.classList.add('hidden');
+            if(userSection) userSection.classList.remove('hidden');
         }
     }
 
     function setupFirestoreListener() {
         onSnapshot(rifaDocRef, (doc) => {
             if (!doc.exists()) {
-                if (loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
+                if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
                 return;
             }
             numbersData = doc.data();
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             checkPaymentStatus();
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
-            if (mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
+            if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
         });
     }
 
@@ -295,8 +294,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const pendingNumbers = localStorage.getItem('pendingNumbers');
             if (status === 'approved' && pendingNumbers) {
                 paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(pendingNumbers).join(', ')} foram reservados. Boa sorte!`;
-                paymentStatusEl.className = 'text-center text-green-400 mt-4';
+                paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
                 paymentStatusEl.classList.remove('hidden');
+                triggerConfetti();
             } else if (status === 'failure') {
                 paymentStatusEl.textContent = 'O pagamento falhou. Por favor, tente novamente.';
                 paymentStatusEl.className = 'text-center text-red-400 mt-4';
@@ -391,11 +391,19 @@ document.addEventListener('DOMContentLoaded', () => {
             setButtonLoading(getLuckyNumbersBtn, false);
         }
     }
+    
+    function triggerConfetti() {
+        if (typeof confetti === 'function') {
+            confetti({
+                particleCount: 150, spread: 90, origin: { y: 0.6 }
+            });
+        }
+    }
 
     // --- INICIALIZAÇÃO E EVENTOS ---
     const urlParams = new URLSearchParams(window.location.search);
     const raffleId = urlParams.get('id');
-    isTestMode = urlParams.get('test') === 'true';
+    isTestMode = urlParams.get('test') === 'true'; 
 
     if (!raffleId) {
         if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
