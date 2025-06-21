@@ -369,31 +369,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupShareButtons() {
+        if (!shareWhatsappBtn) return;
         const shareText = `Estou a participar na rifa para ganhar um "${numbersData.name}"! Garanta os seus números também!`;
         const shareUrl = window.location.href.split('?')[0] + `?id=${rifaDocRef.id}`;
-        if (shareWhatsappBtn) {
-            shareWhatsappBtn.addEventListener('click', () => {
-                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
-                window.open(whatsappUrl, '_blank');
-            });
-        }
-        if (shareFacebookBtn) {
-            shareFacebookBtn.addEventListener('click', () => {
-                const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
-                window.open(facebookUrl, '_blank');
-            });
-        }
-        if (shareTwitterBtn) {
-            shareTwitterBtn.addEventListener('click', () => {
-                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-                window.open(twitterUrl, '_blank');
-            });
-        }
-        if(closeShareModalBtn) {
-            closeShareModalBtn.addEventListener('click', () => {
-                if(shareModal) shareModal.style.display = 'none';
-            });
-        }
+        
+        shareWhatsappBtn.onclick = () => {
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+            window.open(whatsappUrl, '_blank');
+        };
+        shareFacebookBtn.onclick = () => {
+            const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+            window.open(facebookUrl, '_blank');
+        };
+        shareTwitterBtn.onclick = () => {
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+            window.open(twitterUrl, '_blank');
+        };
+        closeShareModalBtn.onclick = () => {
+            if(shareModal) shareModal.style.display = 'none';
+        };
     }
 
     // --- INICIALIZAÇÃO E EVENTOS ---
