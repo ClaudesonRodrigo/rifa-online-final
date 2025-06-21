@@ -23,10 +23,12 @@ exports.handler = async function(event) {
           name: payerData.name,
           email: payerData.email,
         },
+        // **LÓGICA CORRIGIDA**: Agora, o Mercado Pago devolverá o utilizador
+        // para a página da rifa correta, preservando o ID na URL.
         back_urls: {
-          success: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
-          failure: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
-          pending: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
+          success: `https://wonderful-fudge-37038e.netlify.app/rifa.html?id=${payerData.raffleId}`,
+          failure: `https://wonderful-fudge-37038e.netlify.app/rifa.html?id=${payerData.raffleId}`,
+          pending: `https://wonderful-fudge-37038e.netlify.app/rifa.html?id=${payerData.raffleId}`,
         },
         auto_return: "approved",
         metadata: {
