@@ -29,8 +29,6 @@ exports.handler = async function(event) {
           pending: "https://wonderful-fudge-37038e.netlify.app/rifa.html?id=" + payerData.raffleId,
         },
         auto_return: "approved",
-        // **LÓGICA CORRIGIDA**: Passamos todos os dados de forma explícita e "plana"
-        // para garantir que nada se perca na comunicação com o Mercado Pago.
         metadata: {
             selected_numbers: items.map(item => item.id),
             raffle_id: payerData.raffleId,

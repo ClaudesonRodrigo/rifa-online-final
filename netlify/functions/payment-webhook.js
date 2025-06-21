@@ -2,7 +2,6 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import admin from 'firebase-admin';
 
 // --- Função de Inicialização Segura ---
-// Esta função garante que o Firebase só é inicializado uma vez.
 function initializeFirebaseAdmin() {
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         throw new Error("A chave de serviço do Firebase (FIREBASE_SERVICE_ACCOUNT_KEY) não está configurada na Netlify.");
@@ -68,7 +67,8 @@ exports.handler = async function(event) {
                     email: user_email,
                     whatsapp: user_whatsapp,
                     pix: user_pix,
-                    userId: user_id
+                    userId: user_id,
+                    createdAt: new Date() // Adiciona a data da compra
                 };
 
                 const updates = {};
