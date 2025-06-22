@@ -2,10 +2,13 @@ import { MercadoPagoConfig, Payment } from 'mercadopago';
 import admin from 'firebase-admin';
 
 // --- Função de Inicialização Segura ---
+// Esta função garante que o Firebase só é inicializado uma vez.
 function initializeFirebaseAdmin() {
+    // Verifica se a chave de serviço existe nas variáveis de ambiente
     if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         throw new Error("A chave de serviço do Firebase (FIREBASE_SERVICE_ACCOUNT_KEY) não está configurada na Netlify.");
     }
+    // Evita erros de reinicialização em ambientes de teste
     if (!admin.apps.length) {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
         admin.initializeApp({
@@ -20,18 +23,20 @@ exports.handler = async function(event) {
     const db = initializeFirebaseAdmin();
     const body = JSON.parse(event.body);
 
+    // 1. Verificamos se o aviso é sobre um pagamento
     if (body.type !== 'payment') {
         return { statusCode: 200, body: 'Notificação ignorada.' };
     }
 
     try {
         const paymentId = body.data.id;
+        // 2. Configura o cliente do Mercado Pago para obter os detalhes do pagamento
         const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN });
         const payment = new Payment(client);
         const paymentInfo = await payment.get({ id: paymentId });
 
+        // 3. Se o pagamento foi aprovado e contém os nossos dados personalizados (metadata)
         if (paymentInfo.status === 'approved' && paymentInfo.metadata) {
-            // Lemos os dados "planos" do metadata para garantir que nada se perde.
             const {
                 selected_numbers,
                 raffle_id,
@@ -49,7 +54,7 @@ exports.handler = async function(event) {
 
             const rifaDocRef = db.collection('rifas').doc(raffle_id);
 
-            // Executa a operação como uma transação segura
+            // 4. Executa a operação como uma transação segura
             await db.runTransaction(async (transaction) => {
                 const rifaDoc = await transaction.get(rifaDocRef);
                 if (!rifaDoc.exists) throw new Error(`Rifa ${raffle_id} não encontrada!`);
@@ -86,5 +91,6 @@ exports.handler = async function(event) {
         return { statusCode: 500, body: `Erro interno: ${error.message}` };
     }
 
+    // 5. Responde ao Mercado Pago com sucesso
     return { statusCode: 200, body: 'Webhook recebido com sucesso.' };
 };
