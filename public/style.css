@@ -19,32 +19,31 @@ body {
     50% { transform: scale(1.03); }
     100% { transform: scale(1); }
 }
-.tooltip {
-    position: relative;
-    display: inline-block;
+.raffle-card { 
+    transition: transform 0.3s ease, box-shadow 0.3s ease; 
 }
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: 160px;
-    background-color: #374151;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 8px;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -80px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    font-weight: normal;
-}
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
+.raffle-card:hover { 
+    transform: translateY(-5px); 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.4); 
 }
 .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.7);
     display: flex;
+}
+
+/* Animação para o botão flutuante do WhatsApp */
+.whatsapp-float {
+    animation: float-pulse 2.5s infinite;
+}
+
+@keyframes float-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
 }

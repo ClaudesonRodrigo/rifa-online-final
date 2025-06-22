@@ -3,7 +3,6 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
-// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
@@ -15,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
         measurementId: "G-G3BX961SHY"
     };
+    const ADMIN_WHATSAPP_NUMBER = "5579996337995"; // Coloque o seu número de WhatsApp aqui
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareWhatsappBtn = document.getElementById('share-whatsapp-btn');
     const shareFacebookBtn = document.getElementById('share-facebook-btn');
     const shareTwitterBtn = document.getElementById('share-twitter-btn');
+    const whatsappFloatBtn = document.getElementById('whatsapp-float-btn');
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -70,10 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 userId = user.uid;
                 loadUserDataOrShowLogin();
             } else {
-                signInAnonymously(auth).catch(err => {
-                    console.error("Auth Error", err);
-                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
-                });
+                signInAnonymously(auth).catch(err => console.error("Auth Error", err));
             }
         });
     }
@@ -97,9 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             numbersData = doc.data();
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
-            
             if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
             if (raffleTitle) raffleTitle.textContent = numbersData.name;
+            
+            setupWhatsAppButton();
             
             const soldCount = Object.keys(numbersData).filter(key => !isNaN(key) && key.length === 2).length;
             updateRaffleProgress(soldCount);
@@ -111,15 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (progressSection) progressSection.classList.remove('hidden');
             }
-
             renderNumberGrid();
-            
             if (loadingSection) loadingSection.classList.add('hidden');
             if (appSection) appSection.classList.remove('hidden');
             checkPaymentStatus();
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
-            if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
         });
     }
 
@@ -385,9 +381,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
             window.open(twitterUrl, '_blank');
         };
-        closeShareModalBtn.onclick = () => {
-            if(shareModal) shareModal.style.display = 'none';
-        };
+        if(closeShareModalBtn) {
+            closeShareModalBtn.onclick = () => {
+                if(shareModal) shareModal.style.display = 'none';
+            };
+        }
+    }
+
+    function setupWhatsAppButton() {
+        if (!whatsappFloatBtn) return;
+        const message = encodeURIComponent(`Olá! Tenho uma dúvida sobre a rifa "${numbersData.name || ''}"`);
+        whatsappFloatBtn.href = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${message}`;
     }
 
     // --- INICIALIZAÇÃO E EVENTOS ---
