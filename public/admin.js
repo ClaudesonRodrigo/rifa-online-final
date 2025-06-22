@@ -3,7 +3,6 @@ import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
-// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- CONFIGURAÇÃO ---
@@ -31,8 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
     const logoutBtn = document.getElementById('logout-btn');
-    const adminEmailDisplay = document.getElementById('admin-email-display');
-
+    
     // --- ESTADO GLOBAL PARA OS LISTENERS ---
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
@@ -55,19 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
         signOut(auth);
     };
 
-    // Adiciona os eventos de login
-    loginBtn.addEventListener('click', handleLogin);
-    adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
-    logoutBtn.addEventListener('click', handleLogout);
-
     // --- LÓGICA DO PAINEL (SÓ É INICIADA APÓS LOGIN) ---
     function initializeAdminPanel(user) {
         // Mostra o painel
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
-        adminEmailDisplay.textContent = `Logado como: ${user.email}`;
         
         // Elementos do painel
+        const adminEmailDisplay = document.getElementById('admin-email-display');
         const createRaffleBtn = document.getElementById('create-raffle-btn');
         const raffleNameInput = document.getElementById('raffle-name');
         const rafflePriceInput = document.getElementById('raffle-price');
@@ -94,6 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const editRaffleNameInput = document.getElementById('edit-raffle-name-input');
         const saveRaffleNameBtn = document.getElementById('save-raffle-name-btn');
         const cancelEditRaffleNameBtn = document.getElementById('cancel-edit-raffle-name-btn');
+
+        adminEmailDisplay.textContent = `Logado como: ${user.email}`;
 
         // Estado do painel
         let currentRaffleId = null;
@@ -184,12 +179,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const selectRaffle = (raffleId, raffleName) => {
+            // *** PISTA DE DEBUGGING ADICIONADA AQUI ***
+            console.log("A selecionar a rifa com ID:", `"${raffleId}"`);
+
             currentRaffleId = raffleId;
             detailsRaffleName.textContent = raffleName;
             raffleDetailsSection.classList.remove('hidden');
             hideEditRaffleNameUI();
             listenToAllRaffles();
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
+            
+            // Este é o local onde o erro acontece
             const ref = doc(db, "rifas", raffleId);
             currentRaffleUnsubscribe = onSnapshot(ref, (doc) => {
                 rawRifaData = doc.data() || {};
@@ -263,6 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editRaffleNameBtn.addEventListener('click', showEditRaffleNameUI);
         saveRaffleNameBtn.addEventListener('click', saveRaffleName);
         cancelEditRaffleNameBtn.addEventListener('click', hideEditRaffleNameUI);
+        
         rafflesListEl.addEventListener('click', (e) => {
             const deleteBtn = e.target.closest('.delete-raffle-btn');
             if (deleteBtn) {
@@ -282,12 +283,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user && user.email) {
             initializeAdminPanel(user);
         } else {
-            // Se o utilizador não for um admin, desliga os listeners e mostra a tela de login
             if (allRafflesUnsubscribe) allRafflesUnsubscribe();
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
-            if (user) signOut(auth); // Desloga qualquer utilizador anónimo
+            if (user) signOut(auth);
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
     });
-});
+    
+    logoutBtn.addEventListener('click', handleLogout);
+}
+
+document.addEventListener('DOMContentLoaded', initializeAdminApp);
