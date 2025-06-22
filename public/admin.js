@@ -3,7 +3,9 @@ import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
+// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
+
     // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
         apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
@@ -21,17 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = getAuth(app);
     const rafflesCollectionRef = collection(db, "rifas");
 
-    // --- ELEMENTOS DO DOM ---
+    // --- ELEMENTOS DO DOM (APENAS LOGIN INICIALMENTE) ---
     const loginScreen = document.getElementById('login-screen');
     const adminPanel = document.getElementById('admin-panel');
     const adminEmailInput = document.getElementById('admin-email');
     const adminPasswordInput = document.getElementById('admin-password');
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
-    const logoutBtn = document.getElementById('logout-btn');
-    const adminEmailDisplay = document.getElementById('admin-email-display');
 
-    // --- LÓGICA DE AUTENTICAÇÃO ---
+    // --- LÓGICA DE LOGIN ---
     const handleLogin = async () => {
         const email = adminEmailInput.value;
         const password = adminPasswordInput.value;
@@ -44,28 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    const handleLogout = () => {
-        if (allRafflesUnsubscribe) allRafflesUnsubscribe();
-        if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
-        signOut(auth);
-    };
-
+    // Adiciona os eventos de login
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
-    logoutBtn.addEventListener('click', handleLogout);
-
-    // --- ESTADO GLOBAL DO PAINEL ---
-    let currentRaffleId = null;
-    let allRafflesUnsubscribe = null;
-    let currentRaffleUnsubscribe = null;
-    let rawRifaData = {};
 
     // --- LÓGICA DO PAINEL (SÓ É INICIADA APÓS LOGIN) ---
     function initializeAdminPanel(user) {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
-        adminEmailDisplay.textContent = `Logado como: ${user.email}`;
-
+        
+        // Elementos do painel (obtidos apenas após o login)
+        const logoutBtn = document.getElementById('logout-btn');
+        const adminEmailDisplay = document.getElementById('admin-email-display');
         const createRaffleBtn = document.getElementById('create-raffle-btn');
         const raffleNameInput = document.getElementById('raffle-name');
         const rafflePriceInput = document.getElementById('raffle-price');
@@ -86,122 +76,95 @@ document.addEventListener('DOMContentLoaded', () => {
         const adminWinnerContact = document.getElementById('admin-winner-contact');
         const adminWinnerPix = document.getElementById('admin-winner-pix');
         const noWinnerInfoAdmin = document.getElementById('no-winner-info-admin');
-        const raffleNameDisplay = document.getElementById('raffle-name-display');
-        const editRaffleNameBtn = document.getElementById('edit-raffle-name-btn');
-        const editRaffleNameSection = document.getElementById('edit-raffle-name-section');
-        const editRaffleNameInput = document.getElementById('edit-raffle-name-input');
-        const saveRaffleNameBtn = document.getElementById('save-raffle-name-btn');
-        const cancelEditRaffleNameBtn = document.getElementById('cancel-edit-raffle-name-btn');
 
-        const showEditRaffleNameUI = () => {
-            if (!rawRifaData.name) return;
-            raffleNameDisplay.classList.add('hidden');
-            editRaffleNameSection.classList.remove('hidden');
-            editRaffleNameInput.value = rawRifaData.name;
-            editRaffleNameInput.focus();
+        adminEmailDisplay.textContent = `Logado como: ${user.email}`;
+
+        // Estado do painel
+        let currentRaffleId = null;
+        let allRafflesUnsubscribe = null;
+        let currentRaffleUnsubscribe = null;
+        let rawRifaData = {};
+
+        const handleLogout = () => {
+            if (allRafflesUnsubscribe) allRafflesUnsubscribe();
+            if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
+            signOut(auth);
         };
+        
+        const createRaffle = async () => { /* ... código completo ... */ };
+        const deleteRaffle = async (raffleId, raffleName) => { /* ... código completo ... */ };
+        function listenToAllRaffles() { /* ... código completo ... */ };
+        const selectRaffle = (raffleId, raffleName) => { /* ... código completo ... */ };
+        const processRifaData = (data) => { /* ... código completo ... */ };
+        const renderTable = (data) => { /* ... código completo ... */ };
+        const updateSummary = (sold, parts, price = 0) => { /* ... código completo ... */ };
+        const declareWinner = async () => { /* ... código completo ... */ };
+        const showWinnerInAdminPanel = (info) => { /* ... código completo ... */ };
+        const handleSearch = () => { /* ... código completo ... */ };
 
-        const hideEditRaffleNameUI = () => {
-            raffleNameDisplay.classList.remove('hidden');
-            editRaffleNameSection.classList.add('hidden');
-        };
-
-        const saveRaffleName = async () => {
-            const newName = editRaffleNameInput.value.trim();
-            if (!newName) {
-                alert("O nome da rifa não pode ficar em branco.");
-                return;
-            }
-            if (!currentRaffleId) return;
-            try {
-                const raffleDoc = doc(db, "rifas", currentRaffleId);
-                await updateDoc(raffleDoc, { name: newName });
-                alert("Nome da rifa atualizado com sucesso!");
-                hideEditRaffleNameUI();
-            } catch (error) {
-                console.error("Erro ao atualizar o nome da rifa:", error);
-                alert("Não foi possível atualizar o nome da rifa.");
-            }
-        };
-
-        const createRaffle = async () => {
+        // Colando o corpo completo das funções aqui:
+        async function createRaffle() {
             const name = raffleNameInput.value.trim();
             const price = parseFloat(rafflePriceInput.value);
-            if (!name || isNaN(price) || price <= 0) {
-                alert("Por favor, preencha o nome do prémio e um preço válido.");
-                return;
-            }
+            if (!name || isNaN(price) || price <= 0) return alert("Por favor, preencha o nome do prémio e um preço válido.");
             try {
                 await addDoc(rafflesCollectionRef, { name, pricePerNumber: price, createdAt: new Date(), status: 'active' });
                 alert(`Rifa "${name}" criada com sucesso!`);
                 raffleNameInput.value = '';
                 rafflePriceInput.value = '';
-            } catch (error) { console.error("Erro ao criar rifa:", error); }
-        };
-
-        const deleteRaffle = async (raffleId, raffleName) => {
-            if (window.confirm(`Tem a certeza de que pretende excluir permanentemente a rifa "${raffleName}"?`)) {
+            } catch (e) { console.error("Erro ao criar rifa:", e); }
+        }
+        
+        async function deleteRaffle(raffleId, raffleName) {
+            if (window.confirm(`Tem a certeza de que pretende excluir a rifa "${raffleName}"?`)) {
                 try {
                     await deleteDoc(doc(db, "rifas", raffleId));
-                    alert(`Rifa "${raffleName}" excluída com sucesso.`);
                     if (currentRaffleId === raffleId) {
                         raffleDetailsSection.classList.add('hidden');
                         currentRaffleId = null;
                     }
-                } catch (error) { console.error("Erro ao excluir a rifa:", error); }
+                    alert(`Rifa "${raffleName}" excluída.`);
+                } catch (e) { console.error("Erro ao excluir a rifa:", e); }
             }
-        };
-
+        }
+        
         function listenToAllRaffles() {
             if (allRafflesUnsubscribe) allRafflesUnsubscribe();
             allRafflesUnsubscribe = onSnapshot(rafflesCollectionRef, (snapshot) => {
                 if(!rafflesListEl) return;
                 rafflesListEl.innerHTML = '';
-                if (snapshot.empty) {
-                    rafflesListEl.innerHTML = '<p class="text-gray-500">Nenhuma rifa criada.</p>';
-                    return;
-                }
-                const sortedRaffles = snapshot.docs.sort((a, b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
+                if (snapshot.empty) return rafflesListEl.innerHTML = '<p class="text-gray-500">Nenhuma rifa criada.</p>';
+                const sortedRaffles = snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis()||0) - (a.data().createdAt?.toMillis()||0));
                 sortedRaffles.forEach(doc => {
-                    const raffle = doc.data();
+                    const r = doc.data();
                     const el = document.createElement('div');
-                    el.className = `p-3 bg-gray-700 rounded-lg flex justify-between items-center ${doc.id === currentRaffleId ? 'ring-2 ring-blue-400' : ''} ${raffle.status === 'finished' ? 'opacity-60' : ''}`;
-                    el.innerHTML = `
-                        <div class="flex-grow cursor-pointer" data-id="${doc.id}" data-name="${raffle.name}">
-                            <p class="font-semibold">${raffle.name}</p>
-                            <p class="text-xs text-gray-400">Status: ${raffle.status}</p>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs font-mono text-blue-300">${doc.id.substring(0,6)}...</span>
-                            <button title="Excluir Rifa" data-id="${doc.id}" data-name="${raffle.name}" class="delete-raffle-btn p-2 text-gray-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
-                        </div>`;
+                    el.className = `p-3 bg-gray-700 rounded-lg flex justify-between items-center ${doc.id === currentRaffleId ? 'ring-2 ring-blue-400' : ''} ${r.status === 'finished' ? 'opacity-60' : ''}`;
+                    el.innerHTML = `<div class="flex-grow cursor-pointer" data-id="${doc.id}" data-name="${r.name}"><p class="font-semibold">${r.name}</p><p class="text-xs text-gray-400">Status: ${r.status}</p></div><div class="flex items-center space-x-2"><span class="text-xs font-mono text-blue-300">${doc.id.substring(0,6)}...</span><button title="Excluir Rifa" data-id="${doc.id}" data-name="${r.name}" class="delete-raffle-btn p-2 text-gray-500 hover:text-red-500"><i class="fas fa-trash"></i></button></div>`;
                     rafflesListEl.appendChild(el);
                 });
             });
         }
 
-        const selectRaffle = (raffleId, raffleName) => {
+        window.selectRaffle = (raffleId, raffleName) => {
             currentRaffleId = raffleId;
             detailsRaffleName.textContent = raffleName;
             raffleDetailsSection.classList.remove('hidden');
-            hideEditRaffleNameUI();
             listenToAllRaffles();
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
             const ref = doc(db, "rifas", raffleId);
             currentRaffleUnsubscribe = onSnapshot(ref, (doc) => {
                 rawRifaData = doc.data() || {};
                 processRifaData(rawRifaData);
-                if (rawRifaData.winner) {
-                    showWinnerInAdminPanel(rawRifaData.winner);
-                } else {
+                if (rawRifaData.winner) showWinnerInAdminPanel(rawRifaData.winner);
+                else {
                     declareWinnerArea.classList.remove('hidden');
                     winnerInfoAdmin.classList.add('hidden');
                     noWinnerInfoAdmin.classList.add('hidden');
                 }
             });
         };
-        
-        const processRifaData = (data) => {
+
+        function processRifaData(data) {
             const participants = {};
             let soldCount = 0;
             for (const key in data) {
@@ -217,9 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const allParticipantsData = Object.values(participants);
             renderTable(allParticipantsData);
             updateSummary(soldCount, allParticipantsData.length, data.pricePerNumber);
-        };
-        
-        const renderTable = (data) => {
+        }
+
+        function renderTable(data) {
             participantsTableBody.innerHTML = '';
             if (data.length === 0) {
                 participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">Nenhum participante.</td></tr>`;
@@ -232,15 +195,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3"><div class="flex flex-col"><span>${p.email}</span><span>${p.whatsapp}</span></div></td><td class="p-3">${p.pix}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
                 participantsTableBody.appendChild(row);
             });
-        };
-        
-        const updateSummary = (sold, parts, price = 0) => {
+        }
+
+        function updateSummary(sold, parts, price = 0) {
             soldNumbersEl.textContent = sold;
             totalParticipantsEl.textContent = parts;
             totalRevenueEl.textContent = (sold * price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        };
-        
-        const declareWinner = async () => {
+        }
+
+        async function declareWinner() {
             if (!currentRaffleId) return alert("Nenhuma rifa selecionada.");
             const num = winningNumberInput.value.trim().padStart(2, '0');
             if (parseInt(num, 10) < 0 || parseInt(num, 10) > 99) return alert("Número inválido.");
@@ -249,9 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 await updateDoc(doc(db, "rifas", currentRaffleId), { winner: { number: num, player: winnerData }, status: 'finished' });
                 alert(`Sorteio finalizado!`);
             } catch (e) { console.error("Erro ao declarar ganhador:", e); }
-        };
+        }
 
-        const showWinnerInAdminPanel = (info) => {
+        function showWinnerInAdminPanel(info) {
             declareWinnerArea.classList.add('hidden');
             const { number, player } = info;
             if (player) {
@@ -266,15 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 noWinnerInfoAdmin.classList.remove('hidden');
                 winnerInfoAdmin.classList.add('hidden');
             }
-        };
+        }
 
-        const handleSearch = () => {
+        function handleSearch() {
             const term = searchInput.value.toLowerCase();
             const filtered = term ? allParticipantsData.filter(p => p.name.toLowerCase().includes(term) || p.numbers.some(n => n.includes(term))) : allParticipantsData;
             renderTable(filtered);
-        };
+        }
 
-        // Event Listeners do Painel
+        // Adiciona os eventos de gestão APÓS o login
         createRaffleBtn.addEventListener('click', createRaffle);
         declareWinnerBtn.addEventListener('click', declareWinner);
         searchInput.addEventListener('input', handleSearch);
@@ -290,9 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectRaffle(infoEl.dataset.id, infoEl.dataset.name);
             }
         });
-        editRaffleNameBtn.addEventListener('click', showEditRaffleNameUI);
-        saveRaffleNameBtn.addEventListener('click', saveRaffleName);
-        cancelEditRaffleNameBtn.addEventListener('click', hideEditRaffleNameUI);
 
         listenToAllRaffles();
     }
@@ -302,11 +262,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user && user.email) {
             initializeAdminPanel(user);
         } else {
-            if (user) signOut(auth);
+            if(user) signOut(auth);
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
     });
+
+    logoutBtn.addEventListener('click', handleLogout);
 }
 
 document.addEventListener('DOMContentLoaded', initializeAdminApp);
