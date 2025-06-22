@@ -61,10 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
     logoutBtn.addEventListener('click', handleLogout);
 
     // --- LÓGICA DO PAINEL (SÓ É INICIADA APÓS LOGIN) ---
-    function initializeAdminPanel() {
+    function initializeAdminPanel(user) {
         // Mostra o painel
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
+        adminEmailDisplay.textContent = `Logado como: ${user.email}`;
         
         // Elementos do painel
         const createRaffleBtn = document.getElementById('create-raffle-btn');
@@ -281,11 +282,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user && user.email) {
             initializeAdminPanel(user);
         } else {
-            cleanupListeners();
+            // Se o utilizador não for um admin, desliga os listeners e mostra a tela de login
+            if (allRafflesUnsubscribe) allRafflesUnsubscribe();
+            if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
+            if (user) signOut(auth); // Desloga qualquer utilizador anónimo
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
     });
-}
-
-document.addEventListener('DOMContentLoaded', initializeAdminApp);
+});
