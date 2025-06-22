@@ -1,9 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
-// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
         measurementId: "G-G3BX961SHY"
     };
-    const ADMIN_WHATSAPP_NUMBER = "5579996337995";
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
@@ -106,17 +104,22 @@ document.addEventListener('DOMContentLoaded', () => {
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
             if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
             if (raffleTitle) raffleTitle.textContent = numbersData.name;
+            
             setupWhatsAppButton();
+            
             const soldCount = Object.keys(numbersData).filter(key => !isNaN(key) && key.length === 2).length;
             updateRaffleProgress(soldCount);
             updateRecentBuyers(numbersData);
+
             if (numbersData.winner) {
                 displayPublicWinner(numbersData.winner);
                 if (progressSection) progressSection.classList.add('hidden');
             } else {
                 if (progressSection) progressSection.classList.remove('hidden');
             }
+
             renderNumberGrid();
+            
             if (loadingSection) loadingSection.classList.add('hidden');
             if (appSection) appSection.classList.remove('hidden');
             checkPaymentStatus();
@@ -308,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function updateRaffleProgress(count) {
-        if (!progressSection || !progressBar || !progressPercentage) return;
+        if (!progressSection) return;
         const percentage = Math.round((count / 100) * 100);
         progressBar.style.width = `${percentage}%`;
         progressPercentage.textContent = `${percentage}%`;
@@ -359,8 +362,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupWhatsAppButton() {
         if (!whatsappFloatBtn) return;
-        const msg = encodeURIComponent(`Olá! Tenho uma dúvida sobre a rifa "${numbersData.name || ''}"`);
-        whatsappFloatBtn.href = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${msg}`;
+        // **LÓGICA ALTERADA**: Aponta diretamente para o link do grupo.
+        whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe";
     }
     
     async function showRules() {
