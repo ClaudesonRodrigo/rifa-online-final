@@ -31,14 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const adminPasswordInput = document.getElementById('admin-password');
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
-    const logoutBtn = document.getElementById('logout-btn');
     
     // --- ESTADO GLOBAL PARA OS LISTENERS ---
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
     
     // --- LÓGICA DE AUTENTICAÇÃO ---
-    
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
@@ -62,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         adminPanel.classList.remove('hidden');
         
         // Elementos do painel
+        const logoutBtn = document.getElementById('logout-btn');
         const adminEmailDisplay = document.getElementById('admin-email-display');
         const createRaffleBtn = document.getElementById('create-raffle-btn');
         const raffleNameInput = document.getElementById('raffle-name');
@@ -100,34 +99,20 @@ document.addEventListener('DOMContentLoaded', () => {
         let rawRifaData = {};
         
         // Funções de gestão
-        const loadRules = async () => {
-            try {
-                const docSnap = await getDoc(settingsDocRef);
-                if (docSnap.exists()) rulesTextarea.value = docSnap.data().text || '';
-            } catch (e) { console.error("Erro ao carregar regras:", e); }
-        };
-
-        const saveRules = async () => {
-            try {
-                await setDoc(settingsDocRef, { text: rulesTextarea.value.trim() });
-                alert("Regras guardadas com sucesso!");
-            } catch (e) { console.error("Erro ao guardar as regras:", e); }
-        };
-
         const createRaffle = async () => {
             const name = raffleNameInput.value.trim();
             const price = parseFloat(rafflePriceInput.value);
-            if (!name || isNaN(price) || price <= 0) return alert("Preencha o nome e um preço válido.");
+            if (!name || isNaN(price) || price <= 0) return alert("Preencha nome e preço válidos.");
             try {
                 await addDoc(rafflesCollectionRef, { name, pricePerNumber: price, createdAt: new Date(), status: 'active' });
-                alert(`Rifa "${name}" criada com sucesso!`);
+                alert(`Rifa "${name}" criada!`);
                 raffleNameInput.value = '';
                 rafflePriceInput.value = '';
             } catch (e) { console.error("Erro ao criar rifa:", e); }
         };
         
         const deleteRaffle = async (raffleId, raffleName) => {
-            if (window.confirm(`Tem a certeza de que pretende excluir a rifa "${raffleName}"?`)) {
+            if (window.confirm(`Tem a certeza que quer excluir a rifa "${raffleName}"?`)) {
                 try {
                     await deleteDoc(doc(db, "rifas", raffleId));
                     if (currentRaffleId === raffleId) {
@@ -135,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentRaffleId = null;
                     }
                     alert(`Rifa "${raffleName}" excluída.`);
-                } catch (e) { console.error("Erro ao excluir a rifa:", e); }
+                } catch (e) { console.error("Erro ao excluir rifa:", e); }
             }
         };
 
@@ -144,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!newName || !currentRaffleId) return;
             try {
                 await updateDoc(doc(db, "rifas", currentRaffleId), { name: newName });
-                alert("Nome da rifa atualizado!");
+                alert("Nome atualizado!");
                 hideEditRaffleNameUI();
             } catch (e) { console.error("Erro ao atualizar nome:", e); }
         };
@@ -158,6 +143,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 await updateDoc(doc(db, "rifas", currentRaffleId), { winner: { number: num, player: winnerData }, status: 'finished' });
                 alert(`Sorteio finalizado!`);
             } catch (e) { console.error("Erro ao declarar ganhador:", e); }
+        };
+        
+        const loadRules = async () => {
+            try {
+                const docSnap = await getDoc(settingsDocRef);
+                if (docSnap.exists()) rulesTextarea.value = docSnap.data().text || '';
+            } catch (e) { console.error("Erro ao carregar regras:", e); }
+        };
+
+        const saveRules = async () => {
+            try {
+                await setDoc(settingsDocRef, { text: rulesTextarea.value.trim() });
+                alert("Regras guardadas com sucesso!");
+            } catch (e) { console.error("Erro ao guardar as regras:", e); }
         };
 
         const showEditRaffleNameUI = () => {
@@ -196,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        function selectRaffle(raffleId, raffleName) {
+        const selectRaffle = (raffleId, raffleName) => {
             currentRaffleId = raffleId;
             detailsRaffleName.textContent = raffleName;
             raffleDetailsSection.classList.remove('hidden');
@@ -216,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
         
-        function processRifaData(data) {
+        const processRifaData = (data) => {
             const participants = {};
             let soldCount = 0;
             for (const key in data) {
@@ -234,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSummary(soldCount, allParticipantsData.length, data.pricePerNumber);
         };
         
-        function renderTable(data) {
+        const renderTable = (data) => {
             participantsTableBody.innerHTML = '';
             if (data.length === 0) return participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">Nenhum participante.</td></tr>`;
             data.forEach(p => {
@@ -246,13 +245,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
         
-        function updateSummary(sold, parts, price = 0) {
+        const updateSummary = (sold, parts, price = 0) => {
             soldNumbersEl.textContent = sold;
             totalParticipantsEl.textContent = parts;
             totalRevenueEl.textContent = (sold * price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         };
 
-        function showWinnerInAdminPanel(info) {
+        const showWinnerInAdminPanel = (info) => {
             declareWinnerArea.classList.add('hidden');
             const { number, player } = info;
             if (player) {
@@ -268,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 winnerInfoAdmin.classList.add('hidden');
             }
         };
-
+        
         // Adiciona os eventos de gestão
         createRaffleBtn.addEventListener('click', createRaffle);
         declareWinnerBtn.addEventListener('click', declareWinner);
@@ -299,10 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user && user.email) {
             initializeAdminPanel(user);
         } else {
-            if(user) signOut(auth); // Desloga qualquer utilizador anónimo
+            // Se o utilizador não for um admin, desliga os listeners e mostra a tela de login
+            if(user) signOut(auth); // Garante que utilizadores anónimos são deslogados
+            cleanupListeners();
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
-            cleanupListeners();
         }
     });
 
@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
     logoutBtn.addEventListener('click', handleLogout);
-    
+
     function cleanupListeners() {
         if (allRafflesUnsubscribe) allRafflesUnsubscribe();
         if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
