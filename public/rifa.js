@@ -3,6 +3,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
+// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+    const settingsDocRef = doc(db, "settings", "generalRules");
 
     // --- ELEMENTOS DO DOM ---
     const mainContainer = document.getElementById('main-container');
@@ -53,9 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareFacebookBtn = document.getElementById('share-facebook-btn');
     const shareTwitterBtn = document.getElementById('share-twitter-btn');
     const whatsappFloatBtn = document.getElementById('whatsapp-float-btn');
-    const luckThemeInput = document.getElementById('luck-theme-input');
-    const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
-    const luckyNumbersResult = document.getElementById('lucky-numbers-result');
+    const showRulesBtn = document.getElementById('show-rules-btn');
+    const rulesModal = document.getElementById('rules-modal');
+    const rulesContent = document.getElementById('rules-content');
+    const closeRulesModalBtn = document.getElementById('close-rules-modal-btn');
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -360,45 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
         whatsappFloatBtn.href = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${msg}`;
     }
     
-    function setButtonLoading(button, isLoading) {
-        if(!button) return;
-        const text = button.querySelector('.gemini-button-text');
-        const spinner = button.querySelector('i.fa-spinner');
-        if (text && spinner) {
-            button.disabled = isLoading;
-            text.classList.toggle('hidden', isLoading);
-            spinner.classList.toggle('hidden', !isLoading);
-        }
-    }
-
-    async function getLuckyNumbers() {
-        if (!luckThemeInput || !luckyNumbersResult || !getLuckyNumbersBtn) return;
-        const theme = luckThemeInput.value.trim();
-        if (!theme) {
-            luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
-            return;
-        }
-        setButtonLoading(getLuckyNumbersBtn, true);
-        luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
-        try {
-            const functionUrl = `/.netlify/functions/getLuckyNumbers`;
-            const response = await fetch(functionUrl, { method: "POST", body: JSON.stringify({ theme: theme }) });
-            if (!response.ok) throw new Error('A resposta da função não foi OK.');
-            const data = await response.json();
-            let html = '<div class="grid md:grid-cols-3 gap-4">';
-            data.sugestoes.forEach(s => {
-                html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500"><p class="text-2xl font-bold text-purple-300 mb-2">${s.numero}</p><p class="text-sm text-gray-300">${s.explicacao}</p></div>`;
-            });
-            html += '</div>';
-            luckyNumbersResult.innerHTML = html;
-        } catch (error) {
-            console.error("Erro ao chamar a função da Netlify:", error);
-            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça.</p>`;
-        } finally {
-            setButtonLoading(getLuckyNumbersBtn, false);
-        }
-    }
-
     // --- INICIALIZAÇÃO E EVENTOS ---
     const urlParams = new URLSearchParams(window.location.search);
     const raffleId = urlParams.get('id');
@@ -416,8 +380,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
     if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
-    
+    if (showRulesBtn) showRulesBtn.addEventListener('click', () => { /* lógica para mostrar regras */ });
+
     setupAuthListener();
     setupShareButtons();
 });
