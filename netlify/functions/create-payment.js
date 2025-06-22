@@ -1,21 +1,26 @@
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
+// O handler da função, que a Netlify irá executar
 exports.handler = async function(event) {
+  // Pega os dados enviados pelo site (frontend)
   const { items, payerData } = JSON.parse(event.body);
 
-  if (!items || items.length === 0 || !payerData) {
+  // Validação básica
+  if (!items || items.length === 0 || !payerData || !payerData.raffleId) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: "Dados da compra inválidos." }),
+      body: JSON.stringify({ error: "Dados da compra inválidos ou ID da rifa em falta." }),
     };
   }
 
+  // Configura o cliente do Mercado Pago com sua chave secreta
   const client = new MercadoPagoConfig({ 
     accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN 
   });
   const preference = new Preference(client);
 
   try {
+    // Cria a "preferência de pagamento"
     const result = await preference.create({
       body: {
         items: items,
@@ -23,14 +28,14 @@ exports.handler = async function(event) {
           name: payerData.name,
           email: payerData.email,
         },
-        // **LÓGICA CORRIGIDA**: Agora, o Mercado Pago devolverá o utilizador
-        // para a página da rifa correta, preservando o ID na URL.
         back_urls: {
+          // URLs para onde o utilizador será redirecionado após o pagamento
           success: `https://wonderful-fudge-37038e.netlify.app/rifa.html?id=${payerData.raffleId}`,
           failure: `https://wonderful-fudge-37038e.netlify.app/rifa.html?id=${payerData.raffleId}`,
           pending: `https://wonderful-fudge-37038e.netlify.app/rifa.html?id=${payerData.raffleId}`,
         },
-        auto_return: "approved",
+        auto_return: "approved", // Retorna automaticamente para o site após aprovação
+        // Dados personalizados que serão devolvidos na confirmação do pagamento
         metadata: {
             selected_numbers: items.map(item => item.id),
             raffle_id: payerData.raffleId,
@@ -40,10 +45,11 @@ exports.handler = async function(event) {
             user_whatsapp: payerData.whatsapp,
             user_pix: payerData.pix
         },
-        notification_url: `https://wonderful-fudge-37038e.netlify.app/.netlify/functions/payment-webhook`,
+        notification_url: `https://wonderful-fudge-37038e.netlify.app/.netlify/functions/payment-webhook`, // URL que o Mercado Pago avisará sobre o status do pagamento
       }
     });
 
+    // Retorna o link de checkout para o site
     return {
       statusCode: 200,
       body: JSON.stringify({ checkoutUrl: result.init_point }),

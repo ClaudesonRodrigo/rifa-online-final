@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-// **NOVA IMPORTAÇÃO**: Adicionamos o serviço de autenticação
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 
@@ -18,7 +17,6 @@ const firebaseConfig = {
 // --- INICIALIZAÇÃO ---
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-// **NOVO**: Inicializamos o serviço de autenticação
 const auth = getAuth(app);
 const rafflesCollectionRef = collection(db, "rifas");
 
