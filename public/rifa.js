@@ -1,8 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
+// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
@@ -14,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
         measurementId: "G-G3BX961SHY"
     };
+    const ADMIN_WHATSAPP_NUMBER = "5579996337995";
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
@@ -57,6 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const rulesModal = document.getElementById('rules-modal');
     const rulesContent = document.getElementById('rules-content');
     const closeRulesModalBtn = document.getElementById('close-rules-modal-btn');
+    const luckThemeInput = document.getElementById('luck-theme-input');
+    const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
+    const luckyNumbersResult = document.getElementById('lucky-numbers-result');
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -102,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             numbersData = doc.data();
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
+            
             if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
             if (raffleTitle) raffleTitle.textContent = numbersData.name;
             
@@ -287,7 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         const status = params.get('status');
         const pendingId = localStorage.getItem('pendingRaffleId');
-        if (status && rifaDocRef.id === pendingId) {
+        if (status && rifaDocRef && rifaDocRef.id === pendingId) {
             const numbers = localStorage.getItem('pendingNumbers');
             if (status === 'approved' && numbers) {
                 paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(numbers).join(', ')} foram reservados.`;
@@ -311,7 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function updateRaffleProgress(count) {
-        if (!progressSection) return;
+        if (!progressSection || !progressBar || !progressPercentage) return;
         const percentage = Math.round((count / 100) * 100);
         progressBar.style.width = `${percentage}%`;
         progressPercentage.textContent = `${percentage}%`;
@@ -362,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupWhatsAppButton() {
         if (!whatsappFloatBtn) return;
-        // **LÓGICA ALTERADA**: Aponta diretamente para o link do grupo.
         whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe";
     }
     
