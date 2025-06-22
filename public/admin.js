@@ -3,6 +3,7 @@ import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
+// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- CONFIGURAÇÃO ---
@@ -30,13 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
     const logoutBtn = document.getElementById('logout-btn');
-    
+
     // --- ESTADO GLOBAL PARA OS LISTENERS ---
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
     
     // --- LÓGICA DE AUTENTICAÇÃO ---
-    
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
@@ -179,17 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const selectRaffle = (raffleId, raffleName) => {
-            // *** PISTA DE DEBUGGING ADICIONADA AQUI ***
-            console.log("A selecionar a rifa com ID:", `"${raffleId}"`);
-
             currentRaffleId = raffleId;
             detailsRaffleName.textContent = raffleName;
             raffleDetailsSection.classList.remove('hidden');
             hideEditRaffleNameUI();
             listenToAllRaffles();
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
-            
-            // Este é o local onde o erro acontece
             const ref = doc(db, "rifas", raffleId);
             currentRaffleUnsubscribe = onSnapshot(ref, (doc) => {
                 rawRifaData = doc.data() || {};
@@ -255,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 winnerInfoAdmin.classList.add('hidden');
             }
         };
-        
+
         // Adiciona os eventos de gestão
         createRaffleBtn.addEventListener('click', createRaffle);
         declareWinnerBtn.addEventListener('click', declareWinner);
@@ -275,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        // Inicia a escuta da lista de rifas
         listenToAllRaffles();
     }
 
@@ -283,14 +279,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user && user.email) {
             initializeAdminPanel(user);
         } else {
+            // Se o utilizador não for um admin, desliga os listeners e mostra a tela de login
             if (allRafflesUnsubscribe) allRafflesUnsubscribe();
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
-            if (user) signOut(auth);
+            if (user) signOut(auth); // Desloga qualquer utilizador anónimo
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
     });
-    
+
     logoutBtn.addEventListener('click', handleLogout);
 }
 
