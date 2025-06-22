@@ -1,3 +1,7 @@
+// Este ficheiro não existe atualmente no seu projeto, deve criá-lo.
+// O seu propósito é lidar com as chamadas para a API do Gemini de forma segura.
+
+// A importação pode variar dependendo da versão do SDK do Google
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // --- Handler da Função ---
