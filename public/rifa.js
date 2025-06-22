@@ -308,7 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function updateRaffleProgress(count) {
-        if (!progressSection) return;
+        if (!progressSection || !progressBar || !progressPercentage) return;
         const percentage = Math.round((count / 100) * 100);
         progressBar.style.width = `${percentage}%`;
         progressPercentage.textContent = `${percentage}%`;
@@ -363,25 +363,51 @@ document.addEventListener('DOMContentLoaded', () => {
         whatsappFloatBtn.href = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${msg}`;
     }
     
+    async function showRules() {
+        if (!rulesModal || !rulesContent) return;
+        try {
+            rulesContent.innerHTML = '<p>A carregar...</p>';
+            rulesModal.style.display = 'flex';
+            const docSnap = await getDoc(settingsDocRef);
+            if (docSnap.exists() && docSnap.data().text) {
+                rulesContent.innerText = docSnap.data().text;
+            } else {
+                rulesContent.innerText = 'Nenhuma regra geral foi definida pelo administrador.';
+            }
+        } catch (error) {
+            console.error("Erro ao buscar regras:", error);
+            rulesContent.innerText = 'Não foi possível carregar as regras.';
+        }
+    }
+
+    function closeRules() {
+        if (rulesModal) rulesModal.style.display = 'none';
+    }
+
     // --- INICIALIZAÇÃO E EVENTOS ---
     const urlParams = new URLSearchParams(window.location.search);
     const raffleId = urlParams.get('id');
-    isTestMode = urlParams.get('test') === 'true';
+    isTestMode = urlParams.get('test') === 'true'; 
+
     if (!raffleId) {
         if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
         setTimeout(() => { window.location.href = '/'; }, 3000);
         return;
     }
+    
     rifaDocRef = doc(db, "rifas", raffleId);
+
     if (isTestMode && checkoutBtn) {
         checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
         checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
     }
+
     if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
     if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    if (showRulesBtn) showRulesBtn.addEventListener('click', () => { /* lógica para mostrar regras */ });
-
+    if (showRulesBtn) showRulesBtn.addEventListener('click', showRules);
+    if (closeRulesModalBtn) closeRulesModalBtn.addEventListener('click', closeRules);
+    
     setupAuthListener();
     setupShareButtons();
 });
