@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRaffleUnsubscribe = null;
     
     // --- LÓGICA DE AUTENTICAÇÃO ---
+    
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
