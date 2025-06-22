@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = getAuth(app);
     const rafflesCollectionRef = collection(db, "rifas");
 
-    // --- ELEMENTOS DO DOM ---
+    // --- ELEMENTOS DO DOM (APENAS LOGIN INICIALMENTE) ---
     const loginScreen = document.getElementById('login-screen');
     const adminPanel = document.getElementById('admin-panel');
     const adminEmailInput = document.getElementById('admin-email');
@@ -63,10 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRaffleId = null;
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
+    let allParticipantsData = [];
     let rawRifaData = {};
-
-    // --- DECLARAÇÃO DE TODAS AS FUNÇÕES ---
-
+    
+    // --- FUNÇÕES DE LÓGICA ---
+    
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
@@ -94,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             rafflePriceInput.value = '';
         } catch (e) { console.error("Erro ao criar rifa:", e); }
     };
-
+    
     const deleteRaffle = async (raffleId, raffleName) => {
         if (window.confirm(`Tem a certeza de que pretende excluir a rifa "${raffleName}"?`)) {
             try {
@@ -129,18 +130,24 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error("Erro ao declarar ganhador:", e); }
     };
 
-    function showEditRaffleNameUI() {
+    const showEditRaffleNameUI = () => {
         if (!rawRifaData.name) return;
         raffleNameDisplay.classList.add('hidden');
         editRaffleNameSection.classList.remove('hidden');
         editRaffleNameInput.value = rawRifaData.name;
         editRaffleNameInput.focus();
-    }
+    };
 
-    function hideEditRaffleNameUI() {
+    const hideEditRaffleNameUI = () => {
         raffleNameDisplay.classList.remove('hidden');
         editRaffleNameSection.classList.add('hidden');
-    }
+    };
+
+    const handleSearch = () => {
+        const term = searchInput.value.toLowerCase();
+        const filtered = term ? allParticipantsData.filter(p => p.name.toLowerCase().includes(term) || p.numbers.some(n => n.includes(term))) : allParticipantsData;
+        renderTable(filtered);
+    };
     
     function listenToAllRaffles() {
         if (allRafflesUnsubscribe) allRafflesUnsubscribe();
@@ -148,8 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!rafflesListEl) return;
             rafflesListEl.innerHTML = '';
             if (snapshot.empty) return rafflesListEl.innerHTML = '<p class="text-gray-500">Nenhuma rifa criada.</p>';
-            const sorted = snapshot.docs.sort((a, b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
-            sorted.forEach(doc => {
+            const sortedRaffles = snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis()||0) - (a.data().createdAt?.toMillis()||0));
+            sortedRaffles.forEach(doc => {
                 const r = doc.data();
                 const el = document.createElement('div');
                 el.className = `p-3 bg-gray-700 rounded-lg flex justify-between items-center ${doc.id === currentRaffleId ? 'ring-2 ring-blue-400' : ''} ${r.status === 'finished' ? 'opacity-60' : ''}`;
@@ -159,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function selectRaffle(raffleId, raffleName) {
+    const selectRaffle = (raffleId, raffleName) => {
         currentRaffleId = raffleId;
         detailsRaffleName.textContent = raffleName;
         raffleDetailsSection.classList.remove('hidden');
@@ -177,9 +184,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 noWinnerInfoAdmin.classList.add('hidden');
             }
         });
-    }
+    };
     
-    function processRifaData(data) {
+    const processRifaData = (data) => {
         const participants = {};
         let soldCount = 0;
         for (const key in data) {
@@ -192,17 +199,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-        const allParticipantsData = Object.values(participants);
+        allParticipantsData = Object.values(participants);
         renderTable(allParticipantsData);
         updateSummary(soldCount, allParticipantsData.length, data.pricePerNumber);
-    }
+    };
     
-    function renderTable(data) {
+    const renderTable = (data) => {
         participantsTableBody.innerHTML = '';
-        if (data.length === 0) {
-            participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">Nenhum participante.</td></tr>`;
-            return;
-        }
+        if (data.length === 0) return participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">Nenhum participante.</td></tr>`;
         data.forEach(p => {
             p.numbers.sort();
             const row = document.createElement('tr');
@@ -210,15 +214,15 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3"><div class="flex flex-col"><span>${p.email}</span><span>${p.whatsapp}</span></div></td><td class="p-3">${p.pix}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
             participantsTableBody.appendChild(row);
         });
-    }
+    };
     
-    function updateSummary(sold, parts, price = 0) {
+    const updateSummary = (sold, parts, price = 0) => {
         soldNumbersEl.textContent = sold;
         totalParticipantsEl.textContent = parts;
         totalRevenueEl.textContent = (sold * price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
+    };
 
-    function showWinnerInAdminPanel(info) {
+    const showWinnerInAdminPanel = (info) => {
         declareWinnerArea.classList.add('hidden');
         const { number, player } = info;
         if (player) {
@@ -233,28 +237,30 @@ document.addEventListener('DOMContentLoaded', () => {
             noWinnerInfoAdmin.classList.remove('hidden');
             winnerInfoAdmin.classList.add('hidden');
         }
-    }
-
-    // --- VIGILANTE DE AUTENTICAÇÃO ---
+    };
+    
+    // --- VIGILANTE DE AUTENTICAÇÃO E EVENTOS ---
     onAuthStateChanged(auth, (user) => {
         if (user && user.email) {
-            adminPanel.classList.remove('hidden');
             loginScreen.classList.add('hidden');
+            adminPanel.classList.remove('hidden');
             adminEmailDisplay.textContent = `Logado como: ${user.email}`;
             listenToAllRaffles();
         } else {
-            if (user) signOut(auth); // Garante que utilizadores anónimos são deslogados
-            adminPanel.classList.add('hidden');
+            if(user) signOut(auth); // Desloga utilizadores anónimos
             loginScreen.classList.remove('hidden');
+            adminPanel.classList.add('hidden');
+            if (allRafflesUnsubscribe) allRafflesUnsubscribe();
+            if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
         }
     });
 
-    // --- EVENT LISTENERS ---
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
     logoutBtn.addEventListener('click', handleLogout);
     createRaffleBtn.addEventListener('click', createRaffle);
     declareWinnerBtn.addEventListener('click', declareWinner);
+    searchInput.addEventListener('input', handleSearch);
     editRaffleNameBtn.addEventListener('click', showEditRaffleNameUI);
     saveRaffleNameBtn.addEventListener('click', saveRaffleName);
     cancelEditRaffleNameBtn.addEventListener('click', hideEditRaffleNameUI);
@@ -264,11 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (deleteBtn) {
             e.stopPropagation();
             deleteRaffle(deleteBtn.dataset.id, deleteBtn.dataset.name);
-            return;
-        }
-        const infoEl = e.target.closest('.flex-grow[data-id]');
-        if (infoEl) {
-            selectRaffle(infoEl.dataset.id, infoEl.dataset.name);
+        } else {
+            const infoEl = e.target.closest('.flex-grow[data-id]');
+            if (infoEl) selectRaffle(infoEl.dataset.id, infoEl.dataset.name);
         }
     });
 });
