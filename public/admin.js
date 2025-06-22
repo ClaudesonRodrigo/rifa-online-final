@@ -23,20 +23,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const auth = getAuth(app);
     const rafflesCollectionRef = collection(db, "rifas");
 
-    // --- ELEMENTOS DO DOM ---
+    // --- ELEMENTOS DO DOM (APENAS LOGIN INICIALMENTE) ---
     const loginScreen = document.getElementById('login-screen');
     const adminPanel = document.getElementById('admin-panel');
     const adminEmailInput = document.getElementById('admin-email');
     const adminPasswordInput = document.getElementById('admin-password');
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
+    const logoutBtn = document.getElementById('logout-btn');
+    const adminEmailDisplay = document.getElementById('admin-email-display');
 
     // --- ESTADO GLOBAL PARA OS LISTENERS ---
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
-
+    
     // --- LÓGICA DE AUTENTICAÇÃO ---
-
+    
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
@@ -48,36 +50,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const handleLogout = () => {
-        // A função de logout agora só precisa de chamar o signOut.
-        // O onAuthStateChanged tratará da limpeza.
+        if (allRafflesUnsubscribe) allRafflesUnsubscribe();
+        if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
         signOut(auth);
     };
-    
+
     // Adiciona os eventos de login
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
-
-    // --- FUNÇÃO PARA DESLIGAR OS "OUVIDOS" ---
-    function cleanupListeners() {
-        if (allRafflesUnsubscribe) {
-            allRafflesUnsubscribe();
-            allRafflesUnsubscribe = null;
-        }
-        if (currentRaffleUnsubscribe) {
-            currentRaffleUnsubscribe();
-            currentRaffleUnsubscribe = null;
-        }
-    }
+    logoutBtn.addEventListener('click', handleLogout);
 
     // --- LÓGICA DO PAINEL (SÓ É INICIADA APÓS LOGIN) ---
-    function initializeAdminPanel(user) {
+    function initializeAdminPanel() {
         // Mostra o painel
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         
         // Elementos do painel
-        const logoutBtn = document.getElementById('logout-btn');
-        const adminEmailDisplay = document.getElementById('admin-email-display');
         const createRaffleBtn = document.getElementById('create-raffle-btn');
         const raffleNameInput = document.getElementById('raffle-name');
         const rafflePriceInput = document.getElementById('raffle-price');
@@ -98,13 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const adminWinnerContact = document.getElementById('admin-winner-contact');
         const adminWinnerPix = document.getElementById('admin-winner-pix');
         const noWinnerInfoAdmin = document.getElementById('no-winner-info-admin');
+        const raffleNameDisplay = document.getElementById('raffle-name-display');
         const editRaffleNameBtn = document.getElementById('edit-raffle-name-btn');
         const editRaffleNameSection = document.getElementById('edit-raffle-name-section');
         const editRaffleNameInput = document.getElementById('edit-raffle-name-input');
         const saveRaffleNameBtn = document.getElementById('save-raffle-name-btn');
         const cancelEditRaffleNameBtn = document.getElementById('cancel-edit-raffle-name-btn');
-
-        adminEmailDisplay.textContent = `Logado como: ${user.email}`;
 
         // Estado do painel
         let currentRaffleId = null;
@@ -112,31 +100,79 @@ document.addEventListener('DOMContentLoaded', () => {
         let rawRifaData = {};
         
         // Funções de gestão
-        const createRaffle = async () => { /* ... código completo ... */ };
-        const deleteRaffle = async (raffleId, raffleName) => { /* ... código completo ... */ };
-        function listenToAllRaffles() { /* ... código completo ... */ };
-        const selectRaffle = (raffleId, raffleName) => { /* ... código completo ... */ };
-        const processRifaData = (data) => { /* ... código completo ... */ };
-        const renderTable = (data) => { /* ... código completo ... */ };
-        const updateSummary = (sold, parts, price = 0) => { /* ... código completo ... */ };
-        const declareWinner = async () => { /* ... código completo ... */ };
-        const showWinnerInAdminPanel = (info) => { /* ... código completo ... */ };
-        const handleSearch = () => { /* ... código completo ... */ };
-        const showEditRaffleNameUI = () => { /* ... código completo ... */ };
-        const hideEditRaffleNameUI = () => { /* ... código completo ... */ };
-        const saveRaffleName = async () => { /* ... código completo ... */ };
+        const createRaffle = async () => {
+            const name = raffleNameInput.value.trim();
+            const price = parseFloat(rafflePriceInput.value);
+            if (!name || isNaN(price) || price <= 0) return alert("Por favor, preencha o nome do prémio e um preço válido.");
+            try {
+                await addDoc(rafflesCollectionRef, { name, pricePerNumber: price, createdAt: new Date(), status: 'active' });
+                alert(`Rifa "${name}" criada com sucesso!`);
+                raffleNameInput.value = '';
+                rafflePriceInput.value = '';
+            } catch (e) { console.error("Erro ao criar rifa:", e); }
+        };
+        
+        const deleteRaffle = async (raffleId, raffleName) => {
+            if (window.confirm(`Tem a certeza de que pretende excluir a rifa "${raffleName}"?`)) {
+                try {
+                    await deleteDoc(doc(db, "rifas", raffleId));
+                    if (currentRaffleId === raffleId) {
+                        raffleDetailsSection.classList.add('hidden');
+                        currentRaffleId = null;
+                    }
+                    alert(`Rifa "${raffleName}" excluída.`);
+                } catch (e) { console.error("Erro ao excluir a rifa:", e); }
+            }
+        };
 
-        // Colando o corpo completo das funções aqui:
-        async function createRaffle() { /* ... */ }
-        async function deleteRaffle(raffleId, raffleName) { /* ... */ }
+        const saveRaffleName = async () => {
+            const newName = editRaffleNameInput.value.trim();
+            if (!newName || !currentRaffleId) return;
+            try {
+                await updateDoc(doc(db, "rifas", currentRaffleId), { name: newName });
+                alert("Nome da rifa atualizado!");
+                hideEditRaffleNameUI();
+            } catch (e) { console.error("Erro ao atualizar nome:", e); }
+        };
+
+        const declareWinner = async () => {
+            if (!currentRaffleId) return alert("Nenhuma rifa selecionada.");
+            const num = winningNumberInput.value.trim().padStart(2, '0');
+            if (parseInt(num, 10) < 0 || parseInt(num, 10) > 99) return alert("Número inválido.");
+            const winnerData = rawRifaData[num] || null;
+            try {
+                await updateDoc(doc(db, "rifas", currentRaffleId), { winner: { number: num, player: winnerData }, status: 'finished' });
+                alert(`Sorteio finalizado!`);
+            } catch (e) { console.error("Erro ao declarar ganhador:", e); }
+        };
+
+        const showEditRaffleNameUI = () => {
+            if (!rawRifaData.name) return;
+            raffleNameDisplay.classList.add('hidden');
+            editRaffleNameSection.classList.remove('hidden');
+            editRaffleNameInput.value = rawRifaData.name;
+            editRaffleNameInput.focus();
+        };
+
+        const hideEditRaffleNameUI = () => {
+            raffleNameDisplay.classList.remove('hidden');
+            editRaffleNameSection.classList.add('hidden');
+        };
+
+        const handleSearch = () => {
+            const term = searchInput.value.toLowerCase();
+            const filtered = term ? allParticipantsData.filter(p => p.name.toLowerCase().includes(term) || p.numbers.some(n => n.includes(term))) : allParticipantsData;
+            renderTable(filtered);
+        };
+        
         function listenToAllRaffles() {
             if (allRafflesUnsubscribe) allRafflesUnsubscribe();
             allRafflesUnsubscribe = onSnapshot(rafflesCollectionRef, (snapshot) => {
                 if(!rafflesListEl) return;
                 rafflesListEl.innerHTML = '';
                 if (snapshot.empty) return rafflesListEl.innerHTML = '<p class="text-gray-500">Nenhuma rifa criada.</p>';
-                const sorted = snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis()||0) - (a.data().createdAt?.toMillis()||0));
-                sorted.forEach(doc => {
+                const sortedRaffles = snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis()||0) - (a.data().createdAt?.toMillis()||0));
+                sortedRaffles.forEach(doc => {
                     const r = doc.data();
                     const el = document.createElement('div');
                     el.className = `p-3 bg-gray-700 rounded-lg flex justify-between items-center ${doc.id === currentRaffleId ? 'ring-2 ring-blue-400' : ''} ${r.status === 'finished' ? 'opacity-60' : ''}`;
@@ -145,7 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         }
-        function selectRaffle(raffleId, raffleName) {
+
+        const selectRaffle = (raffleId, raffleName) => {
             currentRaffleId = raffleId;
             detailsRaffleName.textContent = raffleName;
             raffleDetailsSection.classList.remove('hidden');
@@ -163,8 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     noWinnerInfoAdmin.classList.add('hidden');
                 }
             });
-        }
-        function processRifaData(data) {
+        };
+        
+        const processRifaData = (data) => {
             const participants = {};
             let soldCount = 0;
             for (const key in data) {
@@ -180,8 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
             allParticipantsData = Object.values(participants);
             renderTable(allParticipantsData);
             updateSummary(soldCount, allParticipantsData.length, data.pricePerNumber);
-        }
-        function renderTable(data) {
+        };
+        
+        const renderTable = (data) => {
             participantsTableBody.innerHTML = '';
             if (data.length === 0) return participantsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-8">Nenhum participante.</td></tr>`;
             data.forEach(p => {
@@ -191,19 +230,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `<td class="p-3">${p.name}</td><td class="p-3"><div class="flex flex-col"><span>${p.email}</span><span>${p.whatsapp}</span></div></td><td class="p-3">${p.pix}</td><td class="p-3"><div class="flex flex-wrap gap-2">${p.numbers.map(n => `<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">${n}</span>`).join('')}</div></td>`;
                 participantsTableBody.appendChild(row);
             });
-        }
-        function updateSummary(sold, parts, price = 0) {
+        };
+        
+        const updateSummary = (sold, parts, price = 0) => {
             soldNumbersEl.textContent = sold;
             totalParticipantsEl.textContent = parts;
             totalRevenueEl.textContent = (sold * price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-        async function declareWinner() { /* ... */ }
-        function showWinnerInAdminPanel(info) { /* ... */ }
-        function handleSearch() { /* ... */ }
-        function showEditRaffleNameUI() { /* ... */ }
-        function hideEditRaffleNameUI() { /* ... */ }
-        async function saveRaffleName() { /* ... */ }
+        };
 
+        const showWinnerInAdminPanel = (info) => {
+            declareWinnerArea.classList.add('hidden');
+            const { number, player } = info;
+            if (player) {
+                adminWinnerNumber.textContent = number;
+                adminWinnerName.textContent = player.name;
+                adminWinnerContact.textContent = `${player.email} / ${player.whatsapp}`;
+                adminWinnerPix.textContent = player.pix;
+                winnerInfoAdmin.classList.remove('hidden');
+                noWinnerInfoAdmin.classList.add('hidden');
+            } else {
+                adminWinnerNumber.textContent = number;
+                noWinnerInfoAdmin.classList.remove('hidden');
+                winnerInfoAdmin.classList.add('hidden');
+            }
+        };
+        
         // Adiciona os eventos de gestão
         createRaffleBtn.addEventListener('click', createRaffle);
         declareWinnerBtn.addEventListener('click', declareWinner);
@@ -230,13 +281,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user && user.email) {
             initializeAdminPanel(user);
         } else {
-            cleanupListeners(); // Desliga os "ouvidos"
+            cleanupListeners();
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
     });
-
-    logoutBtn.addEventListener('click', handleLogout);
 }
 
 document.addEventListener('DOMContentLoaded', initializeAdminApp);
