@@ -94,7 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const loadRules = async () => {
             try {
                 const docSnap = await getDoc(settingsDocRef);
-                if (docSnap.exists()) rulesTextarea.value = docSnap.data().text || '';
+                if (docSnap.exists()) {
+                    rulesTextarea.value = docSnap.data().text || '';
+                }
             } catch (e) { console.error("Erro ao carregar regras:", e); }
         };
 
@@ -202,9 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
             totalRevenueEl.textContent = (sold * price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         };
         
-        const declareWinner = async () => { /* ... */ };
-        const showWinnerInAdminPanel = (info) => { /* ... */ };
-        const handleSearch = () => { /* ... */ };
+        const declareWinner = async () => { /* ... código completo ... */ };
+        const showWinnerInAdminPanel = (info) => { /* ... código completo ... */ };
+        const handleSearch = () => { /* ... código completo ... */ };
 
         // Adiciona os eventos de gestão
         createRaffleBtn.addEventListener('click', createRaffle);
