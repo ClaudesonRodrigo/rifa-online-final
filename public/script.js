@@ -42,7 +42,7 @@ function listenToActiveRaffles() {
             return;
         }
 
-        const sortedRaffles = snapshot.docs.sort((a,b) => b.data().createdAt.toMillis() - a.data().createdAt.toMillis());
+        const sortedRaffles = snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
 
         sortedRaffles.forEach(doc => {
             const raffle = doc.data();
