@@ -3,6 +3,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
+// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
         measurementId: "G-G3BX961SHY"
     };
-    const ADMIN_WHATSAPP_NUMBER = "5579996337995"; // Coloque o seu número de WhatsApp aqui
+    const ADMIN_WHATSAPP_NUMBER = "5579996337995";
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
@@ -71,7 +72,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 userId = user.uid;
                 loadUserDataOrShowLogin();
             } else {
-                signInAnonymously(auth).catch(err => console.error("Auth Error", err));
+                signInAnonymously(auth).catch(err => {
+                    console.error("Auth Error", err);
+                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
+                });
             }
         });
     }
@@ -95,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             numbersData = doc.data();
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
+            
             if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
             if (raffleTitle) raffleTitle.textContent = numbersData.name;
             
@@ -110,12 +115,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (progressSection) progressSection.classList.remove('hidden');
             }
+
             renderNumberGrid();
+            
             if (loadingSection) loadingSection.classList.add('hidden');
             if (appSection) appSection.classList.remove('hidden');
             checkPaymentStatus();
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
+            if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
         });
     }
 
