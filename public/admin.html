@@ -38,12 +38,11 @@
             <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold">Sair</button>
         </header>
 
-        <!-- **NOVA SECÇÃO: CONFIGURAÇÕES GERAIS** -->
         <div class="bg-gray-800 p-6 rounded-lg mb-8">
             <h2 class="text-2xl font-semibold mb-4">Configurações Gerais</h2>
             <div>
                 <label for="rules-textarea" class="block text-sm font-medium text-gray-300 mb-2">Regras Gerais do Sorteio</label>
-                <textarea id="rules-textarea" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Escreva aqui as regras que se aplicam a todas as rifas (ex: como o sorteio é baseado na Loteria Federal, etc.)"></textarea>
+                <textarea id="rules-textarea" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Escreva aqui as regras que se aplicam a todas as rifas..."></textarea>
                 <button id="save-rules-btn" class="mt-3 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">Salvar Regras</button>
             </div>
         </div>
@@ -67,10 +66,55 @@
         </div>
 
         <div id="raffle-details-section" class="hidden">
-            <!-- O resto do seu painel de detalhes continua aqui, sem alterações -->
+            <div class="flex items-center gap-4 mb-4">
+                <h2 class="text-2xl font-semibold">Detalhes da Rifa:</h2>
+                <div id="raffle-name-display" class="flex items-center gap-3">
+                    <span id="details-raffle-name" class="text-2xl font-bold text-yellow-400"></span>
+                    <button id="edit-raffle-name-btn" title="Editar Nome da Rifa" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-pencil-alt"></i></button>
+                </div>
+                <div id="edit-raffle-name-section" class="hidden flex items-center gap-2">
+                    <input type="text" id="edit-raffle-name-input" class="p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    <button id="save-raffle-name-btn" class="p-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold">Salvar</button>
+                    <button id="cancel-edit-raffle-name-btn" class="p-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancelar</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Números Vendidos</h2><p id="sold-numbers" class="text-4xl font-bold">0</p></div>
+                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Total de Participantes</h2><p id="total-participants" class="text-4xl font-bold">0</p></div>
+                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Arrecadação</h2><p id="total-revenue" class="text-4xl font-bold">R$ 0,00</p></div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Declarar Resultado do Sorteio</h2>
+                <div id="declare-winner-area">
+                    <p class="text-gray-400 mb-4">Insira os 2 últimos dígitos do 1º prémio da Loteria Federal para finalizar a rifa.</p>
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <input type="number" id="winning-number-input" class="p-3 bg-gray-700 border border-gray-600 rounded-lg w-full sm:w-auto" placeholder="Nº Sorteado (00-99)">
+                        <button id="declare-winner-btn" class="w-full sm:w-auto p-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors">Declarar Ganhador</button>
+                    </div>
+                </div>
+                <div id="winner-info-admin" class="mt-6 hidden">
+                    <h3 class="text-xl font-bold text-green-400"><i class="fas fa-trophy mr-2"></i>Sorteio Finalizado!</h3>
+                    <div class="mt-2 bg-gray-900/50 p-4 rounded-lg">
+                        <p><strong>Número Sorteado:</strong> <span id="admin-winner-number" class="font-bold text-2xl"></span></p>
+                        <p><strong>Ganhador:</strong> <span id="admin-winner-name" class="font-bold"></span></p>
+                        <p><strong>Contacto:</strong> <span id="admin-winner-contact"></span></p>
+                        <p><strong>Chave PIX para pagamento:</strong> <strong id="admin-winner-pix" class="text-yellow-300"></strong></p>
+                    </div>
+                </div>
+                 <div id="no-winner-info-admin" class="mt-6 hidden bg-red-900/50 p-4 rounded-lg"><p class="text-yellow-400"><i class="fas fa-exclamation-triangle mr-2"></i>O número sorteado não foi escolhido por ninguém.</p></div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg overflow-x-auto">
+                <div class="flex justify-between items-center mb-4">
+                     <h2 class="text-2xl font-semibold">Lista de Participantes</h2>
+                     <input type="text" id="search-input" placeholder="Buscar por nome ou número..." class="p-2 bg-gray-700 border border-gray-600 rounded-lg">
+                </div>
+                <table class="w-full text-left">
+                    <thead><tr class="border-b border-gray-700"><th class="p-3">Nome</th><th class="p-3">Contacto</th><th class="p-3">Chave PIX</th><th class="p-3">Números Escolhidos</th></tr></thead>
+                    <tbody id="participants-table-body"><tr><td colspan="4" class="text-center p-8 text-gray-500">Selecione uma rifa acima para ver os detalhes.</td></tr></tbody>
+                </table>
+            </div>
         </div>
     </div>
-
     <script type="module" src="admin.js"></script>
 </body>
 </html>
