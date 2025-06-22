@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
             winnerInfoAdmin.classList.add('hidden');
         }
     };
-    
+
     // --- VIGILANTE DE AUTENTICAÇÃO E EVENTOS ---
     onAuthStateChanged(auth, (user) => {
         if (user && user.email) {
@@ -247,11 +247,11 @@ document.addEventListener('DOMContentLoaded', () => {
             adminEmailDisplay.textContent = `Logado como: ${user.email}`;
             listenToAllRaffles();
         } else {
-            if(user) signOut(auth); // Desloga utilizadores anónimos
-            loginScreen.classList.remove('hidden');
-            adminPanel.classList.add('hidden');
             if (allRafflesUnsubscribe) allRafflesUnsubscribe();
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
+            if (user) signOut(auth);
+            loginScreen.classList.remove('hidden');
+            adminPanel.classList.add('hidden');
         }
     });
 
@@ -276,3 +276,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+

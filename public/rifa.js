@@ -3,6 +3,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
+// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
         measurementId: "G-G3BX961SHY"
     };
-    const ADMIN_WHATSAPP_NUMBER = "5579996337995"; // Coloque o seu número de WhatsApp aqui
+    const ADMIN_WHATSAPP_NUMBER = "5579996337995";
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
@@ -53,6 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareFacebookBtn = document.getElementById('share-facebook-btn');
     const shareTwitterBtn = document.getElementById('share-twitter-btn');
     const whatsappFloatBtn = document.getElementById('whatsapp-float-btn');
+    const luckThemeInput = document.getElementById('luck-theme-input');
+    const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
+    const luckyNumbersResult = document.getElementById('lucky-numbers-result');
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -71,7 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 userId = user.uid;
                 loadUserDataOrShowLogin();
             } else {
-                signInAnonymously(auth).catch(err => console.error("Auth Error", err));
+                signInAnonymously(auth).catch(err => {
+                    console.error("Auth Error", err);
+                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
+                });
             }
         });
     }
@@ -95,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             numbersData = doc.data();
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
+            
             if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
             if (raffleTitle) raffleTitle.textContent = numbersData.name;
             
@@ -110,12 +118,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (progressSection) progressSection.classList.remove('hidden');
             }
+
             renderNumberGrid();
+            
             if (loadingSection) loadingSection.classList.add('hidden');
             if (appSection) appSection.classList.remove('hidden');
             checkPaymentStatus();
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
+            if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
         });
     }
 
@@ -163,21 +174,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateShoppingCart() {
+        if (!shoppingCartSection || !selectedNumbersList || !totalPriceEl || !checkoutBtn) return;
         if (selectedNumbers.length === 0) {
-            if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
+            shoppingCartSection.classList.add('hidden');
             return;
         }
-        if (shoppingCartSection) shoppingCartSection.classList.remove('hidden');
-        if (selectedNumbersList) selectedNumbersList.innerHTML = '';
+        shoppingCartSection.classList.remove('hidden');
+        selectedNumbersList.innerHTML = '';
         selectedNumbers.sort().forEach(num => {
             const numberEl = document.createElement('span');
             numberEl.className = 'bg-amber-500 text-gray-900 font-bold px-3 py-1 rounded-full text-lg';
             numberEl.textContent = num;
-            if (selectedNumbersList) selectedNumbersList.appendChild(numberEl);
+            selectedNumbersList.appendChild(numberEl);
         });
         const totalPrice = selectedNumbers.length * PRICE_PER_NUMBER;
-        if (totalPriceEl) totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        if (checkoutBtn) checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
+        totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
     }
 
     function saveUserData() {
@@ -193,33 +205,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayPublicWinner(winnerData) {
+        if (!winnerDisplaySection || !publicWinnerNumber || !publicWinnerName || !publicWinnerBoughtNumbers) return;
         if (!winnerData || !winnerData.player) {
-            if(winnerDisplaySection) winnerDisplaySection.classList.add('hidden');
+            winnerDisplaySection.classList.add('hidden');
             return;
         }
         const { number, player } = winnerData;
-        if(publicWinnerNumber) publicWinnerNumber.textContent = number;
-        if(publicWinnerName) publicWinnerName.textContent = player.name;
-        if(publicWinnerBoughtNumbers) {
-            publicWinnerBoughtNumbers.innerHTML = '';
-            const winnerId = player.userId;
-            const winnerNumbers = [];
-            for (const numKey in numbersData) {
-                if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
-                    winnerNumbers.push(numKey);
-                }
+        publicWinnerNumber.textContent = number;
+        publicWinnerName.textContent = player.name;
+        publicWinnerBoughtNumbers.innerHTML = '';
+        const winnerId = player.userId;
+        const winnerNumbers = [];
+        for (const numKey in numbersData) {
+            if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
+                winnerNumbers.push(numKey);
             }
-            winnerNumbers.sort().forEach(num => {
-                const span = document.createElement('span');
-                span.className = num === number 
-                    ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' 
-                    : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
-                span.textContent = num;
-                publicWinnerBoughtNumbers.appendChild(span);
-            });
         }
-        if(winnerDisplaySection) winnerDisplaySection.classList.remove('hidden');
-        if(shoppingCartSection) shoppingCartSection.classList.add('hidden');
+        winnerNumbers.sort().forEach(num => {
+            const span = document.createElement('span');
+            span.className = num === number 
+                ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' 
+                : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
+            span.textContent = num;
+            publicWinnerBoughtNumbers.appendChild(span);
+        });
+        winnerDisplaySection.classList.remove('hidden');
+        if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
     async function handleCheckout() {
@@ -260,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const raffleId = rifaDocRef.id;
         if (selectedNumbers.length === 0) return alert("Você não selecionou nenhum número!");
         if (!window.confirm(`-- MODO DE TESTE --\n\nConfirma a reserva (sem custo) dos números: ${selectedNumbers.join(', ')}?`)) return;
-
         checkoutBtn.disabled = true;
         checkoutBtn.textContent = 'A processar teste...';
         try {
@@ -273,13 +283,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 updates[number] = { ...currentUser, userId, raffleId, createdAt: new Date() };
             });
             await updateDoc(rifaDocRef, updates);
-            
             paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${selectedNumbers.join(', ')} foram reservados.`;
             paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
             paymentStatusEl.classList.remove('hidden');
             triggerConfetti();
             if (shareModal) shareModal.style.display = 'flex';
-
             selectedNumbers = [];
             updateShoppingCart();
         } catch (error) {
@@ -295,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const status = urlParams.get('status');
         const pendingRaffleId = localStorage.getItem('pendingRaffleId');
-        if (status && rifaDocRef.id === pendingRaffleId) {
+        if (status && rifaDocRef && rifaDocRef.id === pendingRaffleId) {
             const pendingNumbers = localStorage.getItem('pendingNumbers');
             if (status === 'approved' && pendingNumbers) {
                 paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(pendingNumbers).join(', ')} foram reservados. Boa sorte!`;
@@ -366,8 +374,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupShareButtons() {
         if (!shareWhatsappBtn) return;
-        const shareText = `Estou a participar na rifa para ganhar um "${numbersData.name}"! Garanta os seus números também!`;
-        const shareUrl = window.location.href.split('?')[0] + `?id=${rifaDocRef.id}`;
+        const shareText = `Estou a participar na rifa para ganhar um "${numbersData.name || 'prémio incrível'}"! Garanta os seus números também!`;
+        const shareUrl = window.location.href;
         
         shareWhatsappBtn.onclick = () => {
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
@@ -393,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = encodeURIComponent(`Olá! Tenho uma dúvida sobre a rifa "${numbersData.name || ''}"`);
         whatsappFloatBtn.href = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${message}`;
     }
-
+    
     // --- INICIALIZAÇÃO E EVENTOS ---
     const urlParams = new URLSearchParams(window.location.search);
     const raffleId = urlParams.get('id');
