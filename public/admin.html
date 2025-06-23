@@ -3,103 +3,578 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Administração - Rifa Online</title>
+    <title>Rifa Online com IA - Sorte Premiada</title>
+    <!-- Tailwind CSS para estilização rápida -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Fonte Inter do Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilo base */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Animação de brilho para botões disponíveis */
+        .number-available:hover {
+            box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.6);
+            transform: scale(1.05);
+        }
+        
+        /* Animação de pulso para o título */
+        .title-pulse {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        /* Estilo para Tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 160px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -80px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Modal Backdrop */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+    </style>
 </head>
-<body class="bg-gray-900 text-gray-200 min-h-screen">
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <div id="login-screen" class="flex flex-col items-center justify-center min-h-screen p-4">
-        <div class="w-full max-w-sm p-8 bg-gray-800 rounded-2xl shadow-lg">
-            <h1 class="text-2xl font-bold text-center text-blue-300 mb-6">Acesso do Administrador</h1>
-            <div class="space-y-4">
-                <div><label for="admin-email" class="block text-sm font-medium">E-mail</label><input type="email" id="admin-email" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="seu.email@admin.com"></div>
-                <div><label for="admin-password" class="block text-sm font-medium">Senha</label><input type="password" id="admin-password" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="••••••••"></div>
-            </div>
-            <button id="login-btn" class="w-full mt-6 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">Entrar</button>
-            <p id="login-error" class="text-red-400 text-center mt-4 hidden">E-mail ou senha incorretos.</p>
+    <!-- Container Principal -->
+    <div id="main-container" class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+
+        <!-- Seção de Carregamento -->
+        <div id="loading-section" class="text-center">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
+            <p class="mt-4 text-lg">Carregando rifa...</p>
         </div>
-    </div>
 
-    <div id="admin-panel" class="hidden p-4 md:p-8">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-blue-300">Painel de Administração</h1>
-                <p id="admin-email-display" class="text-sm text-gray-400"></p>
-            </div>
-            <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold">Sair</button>
-        </header>
-
-        <div class="bg-gray-800 p-6 rounded-lg mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Gerir Rifas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h3 class="text-xl font-semibold text-teal-300 mb-3">Criar Nova Rifa</h3>
-                    <div class="space-y-4">
-                        <div><label for="raffle-name" class="block text-sm font-medium">Nome do Prémio</label><input type="text" id="raffle-name" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Ex: iPhone 15 Pro"></div>
-                        <div><label for="raffle-price" class="block text-sm font-medium">Preço por Número (R$)</label><input type="number" id="raffle-price" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="10"></div>
-                        <button id="create-raffle-btn" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-semibold">Criar Rifa</button>
-                    </div>
+        <!-- Seção para coletar dados do usuário -->
+        <div id="user-section" class="hidden">
+            <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo à Rifa!</h2>
+            <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha seus dados abaixo. Eles serão usados para identificar seus números e para o pagamento do prêmio.</p>
+            <div class="max-w-md mx-auto">
+                <div class="mb-4">
+                    <label for="name" class="block mb-2 text-sm font-medium text-gray-300">Nome Completo</label>
+                    <input type="text" id="name" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="Seu nome" required>
                 </div>
-                <div>
-                    <h3 class="text-xl font-semibold text-blue-300 mb-3">Rifas Ativas e Encerradas</h3>
-                    <div id="raffles-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"><p class="text-gray-500">A carregar lista de rifas...</p></div>
+                <div class="mb-4">
+                    <label for="email" class="block mb-2 text-sm font-medium text-gray-300">E-mail</label>
+                    <input type="email" id="email" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="seu.email@exemplo.com" required>
                 </div>
+                <div class="mb-4">
+                    <label for="whatsapp" class="block mb-2 text-sm font-medium text-gray-300">WhatsApp</label>
+                    <input type="tel" id="whatsapp" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="(99) 99999-9999" required>
+                </div>
+                <div class="mb-6">
+                    <label for="pix" class="block mb-2 text-sm font-medium text-gray-300">Chave PIX (para receber o prêmio)</label>
+                    <input type="text" id="pix" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5" placeholder="CPF, e-mail, telefone ou chave aleatória" required>
+                </div>
+                <button id="save-user-btn" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar e Escolher Números</button>
             </div>
         </div>
 
-        <div id="raffle-details-section" class="hidden">
-            <div class="flex items-center gap-4 mb-4">
-                <h2 class="text-2xl font-semibold">Detalhes da Rifa:</h2>
-                <div id="raffle-name-display" class="flex items-center gap-3">
-                    <span id="details-raffle-name" class="text-2xl font-bold text-yellow-400"></span>
-                    <button id="edit-raffle-name-btn" title="Editar Nome da Rifa" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-pencil-alt"></i></button>
-                </div>
-                <div id="edit-raffle-name-section" class="hidden flex items-center gap-2">
-                    <input type="text" id="edit-raffle-name-input" class="p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
-                    <button id="save-raffle-name-btn" class="p-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold">Salvar</button>
-                    <button id="cancel-edit-raffle-name-btn" class="p-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancelar</button>
-                </div>
+        <!-- Seção principal do aplicativo (grid e admin) -->
+        <div id="app-section" class="hidden">
+            <header class="text-center mb-8">
+                <h1 class="text-3xl md:text-4xl font-bold title-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">Rifa Online - Sorte Premiada</h1>
+                <p class="text-gray-400 mt-2">Bem-vindo(a), <span id="welcome-user" class="font-semibold text-blue-300"></span>! Escolha seus números da sorte abaixo.</p>
+                <p class="text-xs text-gray-500 mt-1">Seu ID de participante: <code id="user-id-display" class="bg-gray-700 px-1 rounded"></code></p>
+            </header>
+
+            <!-- Grade de números -->
+            <div id="number-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8">
+                <!-- Números serão gerados pelo JavaScript aqui -->
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Números Vendidos</h2><p id="sold-numbers" class="text-4xl font-bold">0</p></div>
-                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Total de Participantes</h2><p id="total-participants" class="text-4xl font-bold">0</p></div>
-                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Arrecadação</h2><p id="total-revenue" class="text-4xl font-bold">R$ 0,00</p></div>
+            
+            <!-- NOVA SEÇÃO: Gemini - Oráculo da Sorte -->
+            <div id="gemini-luck-section" class="bg-gray-900/50 p-6 rounded-lg border border-dashed border-purple-400 mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-purple-300 text-center"><i class="fas fa-star-of-life mr-2"></i>Oráculo da Sorte</h3>
+                <p class="text-center text-gray-400 mb-4">Em dúvida? Digite um tema e deixe a IA sugerir seus números da sorte!</p>
+                <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
+                    <input type="text" id="luck-theme-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full sm:w-auto p-2.5" placeholder="Digite um tema (ex: amor, sonho)">
+                    <button id="get-lucky-numbers-btn" class="w-full sm:w-auto text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:ring-purple-800 font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center gap-2">
+                        <span class="gemini-button-text">✨ Sugerir Números</span>
+                        <i class="fas fa-spinner fa-spin hidden"></i>
+                    </button>
+                </div>
+                <div id="lucky-numbers-result" class="mt-6 text-center"></div>
             </div>
-            <div class="bg-gray-800 p-6 rounded-lg mb-8">
-                <h2 class="text-2xl font-semibold mb-4">Declarar Resultado do Sorteio</h2>
-                <div id="declare-winner-area">
-                    <p class="text-gray-400 mb-4">Insira os 2 últimos dígitos do 1º prémio da Loteria Federal para finalizar a rifa.</p>
-                    <div class="flex flex-col sm:flex-row items-center gap-4">
-                        <input type="number" id="winning-number-input" class="p-3 bg-gray-700 border border-gray-600 rounded-lg w-full sm:w-auto" placeholder="Nº Sorteado (00-99)">
-                        <button id="declare-winner-btn" class="w-full sm:w-auto p-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors">Declarar Ganhador</button>
-                    </div>
+
+
+            <!-- Seção do Administrador -->
+            <div id="admin-section" class="bg-gray-900/50 p-6 rounded-lg border border-gray-700">
+                <h3 class="text-xl font-semibold mb-4 text-teal-300">Área do Organizador</h3>
+                <div class="flex flex-col sm:flex-row items-center gap-4">
+                    <input type="number" id="winning-number-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block w-full sm:w-auto p-2.5" placeholder="Digite o nº sorteado (00-99)">
+                    <button id="declare-winner-btn" class="w-full sm:w-auto text-white bg-teal-600 hover:bg-teal-700 focus:ring-4 focus:ring-teal-800 font-medium rounded-lg text-sm px-5 py-2.5">Declarar Ganhador</button>
                 </div>
-                <div id="winner-info-admin" class="mt-6 hidden">
-                    <h3 class="text-xl font-bold text-green-400"><i class="fas fa-trophy mr-2"></i>Sorteio Finalizado!</h3>
-                    <div class="mt-2 bg-gray-900/50 p-4 rounded-lg">
-                        <p><strong>Número Sorteado:</strong> <span id="admin-winner-number" class="font-bold text-2xl"></span></p>
-                        <p><strong>Ganhador:</strong> <span id="admin-winner-name" class="font-bold"></span></p>
-                        <p><strong>Contacto:</strong> <span id="admin-winner-contact"></span></p>
-                        <p><strong>Chave PIX para pagamento:</strong> <strong id="admin-winner-pix" class="text-yellow-300"></strong></p>
-                    </div>
+                <div id="winner-info" class="mt-6 hidden bg-gray-800 p-4 rounded-lg">
+                    <h4 class="text-lg font-bold text-green-400"><i class="fas fa-trophy mr-2"></i>Temos um Ganhador!</h4>
+                    <p class="mt-2"><strong>Número Sorteado:</strong> <span id="winner-number"></span></p>
+                    <p><strong>Nome:</strong> <span id="winner-name"></span></p>
+                    <p><strong>E-mail:</strong> <span id="winner-email"></span></p>
+                    <p><strong>WhatsApp:</strong> <span id="winner-whatsapp"></span></p>
+                    <p class="mt-2"><strong>Chave PIX para pagamento:</strong> <strong id="winner-pix" class="text-yellow-300"></strong></p>
                 </div>
-                 <div id="no-winner-info-admin" class="mt-6 hidden bg-red-900/50 p-4 rounded-lg"><p class="text-yellow-400"><i class="fas fa-exclamation-triangle mr-2"></i>O número sorteado não foi escolhido por ninguém.</p></div>
-            </div>
-            <div class="bg-gray-800 p-6 rounded-lg overflow-x-auto">
-                <div class="flex justify-between items-center mb-4">
-                     <h2 class="text-2xl font-semibold">Lista de Participantes</h2>
-                     <input type="text" id="search-input" placeholder="Buscar por nome ou número..." class="p-2 bg-gray-700 border border-gray-600 rounded-lg">
+                 <div id="no-winner-info" class="mt-6 hidden bg-gray-800 p-4 rounded-lg">
+                    <p class="text-yellow-400"><i class="fas fa-exclamation-triangle mr-2"></i>O número sorteado não foi escolhido por ninguém.</p>
                 </div>
-                <table class="w-full text-left">
-                    <thead><tr class="border-b border-gray-700"><th class="p-3">Nome</th><th class="p-3">Contacto</th><th class="p-3">Chave PIX</th><th class="p-3">Números Escolhidos</th></tr></thead>
-                    <tbody id="participants-table-body"><tr><td colspan="4" class="text-center p-8 text-gray-500">Selecione uma rifa acima para ver os detalhes.</td></tr></tbody>
-                </table>
             </div>
         </div>
     </div>
-    <script type="module" src="admin.js"></script>
+    
+    <!-- NOVO: Modal de Confirmação e Compartilhamento -->
+    <div id="share-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto relative border border-green-500">
+            <h3 class="text-2xl font-bold text-center text-green-400 mb-4">Número Escolhido!</h3>
+            <p id="share-modal-text" class="text-center text-gray-300 mb-6"></p>
+            
+            <div class="bg-gray-900/70 p-4 rounded-lg">
+                 <div class="flex items-center justify-between mb-2">
+                    <h4 class="text-lg font-semibold text-purple-300">Compartilhe com Amigos!</h4>
+                    <button id="generate-share-message-btn" class="text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:ring-purple-800 font-medium rounded-lg text-sm px-4 py-2 flex items-center justify-center gap-2">
+                         <span class="gemini-button-text">✨ Gerar Mensagem</span>
+                        <i class="fas fa-spinner fa-spin hidden"></i>
+                    </button>
+                 </div>
+                <textarea id="share-message-textarea" class="w-full bg-gray-700 text-white rounded-lg p-2 h-32 resize-none border border-gray-600" placeholder="Sua mensagem para compartilhar aparecerá aqui..."></textarea>
+                <button id="copy-share-message-btn" class="mt-2 w-full text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center hidden"><i class="fas fa-copy mr-2"></i>Copiar Mensagem</button>
+            </div>
+
+            <button id="close-modal-btn" class="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Fechar</button>
+        </div>
+    </div>
+
+
+    <!-- Módulo JavaScript com Firebase -->
+    <script type="module">
+        // Importações do Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CONFIGURAÇÃO ---
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+          apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
+          authDomain: "cemvezesmais-1ab48.firebaseapp.com",
+          projectId: "cemvezesmais-1ab48",
+          storageBucket: "cemvezesmais-1ab48.firebasestorage.app",
+          messagingSenderId: "206492928997",
+          appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
+          measurementId: "G-G3BX961SHY"
+        };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-rifa-app';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Chave da API do Gemini - Adicione sua chave aqui para testes locais
+        const GEMINI_API_KEY = ""; // INSIRA SUA CHAVE DA API GEMINI AQUI
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+
+        // --- INICIALIZAÇÃO DO FIREBASE ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const RIFADATA_COLLECTION = `artifacts/${appId}/public/data/rifa-100`;
+        const rifaDocRef = doc(db, RIFADATA_COLLECTION, "estado-atual");
+
+        // --- ELEMENTOS DO DOM ---
+        const mainContainer = document.getElementById('main-container');
+        const loadingSection = document.getElementById('loading-section');
+        const userSection = document.getElementById('user-section');
+        const appSection = document.getElementById('app-section');
+        const nameInput = document.getElementById('name');
+        const emailInput = document.getElementById('email');
+        const whatsappInput = document.getElementById('whatsapp');
+        const pixInput = document.getElementById('pix');
+        const saveUserBtn = document.getElementById('save-user-btn');
+        const numberGrid = document.getElementById('number-grid');
+        const welcomeUserSpan = document.getElementById('welcome-user');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const winningNumberInput = document.getElementById('winning-number-input');
+        const declareWinnerBtn = document.getElementById('declare-winner-btn');
+        const winnerInfoDiv = document.getElementById('winner-info');
+        const noWinnerInfoDiv = document.getElementById('no-winner-info');
+
+        // --- NOVOS ELEMENTOS DO DOM (Gemini) ---
+        const luckThemeInput = document.getElementById('luck-theme-input');
+        const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
+        const luckyNumbersResult = document.getElementById('lucky-numbers-result');
+        const shareModal = document.getElementById('share-modal');
+        const shareModalText = document.getElementById('share-modal-text');
+        const generateShareMessageBtn = document.getElementById('generate-share-message-btn');
+        const shareMessageTextarea = document.getElementById('share-message-textarea');
+        const copyShareMessageBtn = document.getElementById('copy-share-message-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+
+        // --- ESTADO DO APLICATIVO ---
+        let currentUser = null;
+        let userId = null;
+        let numbersData = {};
+        let chosenNumberForModal = null; // Armazena o último número escolhido para usar no modal
+
+        // --- LÓGICA DA API GEMINI ---
+        
+        function setButtonLoading(button, isLoading) {
+            const text = button.querySelector('.gemini-button-text');
+            const spinner = button.querySelector('i.fa-spinner');
+            if (isLoading) {
+                button.disabled = true;
+                text.classList.add('hidden');
+                spinner.classList.remove('hidden');
+            } else {
+                button.disabled = false;
+                text.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }
+        }
+
+        async function callGemini(prompt) {
+             if (!GEMINI_API_KEY) {
+                return "A chave da API Gemini não foi configurada. Funcionalidade de IA desativada.";
+             }
+             const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+             };
+             try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+                 if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts[0].text) {
+                     return result.candidates[0].content.parts[0].text;
+                 }
+                 return null;
+             } catch (error) {
+                console.error("Erro ao chamar a API Gemini:", error);
+                return null;
+             }
+        }
+        
+        async function getLuckyNumbers() {
+            const theme = luckThemeInput.value.trim();
+            if (!theme) {
+                luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
+                return;
+            }
+
+            setButtonLoading(getLuckyNumbersBtn, true);
+            luckyNumbersResult.innerHTML = `<p class="text-purple-300">Consultando o cosmos...</p>`;
+
+            const prompt = `Você é um vidente místico e divertido. Baseado na palavra ou tema "${theme}", sugira 3 números de dois dígitos (de 00 a 99) para uma rifa. Para cada número, dê uma explicação curta, criativa e mística do porquê ele é um número de sorte relacionado ao tema. Responda APENAS com um objeto JSON válido. O objeto deve ter a seguinte estrutura: { "sugestoes": [ { "numero": "XX", "explicacao": "Sua explicação mística aqui." }, { "numero": "YY", "explicacao": "Outra explicação." }, { "numero": "ZZ", "explicacao": "Mais uma." } ] }`;
+
+            const responseText = await callGemini(prompt);
+            setButtonLoading(getLuckyNumbersBtn, false);
+
+            if (!responseText) {
+                 luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está em silêncio agora. Tente novamente mais tarde.</p>`;
+                 return;
+            }
+
+            try {
+                const data = JSON.parse(responseText);
+                let html = '<div class="grid md:grid-cols-3 gap-4">';
+                data.sugestoes.forEach(s => {
+                    html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500">
+                                <p class="text-2xl font-bold text-purple-300 mb-2">${s.numero}</p>
+                                <p class="text-sm text-gray-300">${s.explicacao}</p>
+                             </div>`;
+                });
+                html += '</div>';
+                luckyNumbersResult.innerHTML = html;
+            } catch(e) {
+                console.error("Erro ao processar a resposta do Oráculo:", e);
+                luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo falou em uma língua estranha. Tente reformular seu tema.</p>`;
+            }
+        }
+        
+        async function generateShareMessage() {
+            setButtonLoading(generateShareMessageBtn, true);
+            shareMessageTextarea.value = "Criando uma mensagem mágica...";
+            copyShareMessageBtn.classList.add('hidden');
+
+            const prompt = `Crie uma mensagem curta e animada para o WhatsApp que ${currentUser.name} possa compartilhar. A mensagem deve celebrar a escolha do número ${chosenNumberForModal} na rifa "Sorte Premiada" e convidar amigos para participar também. Inclua emojis e um espaço no final para o link da rifa como "[COLE O LINK DA RIFA AQUI]". Seja criativo e divertido.`;
+
+            const message = await callGemini(prompt);
+            setButtonLoading(generateShareMessageBtn, false);
+
+            if (message) {
+                shareMessageTextarea.value = message;
+                copyShareMessageBtn.classList.remove('hidden');
+            } else {
+                shareMessageTextarea.value = "Não foi possível criar uma mensagem agora. Tente novamente!";
+            }
+        }
+
+        function copyShareMessage() {
+            shareMessageTextarea.select();
+            document.execCommand('copy');
+            copyShareMessageBtn.textContent = 'Copiado!';
+            setTimeout(() => {
+                 copyShareMessageBtn.innerHTML = '<i class="fas fa-copy mr-2"></i>Copiar Mensagem';
+            }, 2000);
+        }
+
+        // --- FUNÇÕES PRINCIPAIS (MODIFICADAS/EXISTENTES) ---
+        
+        function setupAuthListener() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    // Usuário está logado, proceder com a aplicação
+                    try {
+                        // Tenta definir a persistência agora que temos um usuário
+                        await setPersistence(auth, browserLocalPersistence);
+                    } catch(e) {
+                        console.warn("Não foi possível habilitar a persistência. Os dados de login podem não ser mantidos entre sessões.", e);
+                    }
+                    userId = user.uid;
+                    loadUserDataOrShowLogin();
+                } else {
+                    // Usuário não está logado, tentar login
+                    try {
+                        // Primeiro tenta com o token do ambiente (para compatibilidade com a plataforma)
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            // Senão, tenta o login anônimo (para rodar localmente)
+                            await signInAnonymously(auth);
+                        }
+                        // O listener será chamado novamente com o usuário logado após o sucesso do login.
+                    } catch (error) {
+                        console.error("Falha na autenticação:", error);
+                        let errorMessage = `
+                            <div class="text-center p-8">
+                                <h2 class="text-2xl font-bold text-red-400 mb-4">Erro de Autenticação</h2>
+                                <p class="text-gray-300 mb-4">Não foi possível conectar ao serviço de autenticação do Firebase.</p>
+                                <p class="font-mono bg-gray-700 p-2 rounded text-sm text-red-300">${error.message}</p>
+                            </div>
+                        `;
+
+                        // Verifica se o erro é o específico de configuração e mostra uma mensagem mais detalhada
+                        if (error.code === 'auth/configuration-not-found') {
+                             errorMessage = `
+                                <div class="text-center p-8">
+                                    <h2 class="text-2xl font-bold text-red-400 mb-4">Erro de Configuração do Firebase</h2>
+                                    <p class="text-gray-300">Ocorreu um erro comum: o método de login "Anônimo" provavelmente não está ativado no seu painel do Firebase.</p>
+                                    <p class="text-gray-400 mt-6 font-semibold">COMO RESOLVER:</p>
+                                    <ol class="list-decimal list-inside text-left max-w-lg mx-auto mt-2 text-gray-400 space-y-2">
+                                        <li>Acesse o <a href="https://console.firebase.google.com/" target="_blank" class="text-blue-400 hover:underline font-bold">Console do Firebase</a> e abra seu projeto (cemvezesmais-1ab48).</li>
+                                        <li>No menu à esquerda, em <b>Build</b>, clique em <b>Authentication</b>.</li>
+                                        <li>Vá para a aba <b>Sign-in method</b> (Método de login).</li>
+                                        <li>Na lista de provedores, encontre <b>Anônimo</b>, clique nele e ative o botão para habilitar.</li>
+                                        <li>Salve a alteração e <b>recarregue esta página</b>.</li>
+                                    </ol>
+                                </div>
+                            `;
+                        }
+                        mainContainer.innerHTML = errorMessage;
+                    }
+                }
+            });
+        }
+        
+        function loadUserDataOrShowLogin() {
+            const savedUser = localStorage.getItem(`rifaUser_${appId}`);
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showApp();
+            } else {
+                showUserSection();
+            }
+        }
+        
+        function showApp() {
+            welcomeUserSpan.textContent = currentUser.name;
+            userIdDisplay.textContent = userId.substring(0, 8) + '...';
+            loadingSection.classList.add('hidden');
+            userSection.classList.add('hidden');
+            appSection.classList.remove('hidden');
+            setupFirestoreListener();
+        }
+
+        function showUserSection() {
+            loadingSection.classList.add('hidden');
+            userSection.classList.remove('hidden');
+            appSection.classList.add('hidden');
+        }
+
+        function setupFirestoreListener() {
+            onSnapshot(rifaDocRef, (doc) => {
+                if (doc.exists()) {
+                    numbersData = doc.data();
+                } else {
+                    numbersData = {};
+                }
+                renderNumberGrid();
+                if (numbersData.winner) {
+                    displayWinner(numbersData.winner.number, numbersData.winner.player);
+                }
+            }, (error) => {
+                console.error("Erro ao ouvir o Firestore:", error);
+                numberGrid.innerHTML = `<p class="text-red-400 col-span-full">Não foi possível carregar os números.</p>`;
+            });
+        }
+        
+        function renderNumberGrid() {
+            numberGrid.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                const numberStr = i.toString().padStart(2, '0');
+                const ownerData = numbersData[numberStr];
+                const button = document.createElement('button');
+                button.textContent = numberStr;
+                button.dataset.number = numberStr;
+                button.className = "p-2 rounded-lg text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+                if (ownerData) {
+                    button.disabled = true;
+                    if (ownerData.userId === userId) {
+                        button.classList.add('bg-purple-600', 'cursor-not-allowed', 'ring-2', 'ring-purple-300');
+                    } else {
+                        button.classList.add('bg-gray-600', 'cursor-not-allowed', 'opacity-70', 'tooltip');
+                        const tooltipText = document.createElement('span');
+                        tooltipText.className = 'tooltiptext';
+                        tooltipText.textContent = `Por: ${ownerData.name}`;
+                        button.appendChild(tooltipText);
+                    }
+                } else {
+                    button.classList.add('bg-blue-500', 'hover:bg-blue-400', 'number-available');
+                    button.addEventListener('click', handleNumberClick);
+                }
+                numberGrid.appendChild(button);
+            }
+        }
+        
+        async function handleNumberClick(event) {
+            const number = event.target.dataset.number;
+            
+            if (numbersData[number]) {
+                alert("Ops! Alguém acabou de pegar este número. Tente outro.");
+                return;
+            }
+
+            const confirmation = window.confirm(`Você confirma a escolha do número ${number}?`);
+            if (!confirmation) return;
+
+            event.target.disabled = true;
+            event.target.textContent = '...';
+            
+            try {
+                await updateDoc(rifaDocRef, { [number]: { ...currentUser, userId } })
+                    .catch(e => e.code === 'not-found' ? setDoc(rifaDocRef, { [number]: { ...currentUser, userId } }) : Promise.reject(e));
+                console.log(`Número ${number} escolhido por ${currentUser.name}`);
+                
+                chosenNumberForModal = number;
+                shareModalText.textContent = `Parabéns, ${currentUser.name}! Você escolheu o número ${number}. Boa sorte!`;
+                shareMessageTextarea.value = '';
+                copyShareMessageBtn.classList.add('hidden');
+                shareModal.classList.remove('hidden');
+                shareModal.classList.add('flex');
+
+            } catch (error) {
+                console.error("Erro ao escolher número:", error);
+                alert("Ocorreu um erro ao escolher o número. Por favor, tente novamente.");
+            }
+        }
+        
+        function saveUserData() {
+            if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
+                currentUser = {
+                    name: nameInput.value.trim(),
+                    email: emailInput.value.trim(),
+                    whatsapp: whatsappInput.value.trim(),
+                    pix: pixInput.value.trim(),
+                };
+                localStorage.setItem(`rifaUser_${appId}`, JSON.stringify(currentUser));
+                showApp();
+            } else {
+                alert("Por favor, preencha todos os campos.");
+            }
+        }
+        
+        async function declareWinner() {
+            const winningNumber = winningNumberInput.value.padStart(2, '0');
+            if (parseInt(winningNumber, 10) < 0 || parseInt(winningNumber, 10) > 99) {
+                alert("Por favor, insira um número válido entre 00 e 99.");
+                return;
+            }
+            const winnerData = numbersData[winningNumber];
+            displayWinner(winningNumber, winnerData);
+            try {
+                await updateDoc(rifaDocRef, { winner: { number: winningNumber, player: winnerData || null } });
+            } catch (error) {
+                 console.error("Erro ao salvar o ganhador:", error);
+            }
+        }
+
+        function displayWinner(number, player) {
+            if (player) {
+                document.getElementById('winner-number').textContent = number;
+                document.getElementById('winner-name').textContent = player.name;
+                document.getElementById('winner-email').textContent = player.email;
+                document.getElementById('winner-whatsapp').textContent = player.whatsapp;
+                document.getElementById('winner-pix').textContent = player.pix;
+                winnerInfoDiv.classList.remove('hidden');
+                noWinnerInfoDiv.classList.add('hidden');
+            } else {
+                winnerInfoDiv.classList.add('hidden');
+                noWinnerInfoDiv.classList.remove('hidden');
+            }
+            declareWinnerBtn.disabled = true;
+            winningNumberInput.disabled = true;
+        }
+
+        // --- EVENT LISTENERS ---
+        saveUserBtn.addEventListener('click', saveUserData);
+        declareWinnerBtn.addEventListener('click', declareWinner);
+        getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+        generateShareMessageBtn.addEventListener('click', generateShareMessage);
+        copyShareMessageBtn.addEventListener('click', copyShareMessage);
+        closeModalBtn.addEventListener('click', () => {
+            shareModal.classList.add('hidden');
+            shareModal.classList.remove('flex');
+        });
+
+        // Inicia a aplicação
+        setupAuthListener();
+    </script>
 </body>
 </html>
+
