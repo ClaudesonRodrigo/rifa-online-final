@@ -2,11 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebas
 import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-// --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
-// Garante que todo o código só é executado depois de a página estar carregada.
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
         apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
         authDomain: "cemvezesmais-1ab48.firebaseapp.com",
@@ -17,14 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
         measurementId: "G-G3BX961SHY"
     };
 
-    // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
     const rafflesCollectionRef = collection(db, "rifas");
     const settingsDocRef = doc(db, "settings", "generalRules");
 
-    // --- ELEMENTOS DO DOM (APENAS LOGIN INICIALMENTE) ---
     const loginScreen = document.getElementById('login-screen');
     const adminPanel = document.getElementById('admin-panel');
     const adminEmailInput = document.getElementById('admin-email');
@@ -32,11 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('login-btn');
     const loginError = document.getElementById('login-error');
     
-    // --- ESTADO GLOBAL PARA OS LISTENERS ---
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
     
-    // --- LÓGICA DE AUTENTICAÇÃO ---
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
@@ -46,14 +39,16 @@ document.addEventListener('DOMContentLoaded', () => {
             loginError.classList.remove('hidden');
         }
     };
-    
-    // --- LÓGICA DO PAINEL (INICIADA APÓS LOGIN) ---
+
+    const cleanupListeners = () => {
+        if (allRafflesUnsubscribe) allRafflesUnsubscribe();
+        if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
+    };
+
     function initializeAdminPanel(user) {
-        // Mostra o painel
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         
-        // Elementos do painel
         const logoutBtn = document.getElementById('logout-btn');
         const adminEmailDisplay = document.getElementById('admin-email-display');
         const createRaffleBtn = document.getElementById('create-raffle-btn');
@@ -87,12 +82,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         adminEmailDisplay.textContent = `Logado como: ${user.email}`;
 
-        // Estado do painel
         let currentRaffleId = null;
         let allParticipantsData = [];
         let rawRifaData = {};
         
-        // Funções de gestão
+        const handleLogout = () => signOut(auth);
+
         const createRaffle = async () => {
             const name = raffleNameInput.value.trim();
             const price = parseFloat(rafflePriceInput.value);
@@ -262,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // Adiciona os eventos de gestão
+        logoutBtn.addEventListener('click', handleLogout);
         createRaffleBtn.addEventListener('click', createRaffle);
         declareWinnerBtn.addEventListener('click', declareWinner);
         searchInput.addEventListener('input', handleSearch);
@@ -282,12 +277,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
-        // Inicia a escuta da lista de rifas
         listenToAllRaffles();
         loadRules();
     }
     
-    const handleAuthState = (user) => {
+    onAuthStateChanged(auth, (user) => {
         if (user && user.email) {
             initializeAdminPanel(user);
         } else {
@@ -296,17 +290,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
-    };
-    
-    function cleanupListeners() {
-        if (allRafflesUnsubscribe) allRafflesUnsubscribe();
-        if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
-    }
+    });
 
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
-    logoutBtn.addEventListener('click', handleLogout);
-    
-    // --- VIGILANTE DE AUTENTICAÇÃO ---
-    onAuthStateChanged(auth, handleAuthState);
 });
