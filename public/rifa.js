@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firestore.js";
+import { getFirestore, doc, onSnapshot, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -79,7 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 userId = user.uid;
                 loadUserDataOrShowLogin();
             } else {
-                signInAnonymously(auth).catch(err => { console.error("Auth Error", err); });
+                signInAnonymously(auth).catch(err => {
+                    console.error("Auth Error", err);
+                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
+                });
             }
         });
     }
