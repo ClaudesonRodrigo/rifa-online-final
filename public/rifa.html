@@ -53,36 +53,6 @@
 
             <div id="number-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8"></div>
             
-            <div id="random-pick-section" class="hidden bg-gray-900/50 p-6 rounded-lg border border-dashed border-teal-400 mb-8">
-                <h3 class="text-xl font-semibold mb-4 text-teal-300 text-center"><i class="fas fa-magic mr-2"></i>Escolha Aleatória</h3>
-                <p class="text-center text-gray-400 mb-4">Selecione quantos números aleatórios você gostaria de reservar!</p>
-                <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
-                    <input type="number" id="random-quantity-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-teal-500 focus:border-teal-500 block w-full sm:w-auto p-2.5" placeholder="Ex: 10" min="1" max="100">
-                    <button id="generate-random-numbers-btn" class="w-full sm:w-auto text-white bg-teal-600 hover:bg-teal-700 font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center gap-2">
-                        <span>Gerar Números</span>
-                    </button>
-                </div>
-                <div id="random-numbers-message" class="text-center text-yellow-400 mt-4 hidden"></div>
-                <div id="random-numbers-result-list" class="flex flex-wrap justify-center gap-3 mt-6">
-                    </div>
-                <button id="add-random-to-cart-btn" class="w-full mt-6 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors opacity-50 pointer-events-none">
-                    Adicionar ao Carrinho
-                </button>
-            </div>
-            
-            <div id="search-number-section" class="bg-gray-900/50 p-6 rounded-lg border border-dashed border-blue-400 mb-8 hidden">
-                <h3 class="text-xl font-semibold mb-4 text-blue-300 text-center"><i class="fas fa-search mr-2"></i>Buscar um Número Específico</h3>
-                <p class="text-center text-gray-400 mb-4">Digite o número que você deseja e verifique a disponibilidade!</p>
-                <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
-                    <input type="text" id="search-number-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full sm:w-auto p-2.5" placeholder="Ex: 0123">
-                    <button id="check-number-btn" class="w-full sm:w-auto text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center gap-2">
-                        <span>Verificar</span>
-                    </button>
-                </div>
-                <div id="search-result-display" class="mt-4 text-center">
-                    </div>
-            </div>
-
             <div id="shopping-cart-section" class="hidden bg-gray-900/50 p-6 rounded-lg border border-teal-500 mb-8">
                  <h3 class="text-xl font-semibold mb-4 text-teal-300">A sua Seleção</h3>
                 <div id="selected-numbers-list" class="flex flex-wrap gap-3 mb-4"></div>
