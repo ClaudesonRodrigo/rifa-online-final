@@ -53,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const shareModal = document.getElementById('share-modal');
     const closeShareModalBtn = document.getElementById('close-share-modal-btn');
     const shareWhatsappBtn = document.getElementById('share-whatsapp-btn');
-    // CORRIGIDO: id do botão do Facebook
     const shareFacebookBtn = document.getElementById('share-facebook-btn'); 
     const shareTwitterBtn = document.getElementById('share-twitter-btn');
     const whatsappFloatBtn = document.getElementById('whatsapp-float-btn');
@@ -157,15 +156,15 @@ document.addEventListener('DOMContentLoaded', () => {
             renderNumberGrid(); 
             if (loadingSection) loadingSection.classList.add('hidden');
             if (appSection) appSection.classList.remove('hidden');
-            checkPaymentStatus();
+            checkPaymentStatus(); // Chamada agora é mais segura
             
             // Exibe ou esconde as seções de escolha aleatória e busca por número conforme o tipo de rifa
             if (raffleType === 'milhar' || raffleType === 'centena') {
                 randomPickSection.classList.remove('hidden');
-                searchNumberSection.classList.remove('hidden'); // Exibe a seção de busca
+                searchNumberSection.classList.remove('hidden'); 
             } else {
                 randomPickSection.classList.add('hidden');
-                searchNumberSection.classList.add('hidden'); // Esconde a seção de busca
+                searchNumberSection.classList.add('hidden'); 
             }
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
@@ -208,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         } else if (numbersToRender.length === 0 && availableNumbers.length > 0) {
-             numberGrid.innerHTML = `<p class="text-center text-gray-500 col-span-full">Os primeiros números já foram comprados. Tente a opção "Escolha Aleatória" abaixo ou use a busca!</p>`; // Adicionei busca
+             numberGrid.innerHTML = `<p class="text-center text-gray-500 col-span-full">Os primeiros números já foram comprados. Tente a opção "Escolha Aleatória" abaixo ou use a busca!</p>`; 
              return;
         }
 
@@ -418,8 +417,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkPaymentStatus() {
         const params = new URLSearchParams(window.location.search);
         const status = params.get('status');
+        // NOVO: Verificar se há um identificador de pagamento (Mercado Pago usa 'collection_id' ou 'preference_id')
+        const paymentId = params.get('collection_id') || params.get('preference_id'); 
+
         const pendingId = localStorage.getItem('pendingRaffleId');
-        if (status && rifaDocRef && rifaDocRef.id === pendingId) {
+
+        // SÓ PROCESSA SE TIVER STATUS E UM ID DE PAGAMENTO VÁLIDO
+        if (status && paymentId && rifaDocRef && rifaDocRef.id === pendingId) {
             const numbers = localStorage.getItem('pendingNumbers');
             if (status === 'approved' && numbers) {
                 paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(numbers).join(', ')} foram reservados.`;
@@ -432,8 +436,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentStatusEl.className = 'text-center text-red-400 mt-4';
                 paymentStatusEl.classList.remove('hidden');
             }
+            // Sempre limpa o localStorage após verificar, para evitar ativações futuras acidentais
             localStorage.removeItem('pendingNumbers');
             localStorage.removeItem('pendingRaffleId');
+            // Limpa os parâmetros da URL para evitar o re-processamento em recargas
             if (window.history.replaceState) {
                 const url = new URL(window.location);
                 url.search = '';
@@ -489,7 +495,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = window.location.href;
         const text = `Estou a participar na rifa para ganhar um "${numbersData.name || 'prémio incrível'}"! Garanta os seus números também! ${url}`;
         shareWhatsappBtn.onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-        // CORRIGIDO: usa shareFacebookBtn diretamente
         if (shareFacebookBtn) shareFacebookBtn.onclick = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank'); 
         if (shareTwitterBtn) shareTwitterBtn.onclick = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
         if (closeShareModalBtn) closeShareModalBtn.onclick = () => { if (shareModal) shareModal.style.display = 'none'; };
@@ -562,222 +567,3 @@ document.addEventListener('DOMContentLoaded', () => {
                     const buttonText = isSold ? `${formattedSuggestedNumber} (Vendido)` : formattedSuggestedNumber;
 
                     html += `
-                        <div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center">
-                            <p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p>
-                            <button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>
-                                ${buttonText}
-                            </button>
-                        </div>`;
-                });
-            } else {
-                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões para este tema.</p>`;
-            }
-            html += '</div>';
-            luckyNumbersResult.innerHTML = html;
-
-            luckyNumbersResult.querySelectorAll('button[data-number]').forEach(button => {
-                if (!button.disabled) {
-                    button.addEventListener('click', (e) => {
-                        const num = e.target.dataset.number;
-                        const gridButton = numberGrid.querySelector(`button[data-number="${num}"]`);
-                        if (gridButton && !gridButton.disabled) {
-                            handleNumberClick({ target: gridButton });
-                        }
-                    });
-                }
-            });
-
-        } catch (error) {
-            console.error("Erro ao chamar a função da Netlify (getLuckyNumbers):", error);
-            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente outro tema.</p>`;
-        } finally {
-            setButtonLoading(getLuckyNumbersBtn, false);
-        }
-    }
-    
-    async function generateRandomNumbers() {
-        const quantity = parseInt(randomQuantityInput.value);
-        if (isNaN(quantity) || quantity <= 0) {
-            randomNumbersMessage.textContent = "Por favor, insira uma quantidade válida de números.";
-            randomNumbersMessage.classList.remove('hidden');
-            return;
-        }
-        if (quantity > 100) { // Limite máximo para a geração aleatória, para evitar abuso/lentidão
-            randomNumbersMessage.textContent = "Por favor, selecione até 100 números de uma vez.";
-            randomNumbersMessage.classList.remove('hidden');
-            return;
-        }
-
-        randomNumbersMessage.textContent = 'Gerando números...';
-        randomNumbersMessage.classList.remove('hidden');
-        addRandomToCartBtn.disabled = true; 
-        generateRandomNumbersBtn.disabled = true; // Desabilita o botão de gerar também
-
-        const availableNumbers = [];
-        const expectedLength = getExpectedLengthForRaffleType(raffleType);
-
-        for (let i = 0; i < totalNumbersInRaffle; i++) {
-            const numberStr = formatNumberForRaffleType(i, raffleType);
-            if (!numbersData[numberStr]) { 
-                availableNumbers.push(numberStr);
-            }
-        }
-
-        if (availableNumbers.length === 0) {
-            randomNumbersMessage.textContent = "Ops! Parece que todos os números já foram comprados!";
-            randomNumbersResultList.innerHTML = '';
-            return;
-        }
-
-        if (quantity > availableNumbers.length) {
-            randomNumbersMessage.textContent = `Você pediu ${quantity} números, mas só temos ${availableNumbers.length} disponíveis. Exibindo todos os disponíveis.`;
-            randomSelectedNumbers = availableNumbers;
-        } else {
-            randomSelectedNumbers = [];
-            let tempAvailable = [...availableNumbers]; 
-            for (let i = 0; i < quantity; i++) {
-                const randomIndex = Math.floor(Math.random() * tempAvailable.length);
-                randomSelectedNumbers.push(tempAvailable[randomIndex]);
-                tempAvailable.splice(randomIndex, 1); 
-            }
-            randomNumbersMessage.textContent = ''; 
-        }
-        
-        randomNumbersResultList.innerHTML = '';
-        randomSelectedNumbers.sort().forEach(num => {
-            const el = document.createElement('span');
-            el.className = 'bg-blue-500 text-white font-bold px-3 py-1 rounded-full text-lg';
-            el.textContent = num;
-            randomNumbersResultList.appendChild(el);
-        });
-
-        if (randomSelectedNumbers.length > 0) {
-            addRandomToCartBtn.classList.remove('opacity-50', 'pointer-events-none');
-            addRandomToCartBtn.disabled = false;
-        } else {
-            addRandomToCartBtn.classList.add('opacity-50', 'pointer-events-none');
-            addRandomToCartBtn.disabled = true;
-        }
-        generateRandomNumbersBtn.disabled = false; // Reabilita o botão de gerar
-    }
-
-    function addRandomNumbersToCart() {
-        if (randomSelectedNumbers.length === 0) {
-            alert("Nenhum número aleatório para adicionar ao carrinho.");
-            return;
-        }
-
-        randomSelectedNumbers.forEach(num => {
-            if (!selectedNumbers.includes(num)) {
-                selectedNumbers.push(num);
-            }
-        });
-        
-        randomSelectedNumbers = [];
-        randomNumbersResultList.innerHTML = '';
-        addRandomToCartBtn.classList.add('opacity-50', 'pointer-events-none');
-        addRandomToCartBtn.disabled = true;
-        randomNumbersMessage.textContent = ''; 
-
-        renderNumberGrid(); 
-        updateShoppingCart(); 
-    }
-
-    // NOVA FUNÇÃO: Checar número específico
-    async function checkSpecificNumber() {
-        searchResultDisplay.innerHTML = ''; // Limpa resultados anteriores
-        const numberRaw = searchNumberInput.value.trim();
-        if (!numberRaw) {
-            searchResultDisplay.innerHTML = `<p class="text-yellow-400">Por favor, digite um número para buscar.</p>`;
-            return;
-        }
-
-        const expectedLength = getExpectedLengthForRaffleType(raffleType);
-        const formattedNumber = formatNumberForRaffleType(parseInt(numberRaw), raffleType);
-
-        // Validação básica do número
-        if (formattedNumber.length !== expectedLength || isNaN(parseInt(formattedNumber))) {
-            searchResultDisplay.innerHTML = `<p class="text-red-400">Número inválido. Para esta rifa (${raffleType}), use ${expectedLength} dígitos (ex: ${formatNumberForRaffleType(0, raffleType)} a ${formatNumberForRaffleType(totalNumbersInRaffle - 1, raffleType)}).</p>`;
-            return;
-        }
-        
-        checkNumberBtn.disabled = true;
-        checkNumberBtn.querySelector('span').textContent = 'Verificando...';
-        checkNumberBtn.querySelector('i').classList.remove('hidden'); // Exibe spinner
-
-        const isRaffleOver = !!numbersData.winner;
-        if (isRaffleOver) {
-             searchResultDisplay.innerHTML = `<p class="text-gray-400">A rifa já foi sorteada. Não é possível comprar novos números.</p>`;
-        } else if (numbersData[formattedNumber]) {
-            const ownerData = numbersData[formattedNumber];
-            if (ownerData.userId === userId) {
-                searchResultDisplay.innerHTML = `<p class="text-purple-400 font-bold">O número ${formattedNumber} é SEU!</p>`;
-            } else {
-                searchResultDisplay.innerHTML = `<p class="text-red-400 font-bold">O número ${formattedNumber} já está COMPRADO por outro participante.</p>`;
-            }
-        } else {
-            // Número disponível, oferece para adicionar ao carrinho
-            searchResultDisplay.innerHTML = `
-                <p class="text-green-400 font-bold">O número ${formattedNumber} está DISPONÍVEL!</p>
-                <button id="add-searched-number-to-cart-btn" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">
-                    Adicionar ${formattedNumber} ao Carrinho
-                </button>
-            `;
-            // Adiciona listener para o novo botão de adição ao carrinho
-            document.getElementById('add-searched-number-to-cart-btn').addEventListener('click', () => {
-                // Simula o clique no botão do grid principal para usar a lógica existente
-                // Ou adiciona diretamente a selectedNumbers e chama updateShoppingCart
-                selectedNumbers.push(formattedNumber);
-                updateShoppingCart();
-                searchResultDisplay.innerHTML = `<p class="text-green-400">Número ${formattedNumber} adicionado ao seu carrinho!</p>`;
-                // Opcional: Re-renderizar o grid se o número estiver entre os 200 visíveis
-                renderNumberGrid(); 
-            });
-        }
-        checkNumberBtn.disabled = false;
-        checkNumberBtn.querySelector('span').textContent = 'Verificar';
-        checkNumberBtn.querySelector('i').classList.add('hidden'); // Esconde spinner
-    }
-
-
-    // --- INICIALIZAÇÃO E EVENTOS ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const raffleId = urlParams.get('id');
-    isTestMode = urlParams.get('test') === 'true'; 
-
-    if (!raffleId) {
-        if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
-        setTimeout(() => { window.location.href = '/'; }, 3000);
-        return;
-    }
-    
-    rifaDocRef = doc(db, "rifas", raffleId);
-
-    if (isTestMode && checkoutBtn) {
-        checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
-        checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
-        checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
-    }
-
-    if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
-    if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    if (showRulesBtn) showRulesBtn.addEventListener('click', showRules);
-    if (closeRulesModalBtn) closeRulesModalBtn.addEventListener('click', closeRules);
-    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
-
-    // Event listeners para a seção de Escolha Aleatória
-    if (generateRandomNumbersBtn) generateRandomNumbersBtn.addEventListener('click', generateRandomNumbers);
-    if (addRandomToCartBtn) addRandomToCartBtn.addEventListener('click', addRandomNumbersToCart);
-    
-    // Event listeners para a seção de Busca por Número
-    if (checkNumberBtn) checkNumberBtn.addEventListener('click', checkSpecificNumber);
-    // Permite buscar ao apertar Enter no input
-    if (searchNumberInput) searchNumberInput.addEventListener('keyup', (e) => { 
-        if (e.key === 'Enter') {
-            checkSpecificNumber(); 
-        }
-    });
-
-    setupAuthListener();
-    setupShareButtons();
-});
