@@ -21,7 +21,7 @@ const auth = getAuth(app);
 const rafflesCollectionRef = collection(db, "rifas");
 
 // --- ELEMENTOS DO DOM ---
-// ID CORRIGIDO: Agora buscando 'raffles-container' que é o ID no index.html
+// CORREÇÃO: Referência ao ID correto do contêiner no index.html
 const rafflesContainer = document.getElementById('raffles-container');
 
 // --- LÓGICA PRINCIPAL ---
@@ -45,6 +45,7 @@ function listenToActiveRaffles() {
             return;
         }
 
+        // Ordena as rifas pela data de criação, da mais nova para a mais antiga
         const sortedRaffles = snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
 
         console.log(`Encontradas ${sortedRaffles.length} rifas ativas. Renderizando...`);
@@ -53,16 +54,16 @@ function listenToActiveRaffles() {
             const raffleId = doc.id;
             
             const card = document.createElement('a');
-            // Link para a página da rifa específica. GARANTA que esta URL não tenha parâmetros de status.
+            // GARANTIDO: Link para a página da rifa específica, sem parâmetros de status de pagamento aqui.
             card.href = `/rifa.html?id=${raffleId}`; 
             card.className = 'raffle-card bg-gray-800 rounded-lg p-6 flex flex-col justify-between transition-all duration-300 hover:scale-105 transform cursor-pointer'; // Adicionei hover
             
-            // Verifica o tipo da rifa para exibir na listagem
+            // Exibe o tipo de sorteio (Dezena, Centena, Milhar) na listagem
             const raffleTypeDisplay = {
                 'dezena': '100 Números (00-99)',
                 'centena': '1.000 Números (000-999)',
                 'milhar': '10.000 Números (0000-9999)'
-            }[raffle.type || 'dezena']; // Exibe o tipo de sorteio
+            }[raffle.type || 'dezena']; 
 
             card.innerHTML = `
                 <div>
