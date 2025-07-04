@@ -567,3 +567,218 @@ document.addEventListener('DOMContentLoaded', () => {
                     const buttonText = isSold ? `${formattedSuggestedNumber} (Vendido)` : formattedSuggestedNumber;
 
                     html += `
+                        <div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center">
+                            <p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p>
+                            <button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>
+                                ${buttonText}
+                            </button>
+                        </div>`;
+                });
+            } else {
+                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões para este tema.</p>`;
+            }
+            html += '</div>';
+            luckyNumbersResult.innerHTML = html;
+
+            luckyNumbersResult.querySelectorAll('button[data-number]').forEach(button => {
+                if (!button.disabled) {
+                    button.addEventListener('click', (e) => {
+                        const num = e.target.dataset.number;
+                        const gridButton = numberGrid.querySelector(`button[data-number="${num}"]`);
+                        if (gridButton && !gridButton.disabled) {
+                            handleNumberClick({ target: gridButton });
+                        }
+                    });
+                }
+            });
+
+        } catch (error) {
+            console.error("Erro ao chamar a função da Netlify (getLuckyNumbers):", error);
+            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente outro tema.</p>`;
+        } finally {
+            setButtonLoading(getLuckyNumbersBtn, false);
+        }
+    }
+    
+    async function generateRandomNumbers() {
+        const quantity = parseInt(randomQuantityInput.value);
+        if (isNaN(quantity) || quantity <= 0) {
+            randomNumbersMessage.textContent = "Por favor, insira uma quantidade válida de números.";
+            randomNumbersMessage.classList.remove('hidden');
+            return;
+        }
+        if (quantity > 100) { 
+            randomNumbersMessage.textContent = "Por favor, selecione até 100 números de uma vez.";
+            randomNumbersMessage.classList.remove('hidden');
+            return;
+        }
+
+        randomNumbersMessage.textContent = 'Gerando números...';
+        randomNumbersMessage.classList.remove('hidden');
+        addRandomToCartBtn.disabled = true; 
+        generateRandomNumbersBtn.disabled = true; 
+
+        const availableNumbers = [];
+        const expectedLength = getExpectedLengthForRaffleType(raffleType);
+
+        for (let i = 0; i < totalNumbersInRaffle; i++) {
+            const numberStr = formatNumberForRaffleType(i, raffleType);
+            if (!numbersData[numberStr]) { 
+                availableNumbers.push(numberStr);
+            }
+        }
+
+        if (availableNumbers.length === 0) {
+            randomNumbersMessage.textContent = "Ops! Parece que todos os números já foram comprados!";
+            randomNumbersResultList.innerHTML = '';
+            return;
+        }
+
+        if (quantity > availableNumbers.length) {
+            randomNumbersMessage.textContent = `Você pediu ${quantity} números, mas só temos ${availableNumbers.length} disponíveis. Exibindo todos os disponíveis.`;
+            randomSelectedNumbers = availableNumbers;
+        } else {
+            randomSelectedNumbers = [];
+            let tempAvailable = [...availableNumbers]; 
+            for (let i = 0; i < quantity; i++) {
+                const randomIndex = Math.floor(Math.random() * tempAvailable.length);
+                randomSelectedNumbers.push(tempAvailable[randomIndex]);
+                tempAvailable.splice(randomIndex, 1); 
+            }
+            randomNumbersMessage.textContent = ''; 
+        }
+        
+        randomNumbersResultList.innerHTML = '';
+        randomSelectedNumbers.sort().forEach(num => {
+            const el = document.createElement('span');
+            el.className = 'bg-blue-500 text-white font-bold px-3 py-1 rounded-full text-lg';
+            el.textContent = num;
+            randomNumbersResultList.appendChild(el);
+        });
+
+        if (randomSelectedNumbers.length > 0) {
+            addRandomToCartBtn.classList.remove('opacity-50', 'pointer-events-none');
+            addRandomToCartBtn.disabled = false;
+        } else {
+            addRandomToCartBtn.classList.add('opacity-50', 'pointer-events-none');
+            addRandomToCartBtn.disabled = true;
+        }
+        generateRandomNumbersBtn.disabled = false; 
+    }
+
+    function addRandomNumbersToCart() {
+        if (randomSelectedNumbers.length === 0) {
+            alert("Nenhum número aleatório para adicionar ao carrinho.");
+            return;
+        }
+
+        randomSelectedNumbers.forEach(num => {
+            if (!selectedNumbers.includes(num)) {
+                selectedNumbers.push(num);
+            }
+        });
+        
+        randomSelectedNumbers = [];
+        randomNumbersResultList.innerHTML = '';
+        addRandomToCartBtn.classList.add('opacity-50', 'pointer-events-none');
+        addRandomToCartBtn.disabled = true;
+        randomNumbersMessage.textContent = ''; 
+
+        renderNumberGrid(); 
+        updateShoppingCart(); 
+    }
+
+    async function checkSpecificNumber() {
+        searchResultDisplay.innerHTML = ''; 
+        const numberRaw = searchNumberInput.value.trim();
+        if (!numberRaw) {
+            searchResultDisplay.innerHTML = `<p class="text-yellow-400">Por favor, digite um número para buscar.</p>`;
+            return;
+        }
+
+        const expectedLength = getExpectedLengthForRaffleType(raffleType);
+        const formattedNumber = formatNumberForRaffleType(parseInt(numberRaw), raffleType);
+
+        if (formattedNumber.length !== expectedLength || isNaN(parseInt(formattedNumber)) || parseInt(formattedNumber) < 0 || parseInt(formattedNumber) >= totalNumbersInRaffle) {
+            searchResultDisplay.innerHTML = `<p class="text-red-400">Número inválido. Para esta rifa (${raffleType}), use ${expectedLength} dígitos (de ${formatNumberForRaffleType(0, raffleType)} a ${formatNumberForRaffleType(totalNumbersInRaffle - 1, raffleType)}).</p>`;
+            return;
+        }
+        
+        checkNumberBtn.disabled = true;
+        // Verifica se o spinner existe antes de tentar acessar suas propriedades
+        const checkBtnSpan = checkNumberBtn.querySelector('span');
+        const checkBtnIcon = checkNumberBtn.querySelector('i');
+        if (checkBtnSpan) checkBtnSpan.textContent = 'Verificando...';
+        if (checkBtnIcon) checkBtnIcon.classList.remove('hidden'); 
+
+        const isRaffleOver = !!numbersData.winner;
+        if (isRaffleOver) {
+             searchResultDisplay.innerHTML = `<p class="text-gray-400">A rifa já foi sorteada. Não é possível comprar novos números.</p>`;
+        } else if (numbersData[formattedNumber]) {
+            const ownerData = numbersData[formattedNumber];
+            if (ownerData.userId === userId) {
+                searchResultDisplay.innerHTML = `<p class="text-purple-400 font-bold">O número ${formattedNumber} é SEU!</p>`;
+            } else {
+                searchResultDisplay.innerHTML = `<p class="text-red-400 font-bold">O número ${formattedNumber} já está COMPRADO por outro participante.</p>`;
+            }
+        } else {
+            searchResultDisplay.innerHTML = `
+                <p class="text-green-400 font-bold">O número ${formattedNumber} está DISPONÍVEL!</p>
+                <button id="add-searched-number-to-cart-btn" class="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">
+                    Adicionar ${formattedNumber} ao Carrinho
+                </button>
+            `;
+            document.getElementById('add-searched-number-to-cart-btn').addEventListener('click', () => {
+                selectedNumbers.push(formattedNumber);
+                updateShoppingCart();
+                searchResultDisplay.innerHTML = `<p class="text-green-400">Número ${formattedNumber} adicionado ao seu carrinho!</p>`;
+                renderNumberGrid(); 
+            });
+        }
+        checkNumberBtn.disabled = false;
+        if (checkBtnSpan) checkBtnSpan.textContent = 'Verificar';
+        if (checkBtnIcon) checkBtnIcon.classList.add('hidden'); 
+    }
+
+
+    // --- INICIALIZAÇÃO E EVENTOS ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const raffleId = urlParams.get('id');
+    isTestMode = urlParams.get('test') === 'true'; 
+
+    if (!raffleId) {
+        if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
+        setTimeout(() => { window.location.href = '/'; }, 3000);
+        return;
+    }
+    
+    rifaDocRef = doc(db, "rifas", raffleId);
+
+    if (isTestMode && checkoutBtn) {
+        checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
+        checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+        checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+    }
+
+    if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
+    if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+    if (showRulesBtn) showRulesBtn.addEventListener('click', showRules);
+    if (closeRulesModalBtn) closeRulesModalBtn.addEventListener('click', closeRules);
+    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+
+    // Event listeners para a seção de Escolha Aleatória
+    if (randomQuantityInput) randomQuantityInput.value = '10'; // Valor padrão de 10
+    if (generateRandomNumbersBtn) generateRandomNumbersBtn.addEventListener('click', generateRandomNumbers);
+    if (addRandomToCartBtn) addRandomToCartBtn.addEventListener('click', addRandomNumbersToCart);
+    
+    // Event listeners para a seção de Busca por Número
+    if (checkNumberBtn) checkNumberBtn.addEventListener('click', checkSpecificNumber);
+    if (searchNumberInput) searchNumberInput.addEventListener('keyup', (e) => { 
+        if (e.key === 'Enter') {
+            checkSpecificNumber(); 
+        }
+    });
+
+    setupAuthListener();
+    setupShareButtons();
+});
