@@ -33,10 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
+            console.log("Tentando fazer login com:", adminEmailInput.value);
             await signInWithEmailAndPassword(auth, adminEmailInput.value, adminPasswordInput.value);
+            console.log("Sucesso na chamada de signInWithEmailAndPassword. A aguardar onAuthStateChanged...");
         } catch (error) {
-            console.error("Erro no login:", error.code);
-            loginError.textContent = "E-mail ou senha incorretos. Tente novamente."; // Mensagem mais clara
+            console.error("ERRO na tentativa de login:", error);
+            loginError.textContent = "E-mail ou senha incorretos. Tente novamente.";
             loginError.classList.remove('hidden');
         }
     };
@@ -50,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         
+        // O resto desta função não precisa mudar, mas está aqui para completude
         const logoutBtn = document.getElementById('logout-btn');
         const adminEmailDisplay = document.getElementById('admin-email-display');
         const createRaffleBtn = document.getElementById('create-raffle-btn');
@@ -177,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hideEditRaffleNameUI = () => {
             raffleNameDisplay.classList.remove('hidden');
-            editRaffleNameSection.classList.add('hidden'); // Corrigido erro de digitação aqui
+            editRaffleNameSection.classList.add('hidden');
         };
 
         const handleSearch = () => {
@@ -309,21 +312,35 @@ document.addEventListener('DOMContentLoaded', () => {
         loadRules();
     }
     
+    // =========== INÍCIO DO DIAGNÓSTICO AVANÇADO ===========
     onAuthStateChanged(auth, (user) => {
-        if (user && user.email) {
-            initializeAdminPanel(user);
+        console.log("onAuthStateChanged disparado. A verificar o utilizador...");
+
+        if (user) {
+            // Se o utilizador existe, vamos ver o que tem dentro dele
+            console.log("Utilizador DETETADO. Conteúdo do objeto 'user':", user);
+            console.log("Email do utilizador:", user.email);
+            console.log("ID do utilizador:", user.uid);
+
+            if (user.email) {
+                console.log("CONDIÇÃO APROVADA: Utilizador tem um email. A inicializar o painel...");
+                initializeAdminPanel(user);
+            } else {
+                console.error("CONDIÇÃO FALHOU: O utilizador existe, MAS NÃO TEM a propriedade 'email'. A deslogar para segurança.");
+                signOut(auth);
+            }
+
         } else {
-            if(user) signOut(auth);
+            // Se não há utilizador
+            console.log("Nenhum utilizador logado. A mostrar a tela de login.");
             cleanupListeners();
             loginScreen.classList.remove('hidden');
             adminPanel.classList.add('hidden');
         }
     });
+    // =========== FIM DO DIAGNÓSTICO AVANÇADO ===========
 
-    // =========== DEBUGGING ===========
-    console.log("Preparando para ativar os botões de login...");
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
-    console.log("Botões de login ativados com sucesso!");
 
 });
