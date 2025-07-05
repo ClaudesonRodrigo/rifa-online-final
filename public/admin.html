@@ -33,26 +33,15 @@
         </div>
 
     <script>
-        console.log("--- INICIANDO SCRIPT DE TESTE INLINE ---");
-
-        // O DOMContentLoaded é importante para garantir que o HTML foi lido antes do script tentar encontrar os elementos.
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("EVENTO 'DOMContentLoaded' (inline) disparado.");
             const loginBtn = document.getElementById('login-btn');
-            console.log("Procurando o botão (inline):", loginBtn);
-
             if (loginBtn) {
-                console.log("Botão ENCONTRADO (inline).");
                 loginBtn.addEventListener('click', () => {
                     alert("O BOTÃO INLINE FUNCIONA!");
                 });
-                loginBtn.innerHTML = "BOTÃO INLINE ATIVADO"; // Prova visual
-                console.log("Evento de clique ADICIONADO (inline).");
-            } else {
-                console.error("ERRO CRÍTICO (inline): Botão de login NÃO ENCONTRADO.");
+                loginBtn.innerHTML = "BOTÃO INLINE ATIVADO";
             }
         });
     </script>
-
-    </body>
+</body>
 </html>
