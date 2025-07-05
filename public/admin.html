@@ -29,59 +29,30 @@
         </div>
     </div>
 
-    <div id="admin-panel" class="hidden p-4 md:p-8">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-blue-300">Painel de Administração</h1>
-                <p id="admin-email-display" class="text-sm text-gray-400"></p>
-            </div>
-            <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold">Sair</button>
-        </header>
-
-        <div class="bg-gray-800 p-6 rounded-lg mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Configurações Gerais</h2>
-            <div>
-                <label for="rules-textarea" class="block text-sm font-medium text-gray-300 mb-2">Regras Gerais do Sorteio</label>
-                <textarea id="rules-textarea" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Escreva aqui as regras que se aplicam a todas as rifas..."></textarea>
-                <button id="save-rules-btn" class="mt-3 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">Salvar Regras</button>
-            </div>
+    <div id="admin-panel" class="hidden">
         </div>
 
-        <div class="bg-gray-800 p-6 rounded-lg mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Gerir Rifas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h3 class="text-xl font-semibold text-teal-300 mb-3">Criar Nova Rifa</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="raffle-name" class="block text-sm font-medium">Nome do Prémio</label>
-                            <input type="text" id="raffle-name" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Ex: iPhone 15 Pro">
-                        </div>
-                        <div>
-                            <label for="raffle-price" class="block text-sm font-medium">Preço por Número (R$)</label>
-                            <input type="number" id="raffle-price" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="10">
-                        </div>
-                        
-                        <div>
-                            <label for="raffle-size" class="block text-sm font-medium">Tamanho da Rifa</label>
-                            <select id="raffle-size" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg">
-                                <option value="100">Dezena (00-99)</option>
-                                <option value="1000">Centena (000-999)</option>
-                                <option value="10000">Milhar (0000-9999)</option>
-                            </select>
-                        </div>
-                        <button id="create-raffle-btn" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-semibold">Criar Rifa</button>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-xl font-semibold text-blue-300 mb-3">Rifas Ativas e Encerradas</h3>
-                    <div id="raffles-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"><p class="text-gray-500">A carregar lista de rifas...</p></div>
-                </div>
-            </div>
-        </div>
+    <script>
+        console.log("--- INICIANDO SCRIPT DE TESTE INLINE ---");
 
-        <div id="raffle-details-section" class="hidden">
-            <div class="flex items-center gap-4 mb-4">
-                <h2 class="text-2xl font-semibold">Detalhes da Rifa:</h2>
-                <div id="raffle-name-display" class="flex items-center gap-3">
-                    <span id="details-raffle-name"
+        // O DOMContentLoaded é importante para garantir que o HTML foi lido antes do script tentar encontrar os elementos.
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("EVENTO 'DOMContentLoaded' (inline) disparado.");
+            const loginBtn = document.getElementById('login-btn');
+            console.log("Procurando o botão (inline):", loginBtn);
+
+            if (loginBtn) {
+                console.log("Botão ENCONTRADO (inline).");
+                loginBtn.addEventListener('click', () => {
+                    alert("O BOTÃO INLINE FUNCIONA!");
+                });
+                loginBtn.innerHTML = "BOTÃO INLINE ATIVADO"; // Prova visual
+                console.log("Evento de clique ADICIONADO (inline).");
+            } else {
+                console.error("ERRO CRÍTICO (inline): Botão de login NÃO ENCONTRADO.");
+            }
+        });
+    </script>
+
+    </body>
+</html>
