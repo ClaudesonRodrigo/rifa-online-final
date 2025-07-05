@@ -1,108 +1,108 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sorteio pela Federal - Participe Agora!</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Online - Participe Agora!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <div id="main-container" class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
-        <div id="loading-section" class="text-center py-10">
-            <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
-            <p class="mt-4 text-lg">A carregar rifa...</p>
-        </div>
+    <div id="main-container" class="w-full max-w-4xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-8">
+        <div id="loading-section" class="text-center py-10">
+            <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
+            <p class="mt-4 text-lg">A carregar rifa...</p>
+        </div>
 
-        <div id="user-section" class="hidden">
-            <div class="max-w-md mx-auto">
-                <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo à Rifa!</h2>
-                <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha os seus dados abaixo.</p>
-                <div class="mb-4"><label for="name" class="block mb-2 text-sm font-medium">Nome Completo</label><input type="text" id="name" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-4"><label for="email" class="block mb-2 text-sm font-medium">E-mail</label><input type="email" id="email" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-4"><label for="whatsapp" class="block mb-2 text-sm font-medium">WhatsApp</label><input type="tel" id="whatsapp" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-6"><label for="pix" class="block mb-2 text-sm font-medium">Chave PIX</label><input type="text" id="pix" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
-                <button id="save-user-btn" class="w-full text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar e Escolher Números</button>
-            </div>
-        </div>
+        <div id="user-section" class="hidden">
+            <div class="max-w-md mx-auto">
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo à Rifa!</h2>
+                <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha os seus dados abaixo.</p>
+                <div class="mb-4"><label for="name" class="block mb-2 text-sm font-medium">Nome Completo</label><input type="text" id="name" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-4"><label for="email" class="block mb-2 text-sm font-medium">E-mail</label><input type="email" id="email" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-4"><label for="whatsapp" class="block mb-2 text-sm font-medium">WhatsApp</label><input type="tel" id="whatsapp" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-6"><label for="pix" class="block mb-2 text-sm font-medium">Chave PIX</label><input type="text" id="pix" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
+                <button id="save-user-btn" class="w-full text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar e Escolher Números</button>
+            </div>
+        </div>
 
-        <div id="app-section" class="hidden">
-            <header class="text-center mb-8">
-                <a href="/" class="text-blue-400 hover:text-blue-300 mb-4 inline-block">&larr; Voltar para todas as rifas</a>
-                <h1 id="raffle-title" class="text-3xl md:text-4xl font-bold title-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300"></h1>
-                <div class="flex justify-center items-center gap-4 mt-2">
-                    <button id="show-rules-btn" class="text-sm text-gray-400 hover:text-blue-400 underline">Ver Regras do Sorteio</button>
-                </div>
-                <p class="text-gray-400 mt-4">Bem-vindo(a), <span id="welcome-user" class="font-semibold text-blue-300"></span>!</p>
-            </header>
+        <div id="app-section" class="hidden">
+            <header class="text-center mb-8">
+                <a href="/" class="text-blue-400 hover:text-blue-300 mb-4 inline-block">&larr; Voltar para todas as rifas</a>
+                <h1 id="raffle-title" class="text-3xl md:text-4xl font-bold title-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300"></h1>
+                <div class="flex justify-center items-center gap-4 mt-2">
+                    <button id="show-rules-btn" class="text-sm text-gray-400 hover:text-blue-400 underline">Ver Regras do Sorteio</button>
+                </div>
+                <p class="text-gray-400 mt-4">Bem-vindo(a), <span id="welcome-user" class="font-semibold text-blue-300"></span>!</p>
+            </header>
 
-            <div id="progress-section" class="mb-8">
-                <div class="flex justify-between items-center mb-2 text-sm"><span class="font-semibold text-gray-300">Progresso da Rifa</span><span id="progress-percentage" class="font-bold text-teal-400">0%</span></div>
-                <div class="w-full bg-gray-700 rounded-full h-4"><div id="progress-bar" class="bg-teal-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div></div>
-            </div>
+            <div id="progress-section" class="mb-8">
+                <div class="flex justify-between items-center mb-2 text-sm"><span class="font-semibold text-gray-300">Progresso da Rifa</span><span id="progress-percentage" class="font-bold text-teal-400">0%</span></div>
+                <div class="w-full bg-gray-700 rounded-full h-4"><div id="progress-bar" class="bg-teal-500 h-4 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+            </div>
 
-            <div id="winner-display-section" class="hidden p-6 mb-8 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-lg text-gray-900 shadow-lg text-center">
-                <h2 class="text-3xl font-bold mb-2">🎉 Temos um Ganhador! 🎉</h2>
-                <p id="public-winner-number" class="text-6xl font-black my-2"></p>
-                <div class="mt-4 bg-yellow-100/50 p-4 rounded-md"><p class="text-xl">Parabéns para <strong id="public-winner-name" class="underline"></strong>!</p><p class="mt-2">Números comprados pelo ganhador:</p><div id="public-winner-bought-numbers" class="flex flex-wrap justify-center gap-2 mt-2"></div></div>
-            </div>
+            <div id="winner-display-section" class="hidden p-6 mb-8 bg-gradient-to-r from-amber-400 to-yellow-500 rounded-lg text-gray-900 shadow-lg text-center">
+                <h2 class="text-3xl font-bold mb-2">🎉 Temos um Ganhador! 🎉</h2>
+                <p id="public-winner-number" class="text-6xl font-black my-2"></p>
+                <div class="mt-4 bg-yellow-100/50 p-4 rounded-md"><p class="text-xl">Parabéns para <strong id="public-winner-name" class="underline"></strong>!</p><p class="mt-2">Números comprados pelo ganhador:</p><div id="public-winner-bought-numbers" class="flex flex-wrap justify-center gap-2 mt-2"></div></div>
+            </div>
 
-            <div id="number-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8"></div>
-            
-            <div id="shopping-cart-section" class="hidden bg-gray-900/50 p-6 rounded-lg border border-teal-500 mb-8">
-                 <h3 class="text-xl font-semibold mb-4 text-teal-300">A sua Seleção</h3>
-                <div id="selected-numbers-list" class="flex flex-wrap gap-3 mb-4"></div>
-                <div class="border-t border-gray-700 pt-4 flex justify-between items-center">
-                    <div><p class="text-gray-400">Total a pagar:</p><p id="total-price" class="text-2xl font-bold text-white">R$ 0,00</p></div>
-                    <button id="checkout-btn" class="px-6 py-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-bold text-lg transition-colors opacity-50 pointer-events-none">Pagar com Mercado Pago</button>
-                </div>
-                 <p id="payment-status" class="text-center text-yellow-400 mt-4 hidden"></p>
-            </div>
+            <div id="number-grid" class="grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8"></div>
+            
+            <div id="shopping-cart-section" class="hidden bg-gray-900/50 p-6 rounded-lg border border-teal-500 mb-8">
+                 <h3 class="text-xl font-semibold mb-4 text-teal-300">A sua Seleção</h3>
+                <div id="selected-numbers-list" class="flex flex-wrap gap-3 mb-4"></div>
+                <div class="border-t border-gray-700 pt-4 flex justify-between items-center">
+                    <div><p class="text-gray-400">Total a pagar:</p><p id="total-price" class="text-2xl font-bold text-white">R$ 0,00</p></div>
+                    <button id="checkout-btn" class="px-6 py-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-bold text-lg transition-colors opacity-50 pointer-events-none">Pagar com Mercado Pago</button>
+                </div>
+                 <p id="payment-status" class="text-center text-yellow-400 mt-4 hidden"></p>
+            </div>
 
-            <div id="gemini-luck-section" class="bg-gray-900/50 p-6 rounded-lg border border-dashed border-purple-400 mb-8">
-                <h3 class="text-xl font-semibold mb-4 text-purple-300 text-center"><i class="fas fa-star-of-life mr-2"></i>Oráculo da Sorte</h3>
-                <p class="text-center text-gray-400 mb-4">Em dúvida? Digite um tema e deixe a IA sugerir os seus números!</p>
-                <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
-                    <input type="text" id="luck-theme-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full sm:w-auto p-2.5" placeholder="Digite um tema (ex: amor, sonho)">
-                    <button id="get-lucky-numbers-btn" class="w-full sm:w-auto text-white bg-purple-600 hover:bg-purple-700 font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center gap-2">
-                        <span class="gemini-button-text">✨ Sugerir Números</span>
-                        <i class="fas fa-spinner fa-spin hidden"></i>
-                    </button>
-                </div>
-                <div id="lucky-numbers-result" class="mt-6 text-center"></div>
-            </div>
-            
-            <div id="recent-buyers-section" class="mt-8 pt-6 border-t border-gray-700"><h3 class="text-xl font-semibold text-center text-gray-300 mb-4">Últimos a Participar</h3><div id="recent-buyers-list" class="space-y-3"></div></div>
-        </div>
-    </div>
-    
-    <div id="rules-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-2xl mx-auto relative border border-blue-500">
-            <h3 class="text-2xl font-bold text-center text-blue-300 mb-4">Regras Gerais do Sorteio</h3>
-            <div id="rules-content" class="text-gray-300 prose prose-invert max-w-none max-h-96 overflow-y-auto pr-4 whitespace-pre-wrap"><p>A carregar regras...</p></div>
-            <button id="close-rules-modal-btn" class="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Fechar</button>
-        </div>
-    </div>
-    
-    <div id="share-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto relative border border-green-500 text-center">
-            <h3 class="text-2xl font-bold text-green-400 mb-4">Pagamento Aprovado!</h3>
-            <p class="text-gray-300 mb-6">Os seus números foram reservados! Partilhe para convidar os seus amigos.</p>
-            <div class="flex justify-center items-center space-x-4">
-                <button id="share-whatsapp-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold p-4 rounded-full"><i class="fab fa-whatsapp text-2xl"></i></button>
-                <button id="share-facebook-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-4 rounded-full"><i class="fab fa-facebook-f text-2xl"></i></button>
-                <button id="share-twitter-btn" class="bg-blue-400 hover:bg-blue-500 text-white font-bold p-4 rounded-full"><i class="fab fa-twitter text-2xl"></i></button>
-            </div>
-            <button id="close-share-modal-btn" class="mt-8 text-sm text-gray-400 hover:text-white">Fechar</button>
-        </div>
-    </div>
+            <div id="gemini-luck-section" class="bg-gray-900/50 p-6 rounded-lg border border-dashed border-purple-400 mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-purple-300 text-center"><i class="fas fa-star-of-life mr-2"></i>Oráculo da Sorte</h3>
+                <p class="text-center text-gray-400 mb-4">Em dúvida? Digite um tema e deixe a IA sugerir os seus números!</p>
+                <div class="flex flex-col sm:flex-row items-center gap-4 justify-center">
+                    <input type="text" id="luck-theme-input" class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full sm:w-auto p-2.5" placeholder="Digite um tema (ex: amor, sonho)">
+                    <button id="get-lucky-numbers-btn" class="w-full sm:w-auto text-white bg-purple-600 hover:bg-purple-700 font-medium rounded-lg text-sm px-5 py-2.5 flex items-center justify-center gap-2">
+                        <span class="gemini-button-text">✨ Sugerir Números</span>
+                        <i class="fas fa-spinner fa-spin hidden"></i>
+                    </button>
+                </div>
+                <div id="lucky-numbers-result" class="mt-6 text-center"></div>
+            </div>
+            
+            <div id="recent-buyers-section" class="mt-8 pt-6 border-t border-gray-700"><h3 class="text-xl font-semibold text-center text-gray-300 mb-4">Últimos a Participar</h3><div id="recent-buyers-list" class="space-y-3"></div></div>
+        </div>
+    </div>
+    
+    <div id="rules-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-2xl mx-auto relative border border-blue-500">
+            <h3 class="text-2xl font-bold text-center text-blue-300 mb-4">Regras Gerais do Sorteio</h3>
+            <div id="rules-content" class="text-gray-300 prose prose-invert max-w-none max-h-96 overflow-y-auto pr-4 whitespace-pre-wrap"><p>A carregar regras...</p></div>
+            <button id="close-rules-modal-btn" class="mt-6 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">Fechar</button>
+        </div>
+    </div>
+    
+    <div id="share-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto relative border border-green-500 text-center">
+            <h3 class="text-2xl font-bold text-green-400 mb-4">Pagamento Aprovado!</h3>
+            <p class="text-gray-300 mb-6">Os seus números foram reservados! Partilhe para convidar os seus amigos.</p>
+            <div class="flex justify-center items-center space-x-4">
+                <button id="share-whatsapp-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold p-4 rounded-full"><i class="fab fa-whatsapp text-2xl"></i></button>
+                <button id="share-facebook-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold p-4 rounded-full"><i class="fab fa-facebook-f text-2xl"></i></button>
+                <button id="share-twitter-btn" class="bg-blue-400 hover:bg-blue-500 text-white font-bold p-4 rounded-full"><i class="fab fa-twitter text-2xl"></i></button>
+            </div>
+            <button id="close-share-modal-btn" class="mt-8 text-sm text-gray-400 hover:text-white">Fechar</button>
+        </div>
+    </div>
 
-    <a id="whatsapp-float-btn" href="#" target="_blank" class="whatsapp-float fixed bottom-6 right-6 bg-green-500 w-16 h-16 rounded-full flex items-center justify-center shadow-lg"><i class="fab fa-whatsapp text-4xl"></i></a>
-    
-    <script type="module" src="rifa.js"></script>
+    <a id="whatsapp-float-btn" href="#" target="_blank" class="whatsapp-float fixed bottom-6 right-6 bg-green-500 w-16 h-16 rounded-full flex items-center justify-center shadow-lg"><i class="fab fa-whatsapp text-4xl"></i></a>
+    
+    <script type="module" src="rifa.js"></script>
 </body>
 </html>
