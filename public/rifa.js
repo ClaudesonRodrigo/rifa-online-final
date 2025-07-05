@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedNumbers = [];
     let rifaDocRef;
     let PRICE_PER_NUMBER = 10;
+    let RAFFLE_SIZE = 100; // ALTERAÇÃO: Variável para o tamanho da rifa
     let isTestMode = false;
 
     // --- FUNÇÕES DE LÓGICA ---
@@ -81,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 signInAnonymously(auth).catch(err => {
                     console.error("Auth Error", err);
-                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
+                    if (mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
                 });
             }
         });
@@ -93,38 +94,45 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = JSON.parse(savedUser);
             setupFirestoreListener();
         } else {
-            if(loadingSection) loadingSection.classList.add('hidden');
-            if(userSection) userSection.classList.remove('hidden');
+            if (loadingSection) loadingSection.classList.add('hidden');
+            if (userSection) userSection.classList.remove('hidden');
         }
     }
 
     function setupFirestoreListener() {
         onSnapshot(rifaDocRef, (doc) => {
             if (!doc.exists()) {
-                if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
+                if (loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
                 return;
             }
             numbersData = doc.data();
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
+            RAFFLE_SIZE = numbersData.size || 100; // ALTERAÇÃO: Lê o tamanho do DB, com padrão 100
+
             if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
             if (raffleTitle) raffleTitle.textContent = numbersData.name;
             setupWhatsAppButton();
-            const soldCount = Object.keys(numbersData).filter(key => !isNaN(key) && key.length === 2).length;
+
+            // ALTERAÇÃO: Contagem de números vendidos agora é genérica
+            const soldCount = Object.keys(numbersData).filter(key => !isNaN(parseInt(key, 10)) && typeof numbersData[key] === 'object' && numbersData[key] !== null && numbersData[key].userId).length;
+            
             updateRaffleProgress(soldCount);
             updateRecentBuyers(numbersData);
+            
             if (numbersData.winner) {
                 displayPublicWinner(numbersData.winner);
                 if (progressSection) progressSection.classList.add('hidden');
             } else {
                 if (progressSection) progressSection.classList.remove('hidden');
             }
+            
             renderNumberGrid();
             if (loadingSection) loadingSection.classList.add('hidden');
             if (appSection) appSection.classList.remove('hidden');
             checkPaymentStatus();
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
-            if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
+            if (mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
         });
     }
 
@@ -132,13 +140,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const isRaffleOver = !!numbersData.winner;
         if (!numberGrid) return;
         numberGrid.innerHTML = '';
-        for (let i = 0; i < 100; i++) {
-            const numberStr = i.toString().padStart(2, '0');
+
+        // ALTERAÇÃO: Adiciona classe para diminuir os botões em rifas grandes
+        if (RAFFLE_SIZE > 100) {
+            numberGrid.classList.add('number-grid-large');
+        } else {
+            numberGrid.classList.remove('number-grid-large');
+        }
+        
+        // ALTERAÇÃO: Loop e formatação do número são dinâmicos
+        const numDigits = (RAFFLE_SIZE - 1).toString().length;
+        for (let i = 0; i < RAFFLE_SIZE; i++) {
+            const numberStr = i.toString().padStart(numDigits, '0');
             const ownerData = numbersData[numberStr];
             const button = document.createElement('button');
             button.textContent = numberStr;
             button.dataset.number = numberStr;
-            button.className = "p-2 rounded-lg text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+            // Adiciona uma classe comum para estilização
+            button.classList.add('number-btn');
+            button.classList.add("p-2", "rounded-lg", "text-sm", "md:text-base", "font-bold", "transition-all", "duration-200", "ease-in-out");
+
             if (ownerData) {
                 button.disabled = true;
                 button.classList.add(ownerData.userId === userId ? 'bg-purple-600' : 'bg-gray-600', 'cursor-not-allowed', 'opacity-70');
@@ -159,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const numberStr = event.target.dataset.number;
         const button = event.target;
         const index = selectedNumbers.indexOf(numberStr);
+
         if (index > -1) {
             selectedNumbers.splice(index, 1);
             button.classList.remove('number-selected');
@@ -168,6 +190,8 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.add('number-selected');
             button.classList.remove('number-available', 'bg-blue-500');
         }
+        // Garante que os números no carrinho estão sempre ordenados
+        selectedNumbers.sort((a, b) => a - b);
         updateShoppingCart();
     }
 
@@ -179,12 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         shoppingCartSection.classList.remove('hidden');
         selectedNumbersList.innerHTML = '';
-        selectedNumbers.sort().forEach(num => {
+        
+        selectedNumbers.forEach(num => {
             const el = document.createElement('span');
             el.className = 'bg-amber-500 text-gray-900 font-bold px-3 py-1 rounded-full text-lg';
             el.textContent = num;
             selectedNumbersList.appendChild(el);
         });
+
         const totalPrice = selectedNumbers.length * PRICE_PER_NUMBER;
         totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
@@ -215,9 +241,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const winnerId = player.userId;
         const winnerNumbers = [];
         for (const numKey in numbersData) {
-            if (numbersData[numKey] && numbersData[numKey].userId === winnerId) winnerNumbers.push(numKey);
+            // ALTERAÇÃO: Lógica para encontrar os números do ganhador é genérica
+            if (!isNaN(parseInt(numKey, 10)) && numbersData[numKey] && numbersData[numKey].userId === winnerId) {
+                winnerNumbers.push(numKey);
+            }
         }
-        winnerNumbers.sort().forEach(num => {
+        winnerNumbers.sort((a, b) => a - b);
+        winnerNumbers.forEach(num => {
             const span = document.createElement('span');
             span.className = num === number ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
             span.textContent = num;
@@ -304,14 +334,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.history.replaceState) {
                 const url = new URL(window.location);
                 url.search = '';
-                window.history.replaceState({path:url.href}, '', url.href);
+                window.history.replaceState({ path: url.href }, '', url.href);
             }
         }
     }
     
     function updateRaffleProgress(count) {
         if (!progressSection || !progressBar || !progressPercentage) return;
-        const percentage = Math.round((count / 100) * 100);
+        // ALTERAÇÃO: Cálculo da porcentagem agora usa RAFFLE_SIZE
+        const percentage = RAFFLE_SIZE > 0 ? Math.round((count / RAFFLE_SIZE) * 100) : 0;
         progressBar.style.width = `${percentage}%`;
         progressPercentage.textContent = `${percentage}%`;
     }
@@ -320,26 +351,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!recentBuyersList) return;
         const purchases = {};
         for (const key in data) {
-            if (!isNaN(key) && key.length === 2) {
+            // ALTERAÇÃO: A condição para identificar um comprador agora é genérica
+            if (!isNaN(parseInt(key, 10)) && typeof data[key] === 'object' && data[key] !== null && data[key].userId && data[key].createdAt) {
                 const pData = data[key];
-                if (pData?.userId && pData.createdAt) {
-                    if (!purchases[pData.userId]) {
-                        purchases[pData.userId] = { name: pData.name, numbers: [], lastPurchase: pData.createdAt.toDate() };
-                    }
-                    purchases[pData.userId].numbers.push(key);
-                    if (pData.createdAt.toDate() > purchases[pData.userId].lastPurchase) {
-                        purchases[pData.userId].lastPurchase = pData.createdAt.toDate();
-                    }
+                if (!purchases[pData.userId]) {
+                    purchases[pData.userId] = { name: pData.name, numbers: [], lastPurchase: pData.createdAt.toDate() };
+                }
+                purchases[pData.userId].numbers.push(key);
+                if (pData.createdAt.toDate() > purchases[pData.userId].lastPurchase) {
+                    purchases[pData.userId].lastPurchase = pData.createdAt.toDate();
                 }
             }
         }
-        const sorted = Object.values(purchases).sort((a,b) => b.lastPurchase - a.lastPurchase).slice(0, 5);
+        const sorted = Object.values(purchases).sort((a, b) => b.lastPurchase - a.lastPurchase).slice(0, 5);
         recentBuyersList.innerHTML = '';
         if (sorted.length === 0) return recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
         sorted.forEach(p => {
             const item = document.createElement('div');
             item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
-            p.numbers.sort();
+            p.numbers.sort((a,b) => a-b);
             item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${p.lastPurchase.toLocaleTimeString('pt-BR')}</p>`;
             recentBuyersList.appendChild(item);
         });
@@ -386,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setButtonLoading(button, isLoading) {
-        if(!button) return;
+        if (!button) return;
         const text = button.querySelector('.gemini-button-text');
         const spinner = button.querySelector('i.fa-spinner');
         if (text && spinner) {
@@ -430,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     isTestMode = urlParams.get('test') === 'true'; 
 
     if (!raffleId) {
-        if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
+        if (loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
         setTimeout(() => { window.location.href = '/'; }, 3000);
         return;
     }
