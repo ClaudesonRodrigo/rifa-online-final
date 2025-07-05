@@ -21,7 +21,6 @@ const auth = getAuth(app);
 const rafflesCollectionRef = collection(db, "rifas");
 
 // --- ELEMENTOS DO DOM ---
-// CORREÇÃO: Referência ao ID correto do contêiner no index.html
 const rafflesContainer = document.getElementById('raffles-container');
 
 // --- LÓGICA PRINCIPAL ---
@@ -31,48 +30,33 @@ function listenToActiveRaffles() {
     const q = query(rafflesCollectionRef, where("status", "==", "active"));
 
     onSnapshot(q, (snapshot) => {
-        if(!rafflesContainer) {
-            console.error("ERRO: Elemento 'raffles-container' não encontrado no DOM. As rifas não serão exibidas.");
-            return;
-        }
+        if(!rafflesContainer) return;
         rafflesContainer.innerHTML = ''; // Limpa o container
         if (snapshot.empty) {
             rafflesContainer.innerHTML = `
                 <div class="text-center md:col-span-2 lg:col-span-3 py-10">
                     <p class="text-xl text-gray-500">Nenhuma rifa ativa no momento. Volte em breve!</p>
                 </div>`;
-            console.log("Nenhuma rifa ativa encontrada.");
             return;
         }
 
-        // Ordena as rifas pela data de criação, da mais nova para a mais antiga
         const sortedRaffles = snapshot.docs.sort((a,b) => (b.data().createdAt?.toMillis() || 0) - (a.data().createdAt?.toMillis() || 0));
 
-        console.log(`Encontradas ${sortedRaffles.length} rifas ativas. Renderizando...`);
         sortedRaffles.forEach(doc => {
             const raffle = doc.data();
             const raffleId = doc.id;
             
             const card = document.createElement('a');
-            // GARANTIDO: Link para a página da rifa específica, sem parâmetros de status de pagamento aqui.
-            card.href = `/rifa.html?id=${raffleId}`; 
-            card.className = 'raffle-card bg-gray-800 rounded-lg p-6 flex flex-col justify-between transition-all duration-300 hover:scale-105 transform cursor-pointer'; // Adicionei hover
+            card.href = `/rifa.html?id=${raffleId}`; // Link para a página da rifa específica
+            card.className = 'raffle-card bg-gray-800 rounded-lg p-6 flex flex-col justify-between transition-all duration-300';
             
-            // Exibe o tipo de sorteio (Dezena, Centena, Milhar) na listagem
-            const raffleTypeDisplay = {
-                'dezena': '100 Números (00-99)',
-                'centena': '1.000 Números (000-999)',
-                'milhar': '10.000 Números (0000-9999)'
-            }[raffle.type || 'dezena']; 
-
             card.innerHTML = `
                 <div>
                     <h2 class="text-2xl font-bold text-yellow-400 mb-2">${raffle.name}</h2>
-                    <p class="text-gray-400 text-sm mb-2">Tipo: ${raffleTypeDisplay}</p>
-                    <p class="text-gray-400 mb-4">Participe e concorra a este prêmio incrível!</p>
+                    <p class="text-gray-400 mb-4">Participe e concorra a este prémio incrível!</p>
                 </div>
                 <div class="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
-                    <span class="text-xl font-bold text-white">${(raffle.pricePerNumber || 10).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} / número</span>
+                    <span class="text-xl font-bold text-white">${(raffle.pricePerNumber || 10).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                     <span class="bg-teal-500 text-white font-bold px-4 py-2 rounded-md">Participar</span>
                 </div>
             `;
@@ -81,7 +65,7 @@ function listenToActiveRaffles() {
         });
     }, (error) => {
         console.error("Erro ao buscar rifas:", error);
-        if(rafflesContainer) rafflesContainer.innerHTML = `<p class="text-red-400">Erro ao carregar as rifas. Verifique as regras de segurança do seu banco de dados ou a sua conexão.</p>`;
+        if(rafflesContainer) rafflesContainer.innerHTML = `<p class="text-red-400">Erro ao carregar as rifas. Verifique as regras de segurança do seu banco de dados.</p>`;
     });
 }
 
@@ -90,14 +74,13 @@ async function main() {
     try {
         // Tenta fazer o login anónimo primeiro para obter permissão
         await signInAnonymously(auth);
-        console.log("script.js: Autenticado anonimamente. Iniciando escuta por rifas ativas.");
+        console.log("Página principal autenticada anonimamente.");
         // Só depois de ter permissão é que tenta ler as rifas
         listenToActiveRaffles();
     } catch (error) {
-        console.error("script.js: Falha na autenticação da página principal:", error);
+        console.error("Falha na autenticação da página principal:", error);
         if(rafflesContainer) rafflesContainer.innerHTML = `<p class="text-red-400">Erro de autenticação. Não foi possível carregar as rifas.</p>`;
     }
 }
 
-// Inicia a aplicação principal quando o DOM estiver completamente carregado
-document.addEventListener('DOMContentLoaded', main);
+main();
