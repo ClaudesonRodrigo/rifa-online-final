@@ -44,12 +44,3 @@ body {
         box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
     }
 }
-
-/* =========== INÍCIO DA ALTERAÇÃO =========== */
-/* Estilos para os botões de número em rifas grandes */
-.number-grid-large .number-btn {
-    font-size: 0.75rem; /* 12px */
-    font-weight: 600;
-    padding: 4px;
-}
-/* =========== FIM DA ALTERAÇÃO =========== */
