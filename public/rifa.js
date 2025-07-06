@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
         measurementId: "G-G3BX961SHY"
     };
-    const ADMIN_WHATSAPP_NUMBER = "5579996337995";
+    const ADMIN_WHATSAPP_NUMBER = "5579996337995"; // Este não é mais relevante no frontend, mas mantido
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const app = initializeApp(firebaseConfig);
@@ -65,12 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
     let userId = null;
-    let numbersData = {};
+    let numbersData = {}; // Conterá os dados da rifa, incluindo o `type`
     let selectedNumbers = [];
     let rifaDocRef;
     let PRICE_PER_NUMBER = 10;
-    let RAFFLE_SIZE = 100; // ALTERAÇÃO: Variável para o tamanho da rifa
     let isTestMode = false;
+    let raffleType = 'dezena'; // Default, será atualizado pelo Firestore
+    let totalNumbersInRaffle = 100; // Default, será atualizado pelo Firestore
 
     // --- FUNÇÕES DE LÓGICA ---
 
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 signInAnonymously(auth).catch(err => {
                     console.error("Auth Error", err);
-                    if (mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
+                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
                 });
             }
         });
@@ -94,72 +95,82 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = JSON.parse(savedUser);
             setupFirestoreListener();
         } else {
-            if (loadingSection) loadingSection.classList.add('hidden');
-            if (userSection) userSection.classList.remove('hidden');
+            if(loadingSection) loadingSection.classList.add('hidden');
+            if(userSection) userSection.classList.remove('hidden');
         }
     }
 
     function setupFirestoreListener() {
         onSnapshot(rifaDocRef, (doc) => {
             if (!doc.exists()) {
-                if (loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
+                if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
                 return;
             }
             numbersData = doc.data();
             PRICE_PER_NUMBER = numbersData.pricePerNumber || 10;
-            RAFFLE_SIZE = numbersData.size || 100; // ALTERAÇÃO: Lê o tamanho do DB, com padrão 100
+            raffleType = numbersData.type || 'dezena'; // <<< NOVO: Pega o tipo da rifa
+            
+            // Define o total de números com base no tipo
+            if (raffleType === 'centena') {
+                totalNumbersInRaffle = 1000;
+            } else if (raffleType === 'milhar') {
+                totalNumbersInRaffle = 10000;
+            } else {
+                totalNumbersInRaffle = 100; // Dezena
+            }
 
             if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
             if (raffleTitle) raffleTitle.textContent = numbersData.name;
             setupWhatsAppButton();
+            
+            // Adaptação da contagem de vendidos e progresso
+            // A chave 'type' também pode vir do Firestore, então filtraremos por números válidos.
+            const soldCount = Object.keys(numbersData).filter(key => 
+                !isNaN(key) && key.length === (raffleType === 'centena' ? 3 : raffleType === 'milhar' ? 4 : 2)
+            ).length;
+            
+            updateRaffleProgress(soldCount, totalNumbersInRaffle); // <<< NOVO: Passa o total de números
+            updateRecentBuyers(numbersData, raffleType); // <<< NOVO: Passa o tipo para formatação correta
 
-            // ALTERAÇÃO: Contagem de números vendidos agora é genérica
-            const soldCount = Object.keys(numbersData).filter(key => !isNaN(parseInt(key, 10)) && typeof numbersData[key] === 'object' && numbersData[key] !== null && numbersData[key].userId).length;
-            
-            updateRaffleProgress(soldCount);
-            updateRecentBuyers(numbersData);
-            
             if (numbersData.winner) {
-                displayPublicWinner(numbersData.winner);
+                displayPublicWinner(numbersData.winner, raffleType); // <<< NOVO: Passa o tipo para formatação correta
                 if (progressSection) progressSection.classList.add('hidden');
             } else {
                 if (progressSection) progressSection.classList.remove('hidden');
             }
-            
-            renderNumberGrid();
+            renderNumberGrid(totalNumbersInRaffle); // <<< NOVO: Passa o total de números para renderização
             if (loadingSection) loadingSection.classList.add('hidden');
             if (appSection) appSection.classList.remove('hidden');
             checkPaymentStatus();
         }, (error) => {
             console.error("Erro ao carregar dados do Firestore:", error);
-            if (mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
+            if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Não foi possível carregar a rifa.</p>`;
         });
     }
 
-    function renderNumberGrid() {
+    // Adapta a renderização do grid de números
+    function renderNumberGrid(maxNumbers) { // Recebe o total de números
         const isRaffleOver = !!numbersData.winner;
         if (!numberGrid) return;
         numberGrid.innerHTML = '';
 
-        // ALTERAÇÃO: Adiciona classe para diminuir os botões em rifas grandes
-        if (RAFFLE_SIZE > 100) {
-            numberGrid.classList.add('number-grid-large');
+        // Ajusta o grid para exibir os números em colunas maiores para milhares
+        if (maxNumbers === 10000) {
+            numberGrid.className = "grid grid-cols-10 sm:grid-cols-20 gap-1 md:gap-2 mb-8"; // Mais colunas para milhares
+        } else if (maxNumbers === 1000) {
+             numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8"; // Mantém padrão ou ajusta levemente
         } else {
-            numberGrid.classList.remove('number-grid-large');
+             numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8"; // Default para dezena
         }
-        
-        // ALTERAÇÃO: Loop e formatação do número são dinâmicos
-        const numDigits = (RAFFLE_SIZE - 1).toString().length;
-        for (let i = 0; i < RAFFLE_SIZE; i++) {
-            const numberStr = i.toString().padStart(numDigits, '0');
+
+        for (let i = 0; i < maxNumbers; i++) { // Itera até o número máximo
+            const numberStr = formatNumberForRaffleType(i, raffleType); // <<< NOVO: Formata o número
             const ownerData = numbersData[numberStr];
             const button = document.createElement('button');
             button.textContent = numberStr;
             button.dataset.number = numberStr;
-            // Adiciona uma classe comum para estilização
-            button.classList.add('number-btn');
-            button.classList.add("p-2", "rounded-lg", "text-sm", "md:text-base", "font-bold", "transition-all", "duration-200", "ease-in-out");
-
+            button.className = "p-2 rounded-lg text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+            
             if (ownerData) {
                 button.disabled = true;
                 button.classList.add(ownerData.userId === userId ? 'bg-purple-600' : 'bg-gray-600', 'cursor-not-allowed', 'opacity-70');
@@ -176,11 +187,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Nova função para formatar números com zeros à esquerda
+    function formatNumberForRaffleType(num, type) {
+        if (type === 'centena') {
+            return num.toString().padStart(3, '0');
+        } else if (type === 'milhar') {
+            return num.toString().padStart(4, '0');
+        } else { // Dezena
+            return num.toString().padStart(2, '0');
+        }
+    }
+
     function handleNumberClick(event) {
         const numberStr = event.target.dataset.number;
         const button = event.target;
-        const index = selectedNumbers.indexOf(numberStr);
+        
+        // Verifica se o número já está ocupado por outro usuário (double-check de segurança)
+        if (numbersData[numberStr] && numbersData[numberStr].userId !== userId) {
+            alert("Este número já foi comprado por outra pessoa. Por favor, escolha outro.");
+            return;
+        }
 
+        const index = selectedNumbers.indexOf(numberStr);
         if (index > -1) {
             selectedNumbers.splice(index, 1);
             button.classList.remove('number-selected');
@@ -190,8 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.add('number-selected');
             button.classList.remove('number-available', 'bg-blue-500');
         }
-        // Garante que os números no carrinho estão sempre ordenados
-        selectedNumbers.sort((a, b) => a - b);
         updateShoppingCart();
     }
 
@@ -203,14 +229,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         shoppingCartSection.classList.remove('hidden');
         selectedNumbersList.innerHTML = '';
-        
-        selectedNumbers.forEach(num => {
+        selectedNumbers.sort().forEach(num => {
             const el = document.createElement('span');
             el.className = 'bg-amber-500 text-gray-900 font-bold px-3 py-1 rounded-full text-lg';
             el.textContent = num;
             selectedNumbersList.appendChild(el);
         });
-
         const totalPrice = selectedNumbers.length * PRICE_PER_NUMBER;
         totalPriceEl.textContent = totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
@@ -228,28 +252,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function displayPublicWinner(winnerData) {
+    // Adapta a exibição do ganhador
+    function displayPublicWinner(winnerData, type) {
         if (!winnerDisplaySection || !publicWinnerNumber || !publicWinnerName || !publicWinnerBoughtNumbers) return;
         if (!winnerData || !winnerData.player) {
             winnerDisplaySection.classList.add('hidden');
             return;
         }
         const { number, player } = winnerData;
-        publicWinnerNumber.textContent = number;
+        publicWinnerNumber.textContent = formatNumberForRaffleType(parseInt(number), type); // Garante a formatação correta
         publicWinnerName.textContent = player.name;
         publicWinnerBoughtNumbers.innerHTML = '';
         const winnerId = player.userId;
         const winnerNumbers = [];
+        
+        // Filtra e coleta os números comprados pelo ganhador com a formatação correta
+        const expectedLength = (type === 'centena' ? 3 : type === 'milhar' ? 4 : 2);
         for (const numKey in numbersData) {
-            // ALTERAÇÃO: Lógica para encontrar os números do ganhador é genérica
-            if (!isNaN(parseInt(numKey, 10)) && numbersData[numKey] && numbersData[numKey].userId === winnerId) {
-                winnerNumbers.push(numKey);
+            if (!isNaN(numKey) && numKey.length === expectedLength) { // Verifica o comprimento da chave
+                if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
+                    winnerNumbers.push(formatNumberForRaffleType(parseInt(numKey), type));
+                }
             }
         }
-        winnerNumbers.sort((a, b) => a - b);
-        winnerNumbers.forEach(num => {
+        winnerNumbers.sort().forEach(num => {
             const span = document.createElement('span');
-            span.className = num === number ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
+            // Compara o número formatado
+            span.className = num === formatNumberForRaffleType(parseInt(number), type) ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
             span.textContent = num;
             publicWinnerBoughtNumbers.appendChild(span);
         });
@@ -265,7 +294,16 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.textContent = 'A gerar link...';
         paymentStatusEl.textContent = 'Aguarde...';
         paymentStatusEl.classList.remove('hidden');
-        const items = selectedNumbers.map(n => ({ id: n, title: `Rifa - ${numbersData.name} - Nº ${n}`, quantity: 1, unit_price: PRICE_PER_NUMBER, currency_id: 'BRL' }));
+        
+        // Itens agora usam a formatação correta para o ID do item
+        const items = selectedNumbers.map(n => ({ 
+            id: formatNumberForRaffleType(parseInt(n), raffleType), // Garante o ID do item formatado
+            title: `Rifa - ${numbersData.name} - Nº ${formatNumberForRaffleType(parseInt(n), raffleType)}`, 
+            quantity: 1, 
+            unit_price: PRICE_PER_NUMBER, 
+            currency_id: 'BRL' 
+        }));
+        
         const payerData = { ...currentUser, userId, raffleId };
         try {
             const res = await fetch('/.netlify/functions/create-payment', { method: 'POST', body: JSON.stringify({ items, payerData }) });
@@ -273,7 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             if (data.checkoutUrl) {
                 localStorage.setItem('pendingRaffleId', raffleId);
-                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers));
+                // Salva os números selecionados já formatados
+                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers.map(n => formatNumberForRaffleType(parseInt(n), raffleType))));
                 window.location.href = data.checkoutUrl;
             }
         } catch (e) {
@@ -292,12 +331,22 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const docSnap = await getDoc(rifaDocRef);
             const data = docSnap.data() || {};
-            const taken = selectedNumbers.filter(n => data[n]);
-            if (taken.length > 0) throw new Error(`Os números ${taken.join(', ')} já não estão disponíveis.`);
+            
             const updates = {};
-            selectedNumbers.forEach(n => { updates[n] = { ...currentUser, userId, raffleId, createdAt: new Date() }; });
+            const numbersToAttemptPurchase = [];
+
+            // Formata e verifica a disponibilidade dos números antes de montar as updates
+            for (const n of selectedNumbers) {
+                const formattedNum = formatNumberForRaffleType(parseInt(n), raffleType);
+                if (data[formattedNum]) {
+                     throw new Error(`O número ${formattedNum} já não está disponível.`);
+                }
+                numbersToAttemptPurchase.push(formattedNum);
+            }
+            
+            numbersToAttemptPurchase.forEach(n => { updates[n] = { ...currentUser, userId, raffleId, createdAt: new Date() }; });
             await updateDoc(rifaDocRef, updates);
-            paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${selectedNumbers.join(', ')} foram reservados.`;
+            paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${numbersToAttemptPurchase.join(', ')} foram reservados.`;
             paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
             paymentStatusEl.classList.remove('hidden');
             triggerConfetti();
@@ -319,6 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (status && rifaDocRef && rifaDocRef.id === pendingId) {
             const numbers = localStorage.getItem('pendingNumbers');
             if (status === 'approved' && numbers) {
+                // AQUI: Os números do localStorage JÁ estão formatados (linha 308)
                 paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(numbers).join(', ')} foram reservados.`;
                 paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
                 paymentStatusEl.classList.remove('hidden');
@@ -334,42 +384,47 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.history.replaceState) {
                 const url = new URL(window.location);
                 url.search = '';
-                window.history.replaceState({ path: url.href }, '', url.href);
+                window.history.replaceState({path:url.href}, '', url.href);
             }
         }
     }
     
-    function updateRaffleProgress(count) {
+    // Adapta o cálculo do progresso para o total de números da rifa
+    function updateRaffleProgress(count, maxTotal) {
         if (!progressSection || !progressBar || !progressPercentage) return;
-        // ALTERAÇÃO: Cálculo da porcentagem agora usa RAFFLE_SIZE
-        const percentage = RAFFLE_SIZE > 0 ? Math.round((count / RAFFLE_SIZE) * 100) : 0;
+        const percentage = Math.round((count / maxTotal) * 100); // Usa maxTotal
         progressBar.style.width = `${percentage}%`;
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    function updateRecentBuyers(data) {
+    // Adapta a atualização dos compradores recentes
+    function updateRecentBuyers(data, type) {
         if (!recentBuyersList) return;
         const purchases = {};
+        const expectedLength = (type === 'centena' ? 3 : type === 'milhar' ? 4 : 2); // Comprimento esperado
+        
         for (const key in data) {
-            // ALTERAÇÃO: A condição para identificar um comprador agora é genérica
-            if (!isNaN(parseInt(key, 10)) && typeof data[key] === 'object' && data[key] !== null && data[key].userId && data[key].createdAt) {
+            // Verifica se a chave é um número e tem o comprimento esperado
+            if (!isNaN(key) && key.length === expectedLength) { 
                 const pData = data[key];
-                if (!purchases[pData.userId]) {
-                    purchases[pData.userId] = { name: pData.name, numbers: [], lastPurchase: pData.createdAt.toDate() };
-                }
-                purchases[pData.userId].numbers.push(key);
-                if (pData.createdAt.toDate() > purchases[pData.userId].lastPurchase) {
-                    purchases[pData.userId].lastPurchase = pData.createdAt.toDate();
+                if (pData?.userId && pData.createdAt) {
+                    if (!purchases[pData.userId]) {
+                        purchases[pData.userId] = { name: pData.name, numbers: [], lastPurchase: pData.createdAt.toDate() };
+                    }
+                    purchases[pData.userId].numbers.push(formatNumberForRaffleType(parseInt(key), type)); // Formata o número
+                    if (pData.createdAt.toDate() > purchases[pData.userId].lastPurchase) {
+                        purchases[pData.userId].lastPurchase = pData.createdAt.toDate();
+                    }
                 }
             }
         }
-        const sorted = Object.values(purchases).sort((a, b) => b.lastPurchase - a.lastPurchase).slice(0, 5);
+        const sorted = Object.values(purchases).sort((a,b) => b.lastPurchase - a.lastPurchase).slice(0, 5);
         recentBuyersList.innerHTML = '';
         if (sorted.length === 0) return recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
         sorted.forEach(p => {
             const item = document.createElement('div');
             item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
-            p.numbers.sort((a,b) => a-b);
+            p.numbers.sort();
             item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${p.lastPurchase.toLocaleTimeString('pt-BR')}</p>`;
             recentBuyersList.appendChild(item);
         });
@@ -391,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupWhatsAppButton() {
         if (!whatsappFloatBtn) return;
-        whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe";
+        whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe"; // Certifique-se de que este é o link do seu grupo VIP
     }
     
     async function showRules() {
@@ -416,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setButtonLoading(button, isLoading) {
-        if (!button) return;
+        if(!button) return;
         const text = button.querySelector('.gemini-button-text');
         const spinner = button.querySelector('i.fa-spinner');
         if (text && spinner) {
@@ -426,6 +481,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // A função getLuckyNumbers precisa ser refeita para considerar o `raffleType`
+    // e gerar números no range correto (0-99, 0-999, 0-9999)
     async function getLuckyNumbers() {
         if (!luckThemeInput || !luckyNumbersResult || !getLuckyNumbersBtn) return;
         const theme = luckThemeInput.value.trim();
@@ -435,20 +492,60 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         setButtonLoading(getLuckyNumbersBtn, true);
         luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
+        
         try {
+            // Inclua o tipo de sorteio na requisição para a função Netlify
             const functionUrl = `/.netlify/functions/getLuckyNumbers`;
-            const response = await fetch(functionUrl, { method: "POST", body: JSON.stringify({ theme: theme }) });
+            const response = await fetch(functionUrl, { 
+                method: "POST", 
+                body: JSON.stringify({ theme: theme, raffleType: raffleType }) // <<< NOVO: Passa o tipo de sorteio
+            });
+            
             if (!response.ok) throw new Error('A resposta da função não foi OK.');
             const data = await response.json();
-            let html = '<div class="grid md:grid-cols-3 gap-4">';
-            data.sugestoes.forEach(s => {
-                html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500"><p class="text-2xl font-bold text-purple-300 mb-2">${s.numero}</p><p class="text-sm text-gray-300">${s.explicacao}</p></div>`;
-            });
+            
+            let html = '<div class="grid md:grid-cols-3 gap-4">'; // Você pode ajustar o grid conforme o número de sugestões
+            if (data.sugestoes && Array.isArray(data.sugestoes) && data.sugestoes.length > 0) {
+                data.sugestoes.forEach(s => {
+                    // Garante que o número sugerido seja formatado corretamente
+                    const formattedSuggestedNumber = formatNumberForRaffleType(parseInt(s.numero), raffleType);
+                    
+                    // Verifica se o número já está vendido
+                    const isSold = numbersData[formattedSuggestedNumber] && numbersData[formattedSuggestedNumber].userId !== userId;
+                    const buttonClass = isSold ? 'bg-gray-600 cursor-not-allowed opacity-70' : 'bg-blue-500 hover:bg-blue-400 number-available cursor-pointer';
+                    const buttonText = isSold ? `${formattedSuggestedNumber} (Vendido)` : formattedSuggestedNumber;
+
+                    html += `
+                        <div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center">
+                            <p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p>
+                            <button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>
+                                ${buttonText}
+                            </button>
+                        </div>`;
+                });
+            } else {
+                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões para este tema.</p>`;
+            }
             html += '</div>';
             luckyNumbersResult.innerHTML = html;
+
+            // Adiciona event listeners aos botões de números sugeridos
+            luckyNumbersResult.querySelectorAll('button[data-number]').forEach(button => {
+                if (!button.disabled) {
+                    button.addEventListener('click', (e) => {
+                        const num = e.target.dataset.number;
+                        // Simula um clique no botão do grid principal para adicionar ao carrinho
+                        const gridButton = numberGrid.querySelector(`button[data-number="${num}"]`);
+                        if (gridButton && !gridButton.disabled) {
+                            handleNumberClick({ target: gridButton });
+                        }
+                    });
+                }
+            });
+
         } catch (error) {
-            console.error("Erro ao chamar a função da Netlify:", error);
-            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça.</p>`;
+            console.error("Erro ao chamar a função da Netlify (getLuckyNumbers):", error);
+            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente outro tema.</p>`;
         } finally {
             setButtonLoading(getLuckyNumbersBtn, false);
         }
@@ -460,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     isTestMode = urlParams.get('test') === 'true'; 
 
     if (!raffleId) {
-        if (loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
+        if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
         setTimeout(() => { window.location.href = '/'; }, 3000);
         return;
     }
