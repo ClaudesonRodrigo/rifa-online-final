@@ -1,10 +1,7 @@
-// Este ficheiro não existe atualmente no seu projeto, deve criá-lo.
-// O seu propósito é lidar com as chamadas para a API do Gemini de forma segura.
+// netlify/functions/getLuckyNumbers.js
 
-// A importação pode variar dependendo da versão do SDK do Google
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// --- Handler da Função ---
 exports.handler = async function(event) {
   // 1. Verificação de segurança da API Key
   if (!process.env.GEMINI_API_KEY) {
@@ -18,7 +15,8 @@ exports.handler = async function(event) {
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
   try {
-    const { theme } = JSON.parse(event.body);
+    // ✅ CORREÇÃO 1: Lemos o 'raffleType' vindo do site
+    const { theme, raffleType } = JSON.parse(event.body);
 
     if (!theme) {
       return {
@@ -27,15 +25,23 @@ exports.handler = async function(event) {
       };
     }
     
-    // 3. Preparação e chamada da IA
-    const prompt = `Você é um vidente místico e divertido. Baseado na palavra ou tema "${theme}", sugira 3 números de dois dígitos (de 00 a 99) para uma rifa. Para cada número, dê uma explicação curta, criativa e mística. Responda APENAS com um objeto JSON válido no formato: { "sugestoes": [ { "numero": "XX", "explicacao": "A sua explicação." } ] }`;
+    // ✅ CORREÇÃO 2: Criamos o texto dinâmico para o prompt
+    const raffleDetails = {
+      dezena: { text: "dois dígitos (de 00 a 99)", example: "XX" },
+      centena: { text: "três dígitos (de 000 a 999)", example: "XXX" },
+      milhar: { text: "quatro dígitos (de 0000 a 9999)", example: "XXXX" }
+    };
+    const details = raffleDetails[raffleType] || raffleDetails.dezena; // Padrão é dezena
+
+    // ✅ CORREÇÃO 3: Usamos o texto dinâmico no prompt
+    const prompt = `Você é um vidente místico e divertido. Baseado no tema "${theme}", sugira 3 números de ${details.text} para uma rifa. Para cada número, dê uma explicação curta e criativa. Responda APENAS com um objeto JSON válido no formato: { "sugestoes": [ { "numero": "${details.example}", "explicacao": "Sua explicação mística." } ] }`;
     
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     let text = response.text();
     
-    // 4. Limpeza e extração do JSON para evitar erros
+    // Limpeza do JSON
     const startIndex = text.indexOf('{');
     const endIndex = text.lastIndexOf('}');
     if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
@@ -44,14 +50,13 @@ exports.handler = async function(event) {
       throw new Error("A resposta da IA não continha um JSON válido.");
     }
     
-    // 5. Retorno com sucesso
     return {
       statusCode: 200,
       body: text,
     };
 
   } catch (error) {
-    console.error("Erro DENTRO da Netlify Function:", error);
+    console.error("Erro DENTRO da Netlify Function (getLuckyNumbers):", error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: `Falha ao comunicar com o Oráculo da Sorte. Detalhes: ${error.message}` }),
