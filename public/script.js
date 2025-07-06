@@ -1,21 +1,12 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+// public/script.js
+
+// ✅ Importa a instância 'app' do nosso novo módulo central.
+import { app } from './firebase-init.js';
 import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-
-// --- CONFIGURAÇÃO ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
-    authDomain: "cemvezesmais-1ab48.firebaseapp.com",
-    projectId: "cemvezesmais-1ab48",
-    storageBucket: "cemvezesmais-1ab48.firebasestorage.app",
-    messagingSenderId: "206492928997",
-    appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
-    measurementId: "G-G3BX961SHY"
-};
-
 // --- INICIALIZAÇÃO ---
-const app = initializeApp(firebaseConfig);
+// ✅ O 'app' já vem inicializado, só precisamos usar os serviços.
 const db = getFirestore(app);
 const auth = getAuth(app);
 const rafflesCollectionRef = collection(db, "rifas");
@@ -24,14 +15,12 @@ const rafflesCollectionRef = collection(db, "rifas");
 const rafflesContainer = document.getElementById('raffles-container');
 
 // --- LÓGICA PRINCIPAL ---
-
 function listenToActiveRaffles() {
-    // Cria uma consulta para buscar apenas as rifas com status 'active'
     const q = query(rafflesCollectionRef, where("status", "==", "active"));
 
     onSnapshot(q, (snapshot) => {
         if(!rafflesContainer) return;
-        rafflesContainer.innerHTML = ''; // Limpa o container
+        rafflesContainer.innerHTML = '';
         if (snapshot.empty) {
             rafflesContainer.innerHTML = `
                 <div class="text-center md:col-span-2 lg:col-span-3 py-10">
@@ -47,7 +36,7 @@ function listenToActiveRaffles() {
             const raffleId = doc.id;
             
             const card = document.createElement('a');
-            card.href = `/rifa.html?id=${raffleId}`; // Link para a página da rifa específica
+            card.href = `/rifa.html?id=${raffleId}`;
             card.className = 'raffle-card bg-gray-800 rounded-lg p-6 flex flex-col justify-between transition-all duration-300';
             
             card.innerHTML = `
@@ -72,10 +61,8 @@ function listenToActiveRaffles() {
 // --- INÍCIO ---
 async function main() {
     try {
-        // Tenta fazer o login anónimo primeiro para obter permissão
         await signInAnonymously(auth);
         console.log("Página principal autenticada anonimamente.");
-        // Só depois de ter permissão é que tenta ler as rifas
         listenToActiveRaffles();
     } catch (error) {
         console.error("Falha na autenticação da página principal:", error);
