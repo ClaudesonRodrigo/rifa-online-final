@@ -1,4 +1,4 @@
-// public/rifa.js (Versão de Debug COMPLETA - 06/07/2025)
+// public/rifa.js (Atualizado para incluir o vendorId)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -257,6 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
         paymentStatusEl.classList.remove('hidden');
         
         const items = selectedNumbers.map(n => ({ id: formatNumberForRaffleType(parseInt(n), raffleType), title: `Rifa - ${numbersData.name} - Nº ${formatNumberForRaffleType(parseInt(n), raffleType)}`, quantity: 1, unit_price: pricePerNumber, currency_id: 'BRL' }));
+        
+        // ✅ ALTERAÇÃO: Prepara os dados do pagador e adiciona o vendorId se existir na URL
         const payerData = { ...currentUser, userId, raffleId: rifaDocRef.id };
         const urlParams = new URLSearchParams(window.location.search);
         const vendorId = urlParams.get('vendor') || null;
@@ -280,22 +282,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ✅✅✅ FUNÇÃO MODIFICADA COM "LANTERNAS" DE DEBUG ✅✅✅
     async function handleTestCheckout() {
-        console.log("--- INICIANDO handleTestCheckout ---");
         if (selectedNumbers.length === 0) return alert("Nenhum número selecionado.");
         if (!window.confirm(`-- MODO DE TESTE --\nConfirma a reserva dos números: ${selectedNumbers.join(', ')}?`)) return;
-        
         checkoutBtn.disabled = true;
         checkoutBtn.textContent = 'A processar...';
-
         try {
-            console.log("Dentro do bloco try...");
             const docSnap = await getDoc(rifaDocRef);
             const data = docSnap.data() || {};
             const updates = {};
             const numbersToAttemptPurchase = [];
-
             for (const n of selectedNumbers) {
                 const formattedNum = formatNumberForRaffleType(parseInt(n), raffleType);
                 if (data[formattedNum]) {
@@ -303,37 +299,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 numbersToAttemptPurchase.push(formattedNum);
             }
-            console.log("Números a serem comprados:", numbersToAttemptPurchase);
-
+            
+            // ✅ ALTERAÇÃO: Prepara os dados da compra e adiciona o vendorId se existir na URL
             const urlParams = new URLSearchParams(window.location.search);
             const vendorId = urlParams.get('vendor') || null;
-            console.log("Vendor ID capturado da URL:", vendorId);
-
-            const dataToSave = { 
-                ...currentUser, 
-                userId, 
-                raffleId: rifaDocRef.id, 
-                createdAt: new Date() 
-            };
-            
+            const dataToSave = { ...currentUser, userId, raffleId: rifaDocRef.id, createdAt: new Date() };
             if (vendorId) {
                 dataToSave.vendorId = vendorId;
-                console.log("vendorId foi adicionado ao objeto de dados.");
             }
             
-            console.log("Objeto de dados a ser salvo para cada número:", dataToSave);
-
-            numbersToAttemptPurchase.forEach(n => { 
-                updates[n] = dataToSave; 
-            });
-
-            console.log("Objeto 'updates' final que será enviado para o Firebase:", updates);
-            console.log("A enviar para o Firebase...");
-
+            numbersToAttemptPurchase.forEach(n => { updates[n] = dataToSave; });
+            
             await updateDoc(rifaDocRef, updates);
-
-            console.log("SUCESSO! Dados salvos no Firebase.");
-
             paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${numbersToAttemptPurchase.join(', ')} foram reservados.`;
             paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
             paymentStatusEl.classList.remove('hidden');
@@ -341,12 +318,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (shareModal) shareModal.style.display = 'flex';
             selectedNumbers = [];
             updateShoppingCart();
-
         } catch (e) {
-            console.error("--- ERRO CAPTURADO NO CATCH ---", e);
             alert(`Ocorreu um erro: ${e.message}`);
         } finally {
-            console.log("--- FINALIZANDO handleTestCheckout ---");
             checkoutBtn.disabled = false;
             checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         }
