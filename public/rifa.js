@@ -1,10 +1,9 @@
-// public/rifa.js (versão completa e corrigida para a nova estrutura de dados)
+// public/rifa.js (Versão Completa e Funcional - 06/07/2025)
 
 import { app } from './firebase-init.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, setDoc, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-// --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
     // --- INICIALIZAÇÃO ---
     const auth = getAuth(app);
@@ -53,8 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
     let userId = null;
-    let raffleDetails = {};       // Guarda os dados gerais da rifa (nome, preço)
-    let soldNumbersData = {};   // Guarda os números vendidos da subcoleção
+    let raffleDetails = {};
+    let soldNumbersData = {};
     let selectedNumbers = [];
     let raffleId = null;
     let pricePerNumber = 10;
@@ -106,10 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
             updateSoldNumbersUI();
         });
     }
-    
+
     function updateRaffleDetailsUI() {
         pricePerNumber = raffleDetails.pricePerNumber || 10;
         raffleType = raffleDetails.type || 'dezena';
+
         if (raffleType === 'centena') totalNumbersInRaffle = 1000;
         else if (raffleType === 'milhar') totalNumbersInRaffle = 10000;
         else totalNumbersInRaffle = 100;
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupWhatsAppButton();
 
         if (raffleDetails.winner) {
-            displayPublicWinner(raffleDetails.winner, raffleType);
+            displayPublicWinner(raffleDetails.winner);
             progressSection.classList.add('hidden');
         } else {
             progressSection.classList.remove('hidden');
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (let i = 0; i < maxNumbers; i++) {
             const numberStr = formatNumberForRaffleType(i, raffleType);
-            const ownerData = soldNumbersData[numberStr]; // <-- ADAPTAÇÃO AQUI
+            const ownerData = soldNumbersData[numberStr];
             const button = document.createElement('button');
             button.textContent = numberStr;
             button.dataset.number = numberStr;
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleNumberClick(event) {
         const numberStr = event.target.dataset.number;
         const button = event.target;
-        if (soldNumbersData[numberStr] && soldNumbersData[numberStr].userId !== userId) { // <-- ADAPTAÇÃO AQUI
+        if (soldNumbersData[numberStr] && soldNumbersData[numberStr].userId !== userId) {
             alert("Este número já foi comprado por outra pessoa. Por favor, escolha outro.");
             return;
         }
@@ -226,26 +226,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function displayPublicWinner(winnerData, type) {
+    function displayPublicWinner(winnerData) {
         if (!winnerDisplaySection || !publicWinnerNumber || !publicWinnerName || !publicWinnerBoughtNumbers) return;
         if (!winnerData || !winnerData.player) {
             winnerDisplaySection.classList.add('hidden');
             return;
         }
         const { number, player } = winnerData;
-        publicWinnerNumber.textContent = formatNumberForRaffleType(parseInt(number), type);
+        publicWinnerNumber.textContent = formatNumberForRaffleType(parseInt(number), raffleType);
         publicWinnerName.textContent = player.name;
         publicWinnerBoughtNumbers.innerHTML = '';
         const winnerId = player.userId;
         const winnerNumbers = [];
-        for (const numKey in soldNumbersData) { // <-- ADAPTAÇÃO AQUI
+        for (const numKey in soldNumbersData) {
             if (soldNumbersData[numKey] && soldNumbersData[numKey].userId === winnerId) {
                 winnerNumbers.push(numKey);
             }
         }
         winnerNumbers.sort().forEach(num => {
             const span = document.createElement('span');
-            span.className = num === formatNumberForRaffleType(parseInt(number), type) ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
+            span.className = num === formatNumberForRaffleType(parseInt(number), raffleType) ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
             span.textContent = num;
             publicWinnerBoughtNumbers.appendChild(span);
         });
@@ -254,11 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleCheckout() {
-        // Esta função precisará ser adaptada de forma semelhante ao handleTestCheckout,
-        // mas chamando a Netlify Function que por sua vez usará o SDK de Admin para
-        // registrar a compra na subcoleção, após a confirmação do Mercado Pago.
         if (isTestMode) return handleTestCheckout();
-        alert("A função de pagamento real precisa ser adaptada para a nova estrutura de dados.");
+        // A lógica de pagamento real precisará ser adaptada para a nova estrutura de dados
+        // no webhook do Netlify, para salvar na subcoleção 'sold_numbers'.
+        alert("A função de pagamento real precisa ser adaptada para a nova estrutura.");
     }
 
     async function handleTestCheckout() {
@@ -269,11 +268,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const vendorId = urlParams.get('vendor') || null;
+
             for (const numberStr of selectedNumbers) {
                 const formattedNum = formatNumberForRaffleType(parseInt(numberStr), raffleType);
                 const numberDocRef = doc(db, "rifas", raffleId, "sold_numbers", formattedNum);
                 const dataToSave = { ...currentUser, userId, purchasedAt: new Date() };
-                if (vendorId) dataToSave.vendorId = vendorId;
+                if (vendorId) {
+                    dataToSave.vendorId = vendorId;
+                }
                 await setDoc(numberDocRef, dataToSave);
             }
             paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${selectedNumbers.join(', ')} foram reservados.`;
@@ -284,15 +286,40 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedNumbers = [];
             updateShoppingCart();
         } catch (e) {
-            alert(`Ocorreu um erro ao tentar reservar os números. É possível que um deles já tenha sido comprado. Erro: ${e.message}`);
+            alert(`Ocorreu um erro: ${e.message}. É possível que um dos números já tenha sido comprado.`);
         } finally {
             checkoutBtn.disabled = false;
             checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         }
     }
     
-    function checkPaymentStatus() { /* ... Lógica existente ... */ }
-    
+    function checkPaymentStatus() {
+        const params = new URLSearchParams(window.location.search);
+        const status = params.get('status');
+        const pendingId = localStorage.getItem('pendingRaffleId');
+        if (status && raffleId && raffleId === pendingId) {
+            const numbers = localStorage.getItem('pendingNumbers');
+            if (status === 'approved' && numbers) {
+                paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(numbers).join(', ')} foram reservados.`;
+                paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
+                paymentStatusEl.classList.remove('hidden');
+                triggerConfetti();
+                if (shareModal) shareModal.style.display = 'flex';
+            } else if (status === 'failure') {
+                paymentStatusEl.textContent = 'O pagamento falhou. Tente novamente.';
+                paymentStatusEl.className = 'text-center text-red-400 mt-4';
+                paymentStatusEl.classList.remove('hidden');
+            }
+            localStorage.removeItem('pendingNumbers');
+            localStorage.removeItem('pendingRaffleId');
+            if (window.history.replaceState) {
+                const url = new URL(window.location);
+                url.search = '';
+                window.history.replaceState({path:url.href}, '', url.href);
+            }
+        }
+    }
+
     function updateRaffleProgress(count, maxTotal) {
         if (!progressSection || !progressBar || !progressPercentage) return;
         const percentage = Math.round((count / maxTotal) * 100);
@@ -303,24 +330,114 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateRecentBuyers(data) {
         if (!recentBuyersList) return;
         const allPurchases = Object.entries(data).map(([number, details]) => ({ number, ...details }));
-        const sorted = allPurchases.sort((a, b) => b.purchasedAt.toDate() - a.purchasedAt.toDate()).slice(0, 5);
+        const sortedPurchases = allPurchases.sort((a, b) => {
+            const timeA = a.purchasedAt?.toDate() || 0;
+            const timeB = b.purchasedAt?.toDate() || 0;
+            return timeB - timeA;
+        }).slice(0, 5);
+        
         recentBuyersList.innerHTML = '';
-        if (sorted.length === 0) return recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
-        sorted.forEach(p => {
+        if (sortedPurchases.length === 0) {
+            recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
+            return;
+        }
+        
+        sortedPurchases.forEach(p => {
             const item = document.createElement('div');
             item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
-            item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o número <span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${p.number}</span></p><p class="text-gray-500 text-xs">${p.purchasedAt.toDate().toLocaleTimeString('pt-BR')}</p>`;
+            const purchaseTime = p.purchasedAt?.toDate() ? p.purchasedAt.toDate().toLocaleTimeString('pt-BR') : '';
+            item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o número <span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${p.number}</span></p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
             recentBuyersList.appendChild(item);
         });
     }
 
-    function triggerConfetti() { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } }); }
-    function setupShareButtons() { /* ... Lógica existente ... */ }
-    function setupWhatsAppButton() { if (whatsappFloatBtn) whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe"; }
-    async function showRules() { /* ... Lógica existente ... */ }
-    function closeRules() { if (rulesModal) rulesModal.style.display = 'none'; }
-    function setButtonLoading(button, isLoading) { /* ... Lógica existente ... */ }
-    async function getLuckyNumbers() { /* ... Lógica existente ... */ }
+    function triggerConfetti() {
+        if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+    }
+
+    function setupShareButtons() {
+        if (!shareWhatsappBtn) return;
+        const url = window.location.href;
+        const text = `Estou a participar na rifa para ganhar um "${raffleDetails.name || 'prémio incrível'}"! Garanta os seus números também! ${url}`;
+        shareWhatsappBtn.onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        shareFacebookBtn.onclick = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+        shareTwitterBtn.onclick = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+        if (closeShareModalBtn) closeShareModalBtn.onclick = () => { if (shareModal) shareModal.style.display = 'none'; };
+    }
+
+    function setupWhatsAppButton() {
+        if (whatsappFloatBtn) whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe";
+    }
+
+    async function showRules() {
+        const settingsDocRef = doc(db, "settings", "generalRules");
+        if (!rulesModal || !rulesContent) return;
+        rulesContent.innerHTML = '<p>A carregar...</p>';
+        rulesModal.style.display = 'flex';
+        try {
+            const docSnap = await getDoc(settingsDocRef);
+            rulesContent.innerText = (docSnap.exists() && docSnap.data().text) ? docSnap.data().text : 'Nenhuma regra geral definida.';
+        } catch (e) {
+            rulesContent.innerText = 'Não foi possível carregar as regras.';
+        }
+    }
+
+    function closeRules() {
+        if (rulesModal) rulesModal.style.display = 'none';
+    }
+
+    function setButtonLoading(button, isLoading) {
+        if(!button) return;
+        const text = button.querySelector('.gemini-button-text');
+        const spinner = button.querySelector('i.fa-spinner');
+        if (text && spinner) {
+            button.disabled = isLoading;
+            text.classList.toggle('hidden', isLoading);
+            spinner.classList.toggle('hidden', !isLoading);
+        }
+    }
+    
+    async function getLuckyNumbers() {
+        if (!luckThemeInput || !luckyNumbersResult || !getLuckyNumbersBtn) return;
+        const theme = luckThemeInput.value.trim();
+        if (!theme) {
+            luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
+            return;
+        }
+        setButtonLoading(getLuckyNumbersBtn, true);
+        luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
+        try {
+            const response = await fetch(`/.netlify/functions/getLuckyNumbers`, { method: "POST", body: JSON.stringify({ theme: theme, raffleType: raffleType }) });
+            if (!response.ok) throw new Error('Resposta da função Netlify não foi OK.');
+            const data = await response.json();
+            
+            let html = '<div class="grid md:grid-cols-3 gap-4">';
+            if (data.sugestoes && data.sugestoes.length > 0) {
+                data.sugestoes.forEach(s => {
+                    const formattedSuggestedNumber = formatNumberForRaffleType(parseInt(s.numero), raffleType);
+                    const isSold = soldNumbersData[formattedSuggestedNumber];
+                    const buttonClass = isSold ? 'bg-gray-600 cursor-not-allowed opacity-70' : 'bg-blue-500 hover:bg-blue-400 number-available cursor-pointer';
+                    const buttonText = isSold ? `${formattedSuggestedNumber} (Vendido)` : formattedSuggestedNumber;
+                    html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center"><p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p><button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>${buttonText}</button></div>`;
+                });
+            } else {
+                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões.</p>`;
+            }
+            html += '</div>';
+            luckyNumbersResult.innerHTML = html;
+            luckyNumbersResult.querySelectorAll('button[data-number]:not([disabled])').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const gridButton = numberGrid.querySelector(`button[data-number="${e.target.dataset.number}"]`);
+                    if (gridButton && !gridButton.disabled) handleNumberClick({ target: gridButton });
+                });
+            });
+        } catch (error) {
+            console.error("Erro ao chamar a função getLuckyNumbers:", error);
+            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente de novo.</p>`;
+        } finally {
+            setButtonLoading(getLuckyNumbersBtn, false);
+        }
+    }
     
     // --- INICIALIZAÇÃO E EVENTOS ---
     const urlParams = new URLSearchParams(window.location.search);
@@ -336,11 +453,11 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
         checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
     }
-    if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
-    if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    if (showRulesBtn) showRulesBtn.addEventListener('click', showRules);
-    if (closeRulesModalBtn) closeRulesModalBtn.addEventListener('click', closeRules);
-    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    saveUserBtn.addEventListener('click', saveUserData);
+    checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+    showRulesBtn.addEventListener('click', showRules);
+    closeRulesModalBtn.addEventListener('click', closeRules);
+    getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
     setupAuthListener();
     setupShareButtons();
 });
