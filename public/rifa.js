@@ -1,15 +1,20 @@
-// public/rifa.js (Versão Completa e Funcional - 06/07/2025)
+// public/rifa.js
 
+// ✅ 1. IMPORTAÇÕES: Agora importamos os nossos serviços e a inicialização do Firebase de outros arquivos.
 import { app } from './firebase-init.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, setDoc, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { listenToRaffleUpdates, getRules, createPaymentPreference, getLuckyNumbersFromOracle } from './services/raffle-service.js';
+import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+
+// --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
-    // --- INICIALIZAÇÃO ---
+    // ✅ 2. INICIALIZAÇÃO SIMPLIFICADA: A 'config' foi removida.
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // --- ELEMENTOS DO DOM ---
+    // --- ELEMENTOS DO DOM (continua igual) ---
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
     const userSection = document.getElementById('user-section');
@@ -49,13 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
     const luckyNumbersResult = document.getElementById('lucky-numbers-result');
 
-    // --- ESTADO DO APLICATIVO ---
+    // --- ESTADO DO APLICATIVO (continua igual) ---
     let currentUser = null;
     let userId = null;
-    let raffleDetails = {};
-    let soldNumbersData = {};
+    let numbersData = {};
     let selectedNumbers = [];
-    let raffleId = null;
+    let rifaDocRef;
     let pricePerNumber = 10;
     let isTestMode = false;
     let raffleType = 'dezena';
@@ -63,13 +67,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- FUNÇÕES DE LÓGICA ---
 
+    // Lógica de Autenticação continua aqui, pois controla o estado da UI.
     function setupAuthListener() {
         onAuthStateChanged(auth, user => {
             if (user) {
                 userId = user.uid;
                 loadUserDataOrShowLogin();
             } else {
-                signInAnonymously(auth).catch(err => console.error("Auth Error", err));
+                signInAnonymously(auth).catch(err => {
+                    console.error("Auth Error", err);
+                    if(mainContainer) mainContainer.innerHTML = `<p class="text-red-400 text-center">Erro de autenticação.</p>`;
+                });
             }
         });
     }
@@ -78,77 +86,62 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem(`rifaUser`);
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            setupFirestoreListeners();
+            // ✅ 3. LÓGICA DE DADOS DELEGADA: Chamamos nosso serviço para ouvir as atualizações.
+            listenToRaffleUpdates(raffleId, handleRaffleUpdate);
         } else {
-            loadingSection.classList.add('hidden');
-            userSection.classList.remove('hidden');
+            if(loadingSection) loadingSection.classList.add('hidden');
+            if(userSection) userSection.classList.remove('hidden');
         }
     }
 
-    function setupFirestoreListeners() {
-        const raffleDocRef = doc(db, "rifas", raffleId);
-        onSnapshot(raffleDocRef, (docSnap) => {
-            if (!docSnap.exists()) {
-                mainContainer.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
-                return;
-            }
-            raffleDetails = docSnap.data();
-            updateRaffleDetailsUI();
-        });
-
-        const soldNumbersColRef = collection(db, "rifas", raffleId, "sold_numbers");
-        onSnapshot(soldNumbersColRef, (querySnapshot) => {
-            soldNumbersData = {};
-            querySnapshot.forEach((doc) => {
-                soldNumbersData[doc.id] = doc.data();
-            });
-            updateSoldNumbersUI();
-        });
-    }
-
-    function updateRaffleDetailsUI() {
-        pricePerNumber = raffleDetails.pricePerNumber || 10;
-        raffleType = raffleDetails.type || 'dezena';
-
+    /**
+     * ✅ 4. FUNÇÃO DE CALLBACK: Responsável apenas por atualizar a tela com os dados recebidos.
+     */
+    function handleRaffleUpdate(data, error) {
+        if (error || !data) {
+            if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
+            return;
+        }
+        numbersData = data;
+        pricePerNumber = numbersData.pricePerNumber || 10;
+        raffleType = numbersData.type || 'dezena';
+        
         if (raffleType === 'centena') totalNumbersInRaffle = 1000;
         else if (raffleType === 'milhar') totalNumbersInRaffle = 10000;
         else totalNumbersInRaffle = 100;
 
-        welcomeUserSpan.textContent = currentUser.name;
-        raffleTitle.textContent = raffleDetails.name;
+        // Atualiza a UI
+        if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
+        if (raffleTitle) raffleTitle.textContent = numbersData.name;
         setupWhatsAppButton();
-
-        if (raffleDetails.winner) {
-            displayPublicWinner(raffleDetails.winner);
-            progressSection.classList.add('hidden');
+        const soldCount = Object.keys(numbersData).filter(key => !isNaN(key) && key.length === (raffleType === 'centena' ? 3 : raffleType === 'milhar' ? 4 : 2)).length;
+        updateRaffleProgress(soldCount, totalNumbersInRaffle);
+        updateRecentBuyers(numbersData, raffleType);
+        if (numbersData.winner) {
+            displayPublicWinner(numbersData.winner, raffleType);
+            if (progressSection) progressSection.classList.add('hidden');
         } else {
-            progressSection.classList.remove('hidden');
+            if (progressSection) progressSection.classList.remove('hidden');
         }
-
-        loadingSection.classList.add('hidden');
-        appSection.classList.remove('hidden');
+        renderNumberGrid(totalNumbersInRaffle);
+        if (loadingSection) loadingSection.classList.add('hidden');
+        if (appSection) appSection.classList.remove('hidden');
         checkPaymentStatus();
     }
-
-    function updateSoldNumbersUI() {
-        const soldCount = Object.keys(soldNumbersData).length;
-        updateRaffleProgress(soldCount, totalNumbersInRaffle);
-        updateRecentBuyers(soldNumbersData);
-        renderNumberGrid(totalNumbersInRaffle);
-    }
-
+    
+    // --- FUNÇÕES QUE MANIPULAM A UI (permanecem aqui) ---
+    // Nenhuma alteração necessária nas funções abaixo, pois elas já cuidam apenas da interface.
+    
     function renderNumberGrid(maxNumbers) {
-        const isRaffleOver = !!raffleDetails.winner;
+        const isRaffleOver = !!numbersData.winner;
         if (!numberGrid) return;
         numberGrid.innerHTML = '';
-
         if (maxNumbers === 10000) numberGrid.className = "grid grid-cols-10 sm:grid-cols-20 gap-1 md:gap-2 mb-8";
         else if (maxNumbers === 1000) numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
         else numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
-
         for (let i = 0; i < maxNumbers; i++) {
             const numberStr = formatNumberForRaffleType(i, raffleType);
-            const ownerData = soldNumbersData[numberStr];
+            const ownerData = numbersData[numberStr];
             const button = document.createElement('button');
             button.textContent = numberStr;
             button.dataset.number = numberStr;
@@ -178,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleNumberClick(event) {
         const numberStr = event.target.dataset.number;
         const button = event.target;
-        if (soldNumbersData[numberStr] && soldNumbersData[numberStr].userId !== userId) {
+        if (numbersData[numberStr] && numbersData[numberStr].userId !== userId) {
             alert("Este número já foi comprado por outra pessoa. Por favor, escolha outro.");
             return;
         }
@@ -218,34 +211,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
             currentUser = { name: nameInput.value.trim(), email: emailInput.value.trim(), whatsapp: whatsappInput.value.trim(), pix: pixInput.value.trim() };
             localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
-            userSection.classList.add('hidden');
-            loadingSection.classList.remove('hidden');
-            setupFirestoreListeners();
+            if (userSection) userSection.classList.add('hidden');
+            if (loadingSection) loadingSection.classList.remove('hidden');
+            listenToRaffleUpdates(raffleId, handleRaffleUpdate);
         } else {
             alert("Por favor, preencha todos os campos.");
         }
     }
 
-    function displayPublicWinner(winnerData) {
+    function displayPublicWinner(winnerData, type) {
         if (!winnerDisplaySection || !publicWinnerNumber || !publicWinnerName || !publicWinnerBoughtNumbers) return;
         if (!winnerData || !winnerData.player) {
             winnerDisplaySection.classList.add('hidden');
             return;
         }
         const { number, player } = winnerData;
-        publicWinnerNumber.textContent = formatNumberForRaffleType(parseInt(number), raffleType);
+        publicWinnerNumber.textContent = formatNumberForRaffleType(parseInt(number), type);
         publicWinnerName.textContent = player.name;
         publicWinnerBoughtNumbers.innerHTML = '';
         const winnerId = player.userId;
         const winnerNumbers = [];
-        for (const numKey in soldNumbersData) {
-            if (soldNumbersData[numKey] && soldNumbersData[numKey].userId === winnerId) {
-                winnerNumbers.push(numKey);
+        const expectedLength = (type === 'centena' ? 3 : type === 'milhar' ? 4 : 2);
+        for (const numKey in numbersData) {
+            if (!isNaN(numKey) && numKey.length === expectedLength) {
+                if (numbersData[numKey] && numbersData[numKey].userId === winnerId) {
+                    winnerNumbers.push(formatNumberForRaffleType(parseInt(numKey), type));
+                }
             }
         }
         winnerNumbers.sort().forEach(num => {
             const span = document.createElement('span');
-            span.className = num === formatNumberForRaffleType(parseInt(number), raffleType) ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
+            span.className = num === formatNumberForRaffleType(parseInt(number), type) ? 'bg-green-400 text-gray-900 font-bold px-3 py-1 rounded-full ring-2 ring-white' : 'bg-gray-800 text-white font-bold px-3 py-1 rounded-full';
             span.textContent = num;
             publicWinnerBoughtNumbers.appendChild(span);
         });
@@ -253,11 +249,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
+    // --- FUNÇÕES DE LÓGICA DE NEGÓCIO (agora chamam os serviços) ---
+
     async function handleCheckout() {
         if (isTestMode) return handleTestCheckout();
-        // A lógica de pagamento real precisará ser adaptada para a nova estrutura de dados
-        // no webhook do Netlify, para salvar na subcoleção 'sold_numbers'.
-        alert("A função de pagamento real precisa ser adaptada para a nova estrutura.");
+        if (selectedNumbers.length === 0) return;
+        checkoutBtn.classList.add('pointer-events-none', 'opacity-50');
+        checkoutBtn.textContent = 'A gerar link...';
+        paymentStatusEl.textContent = 'Aguarde...';
+        paymentStatusEl.classList.remove('hidden');
+        
+        const items = selectedNumbers.map(n => ({ id: formatNumberForRaffleType(parseInt(n), raffleType), title: `Rifa - ${numbersData.name} - Nº ${formatNumberForRaffleType(parseInt(n), raffleType)}`, quantity: 1, unit_price: pricePerNumber, currency_id: 'BRL' }));
+        const payerData = { ...currentUser, userId, raffleId };
+
+        try {
+            // ✅ Chama a função do nosso serviço
+            const data = await createPaymentPreference({ items, payerData });
+            if (data.checkoutUrl) {
+                localStorage.setItem('pendingRaffleId', raffleId);
+                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers.map(n => formatNumberForRaffleType(parseInt(n), raffleType))));
+                window.location.href = data.checkoutUrl;
+            }
+        } catch (e) {
+            paymentStatusEl.textContent = 'Erro ao gerar link. Tente novamente.';
+            checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
+            checkoutBtn.textContent = 'Pagar com Mercado Pago';
+        }
     }
 
     async function handleTestCheckout() {
@@ -266,19 +283,20 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.disabled = true;
         checkoutBtn.textContent = 'A processar...';
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const vendorId = urlParams.get('vendor') || null;
-
-            for (const numberStr of selectedNumbers) {
-                const formattedNum = formatNumberForRaffleType(parseInt(numberStr), raffleType);
-                const numberDocRef = doc(db, "rifas", raffleId, "sold_numbers", formattedNum);
-                const dataToSave = { ...currentUser, userId, purchasedAt: new Date() };
-                if (vendorId) {
-                    dataToSave.vendorId = vendorId;
+            const docSnap = await getDoc(rifaDocRef);
+            const data = docSnap.data() || {};
+            const updates = {};
+            const numbersToAttemptPurchase = [];
+            for (const n of selectedNumbers) {
+                const formattedNum = formatNumberForRaffleType(parseInt(n), raffleType);
+                if (data[formattedNum]) {
+                    throw new Error(`O número ${formattedNum} já não está disponível.`);
                 }
-                await setDoc(numberDocRef, dataToSave);
+                numbersToAttemptPurchase.push(formattedNum);
             }
-            paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${selectedNumbers.join(', ')} foram reservados.`;
+            numbersToAttemptPurchase.forEach(n => { updates[n] = { ...currentUser, userId, raffleId, createdAt: new Date() }; });
+            await updateDoc(rifaDocRef, updates);
+            paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${numbersToAttemptPurchase.join(', ')} foram reservados.`;
             paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
             paymentStatusEl.classList.remove('hidden');
             triggerConfetti();
@@ -286,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedNumbers = [];
             updateShoppingCart();
         } catch (e) {
-            alert(`Ocorreu um erro: ${e.message}. É possível que um dos números já tenha sido comprado.`);
+            alert(`Ocorreu um erro: ${e.message}`);
         } finally {
             checkoutBtn.disabled = false;
             checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
@@ -297,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
         const status = params.get('status');
         const pendingId = localStorage.getItem('pendingRaffleId');
-        if (status && raffleId && raffleId === pendingId) {
+        if (status && rifaDocRef && rifaDocRef.id === pendingId) {
             const numbers = localStorage.getItem('pendingNumbers');
             if (status === 'approved' && numbers) {
                 paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(numbers).join(', ')} foram reservados.`;
@@ -327,26 +345,32 @@ document.addEventListener('DOMContentLoaded', () => {
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    function updateRecentBuyers(data) {
+    function updateRecentBuyers(data, type) {
         if (!recentBuyersList) return;
-        const allPurchases = Object.entries(data).map(([number, details]) => ({ number, ...details }));
-        const sortedPurchases = allPurchases.sort((a, b) => {
-            const timeA = a.purchasedAt?.toDate() || 0;
-            const timeB = b.purchasedAt?.toDate() || 0;
-            return timeB - timeA;
-        }).slice(0, 5);
-        
-        recentBuyersList.innerHTML = '';
-        if (sortedPurchases.length === 0) {
-            recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
-            return;
+        const purchases = {};
+        const expectedLength = (type === 'centena' ? 3 : type === 'milhar' ? 4 : 2);
+        for (const key in data) {
+            if (!isNaN(key) && key.length === expectedLength) {
+                const pData = data[key];
+                if (pData?.userId && pData.createdAt) {
+                    if (!purchases[pData.userId]) {
+                        purchases[pData.userId] = { name: pData.name, numbers: [], lastPurchase: pData.createdAt.toDate() };
+                    }
+                    purchases[pData.userId].numbers.push(formatNumberForRaffleType(parseInt(key), type));
+                    if (pData.createdAt.toDate() > purchases[pData.userId].lastPurchase) {
+                        purchases[pData.userId].lastPurchase = pData.createdAt.toDate();
+                    }
+                }
+            }
         }
-        
-        sortedPurchases.forEach(p => {
+        const sorted = Object.values(purchases).sort((a,b) => b.lastPurchase - a.lastPurchase).slice(0, 5);
+        recentBuyersList.innerHTML = '';
+        if (sorted.length === 0) return recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
+        sorted.forEach(p => {
             const item = document.createElement('div');
             item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
-            const purchaseTime = p.purchasedAt?.toDate() ? p.purchasedAt.toDate().toLocaleTimeString('pt-BR') : '';
-            item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o número <span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${p.number}</span></p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
+            p.numbers.sort();
+            item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${p.lastPurchase.toLocaleTimeString('pt-BR')}</p>`;
             recentBuyersList.appendChild(item);
         });
     }
@@ -358,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupShareButtons() {
         if (!shareWhatsappBtn) return;
         const url = window.location.href;
-        const text = `Estou a participar na rifa para ganhar um "${raffleDetails.name || 'prémio incrível'}"! Garanta os seus números também! ${url}`;
+        const text = `Estou a participar na rifa para ganhar um "${numbersData.name || 'prémio incrível'}"! Garanta os seus números também! ${url}`;
         shareWhatsappBtn.onclick = () => window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
         shareFacebookBtn.onclick = () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
         shareTwitterBtn.onclick = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
@@ -366,20 +390,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupWhatsAppButton() {
-        if (whatsappFloatBtn) whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe";
+        if (!whatsappFloatBtn) return;
+        whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe";
     }
 
     async function showRules() {
-        const settingsDocRef = doc(db, "settings", "generalRules");
         if (!rulesModal || !rulesContent) return;
         rulesContent.innerHTML = '<p>A carregar...</p>';
         rulesModal.style.display = 'flex';
-        try {
-            const docSnap = await getDoc(settingsDocRef);
-            rulesContent.innerText = (docSnap.exists() && docSnap.data().text) ? docSnap.data().text : 'Nenhuma regra geral definida.';
-        } catch (e) {
-            rulesContent.innerText = 'Não foi possível carregar as regras.';
-        }
+        // ✅ Chama a função do nosso serviço
+        const rulesText = await getRules();
+        rulesContent.innerText = rulesText;
     }
 
     function closeRules() {
@@ -407,33 +428,42 @@ document.addEventListener('DOMContentLoaded', () => {
         setButtonLoading(getLuckyNumbersBtn, true);
         luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
         try {
-            const response = await fetch(`/.netlify/functions/getLuckyNumbers`, { method: "POST", body: JSON.stringify({ theme: theme, raffleType: raffleType }) });
-            if (!response.ok) throw new Error('Resposta da função Netlify não foi OK.');
-            const data = await response.json();
-            
+            // ✅ Chama a função do nosso serviço
+            const data = await getLuckyNumbersFromOracle(theme, raffleType);
             let html = '<div class="grid md:grid-cols-3 gap-4">';
-            if (data.sugestoes && data.sugestoes.length > 0) {
+            if (data.sugestoes && Array.isArray(data.sugestoes) && data.sugestoes.length > 0) {
                 data.sugestoes.forEach(s => {
                     const formattedSuggestedNumber = formatNumberForRaffleType(parseInt(s.numero), raffleType);
-                    const isSold = soldNumbersData[formattedSuggestedNumber];
+                    const isSold = numbersData[formattedSuggestedNumber] && numbersData[formattedSuggestedNumber].userId !== userId;
                     const buttonClass = isSold ? 'bg-gray-600 cursor-not-allowed opacity-70' : 'bg-blue-500 hover:bg-blue-400 number-available cursor-pointer';
                     const buttonText = isSold ? `${formattedSuggestedNumber} (Vendido)` : formattedSuggestedNumber;
-                    html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center"><p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p><button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>${buttonText}</button></div>`;
+                    html += `
+                        <div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center">
+                            <p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p>
+                            <button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>
+                                ${buttonText}
+                            </button>
+                        </div>`;
                 });
             } else {
-                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões.</p>`;
+                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões para este tema.</p>`;
             }
             html += '</div>';
             luckyNumbersResult.innerHTML = html;
-            luckyNumbersResult.querySelectorAll('button[data-number]:not([disabled])').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const gridButton = numberGrid.querySelector(`button[data-number="${e.target.dataset.number}"]`);
-                    if (gridButton && !gridButton.disabled) handleNumberClick({ target: gridButton });
-                });
+            luckyNumbersResult.querySelectorAll('button[data-number]').forEach(button => {
+                if (!button.disabled) {
+                    button.addEventListener('click', (e) => {
+                        const num = e.target.dataset.number;
+                        const gridButton = numberGrid.querySelector(`button[data-number="${num}"]`);
+                        if (gridButton && !gridButton.disabled) {
+                            handleNumberClick({ target: gridButton });
+                        }
+                    });
+                }
             });
         } catch (error) {
-            console.error("Erro ao chamar a função getLuckyNumbers:", error);
-            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente de novo.</p>`;
+            console.error("Erro ao chamar a função da Netlify (getLuckyNumbers):", error);
+            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente outro tema.</p>`;
         } finally {
             setButtonLoading(getLuckyNumbersBtn, false);
         }
@@ -441,23 +471,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- INICIALIZAÇÃO E EVENTOS ---
     const urlParams = new URLSearchParams(window.location.search);
-    raffleId = urlParams.get('id');
+    const raffleId = urlParams.get('id');
     isTestMode = urlParams.get('test') === 'true'; 
     if (!raffleId) {
-        mainContainer.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
+        if(loadingSection) loadingSection.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
         setTimeout(() => { window.location.href = '/'; }, 3000);
         return;
     }
+    rifaDocRef = doc(db, "rifas", raffleId);
     if (isTestMode && checkoutBtn) {
         checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
         checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
     }
-    saveUserBtn.addEventListener('click', saveUserData);
-    checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    showRulesBtn.addEventListener('click', showRules);
-    closeRulesModalBtn.addEventListener('click', closeRules);
-    getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
+    if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+    if (showRulesBtn) showRulesBtn.addEventListener('click', showRules);
+    if (closeRulesModalBtn) closeRulesModalBtn.addEventListener('click', closeRules);
+    if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    
     setupAuthListener();
     setupShareButtons();
 });
