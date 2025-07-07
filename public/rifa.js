@@ -1,4 +1,4 @@
-// public/rifa.js (Atualizado com Lógica de Vendedor)
+// public/rifa.js (Versão de Debug COMPLETA - 06/07/2025)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -248,10 +248,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
-   
-    // ✅✅✅ A ÚNICA FUNÇÃO MODIFICADA É ESTA ✅✅✅
+    async function handleCheckout() {
+        if (isTestMode) return handleTestCheckout();
+        if (selectedNumbers.length === 0) return;
+        checkoutBtn.classList.add('pointer-events-none', 'opacity-50');
+        checkoutBtn.textContent = 'A gerar link...';
+        paymentStatusEl.textContent = 'Aguarde...';
+        paymentStatusEl.classList.remove('hidden');
+        
+        const items = selectedNumbers.map(n => ({ id: formatNumberForRaffleType(parseInt(n), raffleType), title: `Rifa - ${numbersData.name} - Nº ${formatNumberForRaffleType(parseInt(n), raffleType)}`, quantity: 1, unit_price: pricePerNumber, currency_id: 'BRL' }));
+        const payerData = { ...currentUser, userId, raffleId: rifaDocRef.id };
+        const urlParams = new URLSearchParams(window.location.search);
+        const vendorId = urlParams.get('vendor') || null;
+        if (vendorId) {
+            payerData.vendorId = vendorId;
+        }
+
+        try {
+            const res = await fetch('/.netlify/functions/create-payment', { method: 'POST', body: JSON.stringify({ items, payerData }) });
+            if (!res.ok) throw new Error('Falha ao gerar link de pagamento.');
+            const data = await res.json();
+            if (data.checkoutUrl) {
+                localStorage.setItem('pendingRaffleId', rifaDocRef.id);
+                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers.map(n => formatNumberForRaffleType(parseInt(n), raffleType))));
+                window.location.href = data.checkoutUrl;
+            }
+        } catch (e) {
+            paymentStatusEl.textContent = 'Erro ao gerar link. Tente novamente.';
+            checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
+            checkoutBtn.textContent = 'Pagar com Mercado Pago';
+        }
+    }
+
+    // ✅✅✅ FUNÇÃO MODIFICADA COM "LANTERNAS" DE DEBUG ✅✅✅
     async function handleTestCheckout() {
-        console.log("--- INICIANDO handleTestCheckout ---"); // DEBUG
+        console.log("--- INICIANDO handleTestCheckout ---");
         if (selectedNumbers.length === 0) return alert("Nenhum número selecionado.");
         if (!window.confirm(`-- MODO DE TESTE --\nConfirma a reserva dos números: ${selectedNumbers.join(', ')}?`)) return;
         
@@ -259,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.textContent = 'A processar...';
 
         try {
-            console.log("Dentro do bloco try..."); // DEBUG
+            console.log("Dentro do bloco try...");
             const docSnap = await getDoc(rifaDocRef);
             const data = docSnap.data() || {};
             const updates = {};
@@ -272,11 +303,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 numbersToAttemptPurchase.push(formattedNum);
             }
-            console.log("Números a serem comprados:", numbersToAttemptPurchase); // DEBUG
+            console.log("Números a serem comprados:", numbersToAttemptPurchase);
 
             const urlParams = new URLSearchParams(window.location.search);
             const vendorId = urlParams.get('vendor') || null;
-            console.log("Vendor ID capturado da URL:", vendorId); // DEBUG
+            console.log("Vendor ID capturado da URL:", vendorId);
 
             const dataToSave = { 
                 ...currentUser, 
@@ -287,21 +318,21 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (vendorId) {
                 dataToSave.vendorId = vendorId;
-                console.log("vendorId foi adicionado ao objeto de dados."); // DEBUG
+                console.log("vendorId foi adicionado ao objeto de dados.");
             }
             
-            console.log("Objeto de dados a ser salvo para cada número:", dataToSave); // DEBUG
+            console.log("Objeto de dados a ser salvo para cada número:", dataToSave);
 
             numbersToAttemptPurchase.forEach(n => { 
                 updates[n] = dataToSave; 
             });
 
-            console.log("Objeto 'updates' final que será enviado para o Firebase:", updates); // DEBUG
-            console.log("A enviar para o Firebase..."); // DEBUG
+            console.log("Objeto 'updates' final que será enviado para o Firebase:", updates);
+            console.log("A enviar para o Firebase...");
 
             await updateDoc(rifaDocRef, updates);
 
-            console.log("SUCESSO! Dados salvos no Firebase."); // DEBUG
+            console.log("SUCESSO! Dados salvos no Firebase.");
 
             paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números ${numbersToAttemptPurchase.join(', ')} foram reservados.`;
             paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
@@ -312,10 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
             updateShoppingCart();
 
         } catch (e) {
-            console.error("--- ERRO CAPTURADO NO CATCH ---", e); // DEBUG
+            console.error("--- ERRO CAPTURADO NO CATCH ---", e);
             alert(`Ocorreu um erro: ${e.message}`);
         } finally {
-            console.log("--- FINALIZANDO handleTestCheckout ---"); // DEBUG
+            console.log("--- FINALIZANDO handleTestCheckout ---");
             checkoutBtn.disabled = false;
             checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         }
