@@ -1,14 +1,12 @@
-// public/rifa.js (versão completa e corrigida)
+// public/rifa.js (versão completa e corrigida para a nova estrutura de dados)
 
-// 1. IMPORTAÇÕES
 import { app } from './firebase-init.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-// Nota: O raffle-service.js não é mais necessário aqui, vamos simplificar e manter a lógica neste arquivo por enquanto.
+import { getFirestore, doc, onSnapshot, setDoc, collection, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // --- FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 2. INICIALIZAÇÃO
+    // --- INICIALIZAÇÃO ---
     const auth = getAuth(app);
     const db = getFirestore(app);
 
@@ -55,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
     let userId = null;
-    let raffleDetails = {}; // Guarda os dados gerais da rifa (nome, preço, etc.)
-    let soldNumbersData = {}; // Guarda os números vendidos da subcoleção
+    let raffleDetails = {};       // Guarda os dados gerais da rifa (nome, preço)
+    let soldNumbersData = {};   // Guarda os números vendidos da subcoleção
     let selectedNumbers = [];
     let raffleId = null;
     let pricePerNumber = 10;
@@ -81,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedUser = localStorage.getItem(`rifaUser`);
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            setupFirestoreListeners(); // Inicia os listeners para os dados
+            setupFirestoreListeners();
         } else {
             loadingSection.classList.add('hidden');
             userSection.classList.remove('hidden');
@@ -89,18 +87,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupFirestoreListeners() {
-        // Listener para os detalhes gerais da rifa
         const raffleDocRef = doc(db, "rifas", raffleId);
         onSnapshot(raffleDocRef, (docSnap) => {
             if (!docSnap.exists()) {
-                mainContainer.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada.</p>';
+                mainContainer.innerHTML = '<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>';
                 return;
             }
             raffleDetails = docSnap.data();
             updateRaffleDetailsUI();
         });
 
-        // Listener para a subcoleção de números vendidos
         const soldNumbersColRef = collection(db, "rifas", raffleId, "sold_numbers");
         onSnapshot(soldNumbersColRef, (querySnapshot) => {
             soldNumbersData = {};
@@ -121,12 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
         welcomeUserSpan.textContent = currentUser.name;
         raffleTitle.textContent = raffleDetails.name;
         setupWhatsAppButton();
+
         if (raffleDetails.winner) {
             displayPublicWinner(raffleDetails.winner, raffleType);
             progressSection.classList.add('hidden');
         } else {
             progressSection.classList.remove('hidden');
         }
+
         loadingSection.classList.add('hidden');
         appSection.classList.remove('hidden');
         checkPaymentStatus();
@@ -135,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSoldNumbersUI() {
         const soldCount = Object.keys(soldNumbersData).length;
         updateRaffleProgress(soldCount, totalNumbersInRaffle);
-        updateRecentBuyers(soldNumbersData, raffleType);
+        updateRecentBuyers(soldNumbersData);
         renderNumberGrid(totalNumbersInRaffle);
     }
 
@@ -143,14 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const isRaffleOver = !!raffleDetails.winner;
         if (!numberGrid) return;
         numberGrid.innerHTML = '';
+
         if (maxNumbers === 10000) numberGrid.className = "grid grid-cols-10 sm:grid-cols-20 gap-1 md:gap-2 mb-8";
         else if (maxNumbers === 1000) numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
         else numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
 
         for (let i = 0; i < maxNumbers; i++) {
             const numberStr = formatNumberForRaffleType(i, raffleType);
-            // ✅ ADAPTAÇÃO: Lemos de 'soldNumbersData'
-            const ownerData = soldNumbersData[numberStr];
+            const ownerData = soldNumbersData[numberStr]; // <-- ADAPTAÇÃO AQUI
             const button = document.createElement('button');
             button.textContent = numberStr;
             button.dataset.number = numberStr;
@@ -180,8 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleNumberClick(event) {
         const numberStr = event.target.dataset.number;
         const button = event.target;
-        // ✅ ADAPTAÇÃO: Lemos de 'soldNumbersData'
-        if (soldNumbersData[numberStr] && soldNumbersData[numberStr].userId !== userId) {
+        if (soldNumbersData[numberStr] && soldNumbersData[numberStr].userId !== userId) { // <-- ADAPTAÇÃO AQUI
             alert("Este número já foi comprado por outra pessoa. Por favor, escolha outro.");
             return;
         }
@@ -241,8 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         publicWinnerBoughtNumbers.innerHTML = '';
         const winnerId = player.userId;
         const winnerNumbers = [];
-        // ✅ ADAPTAÇÃO: Iteramos sobre 'soldNumbersData'
-        for (const numKey in soldNumbersData) {
+        for (const numKey in soldNumbersData) { // <-- ADAPTAÇÃO AQUI
             if (soldNumbersData[numKey] && soldNumbersData[numKey].userId === winnerId) {
                 winnerNumbers.push(numKey);
             }
@@ -258,8 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleCheckout() {
+        // Esta função precisará ser adaptada de forma semelhante ao handleTestCheckout,
+        // mas chamando a Netlify Function que por sua vez usará o SDK de Admin para
+        // registrar a compra na subcoleção, após a confirmação do Mercado Pago.
         if (isTestMode) return handleTestCheckout();
-        // ... Lógica para chamar a função Netlify de pagamento (precisará de adaptação no futuro)
+        alert("A função de pagamento real precisa ser adaptada para a nova estrutura de dados.");
     }
 
     async function handleTestCheckout() {
@@ -270,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const vendorId = urlParams.get('vendor') || null;
-
             for (const numberStr of selectedNumbers) {
                 const formattedNum = formatNumberForRaffleType(parseInt(numberStr), raffleType);
                 const numberDocRef = doc(db, "rifas", raffleId, "sold_numbers", formattedNum);
@@ -294,38 +292,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function checkPaymentStatus() { /* ... Lógica existente ... */ }
+    
     function updateRaffleProgress(count, maxTotal) {
-        if (!progressSection) return;
+        if (!progressSection || !progressBar || !progressPercentage) return;
         const percentage = Math.round((count / maxTotal) * 100);
         progressBar.style.width = `${percentage}%`;
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    function updateRecentBuyers(data, type) {
+    function updateRecentBuyers(data) {
         if (!recentBuyersList) return;
-        // ✅ ADAPTAÇÃO: A lógica aqui precisa ser refeita, pois agora recebemos 'soldNumbersData'
-        const allPurchases = Object.values(data);
-        const sorted = allPurchases.sort((a,b) => b.purchasedAt.toDate() - a.purchasedAt.toDate()).slice(0, 5);
-        
+        const allPurchases = Object.entries(data).map(([number, details]) => ({ number, ...details }));
+        const sorted = allPurchases.sort((a, b) => b.purchasedAt.toDate() - a.purchasedAt.toDate()).slice(0, 5);
         recentBuyersList.innerHTML = '';
         if (sorted.length === 0) return recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
-        
-        // Esta parte precisa de ajuste para agrupar por comprador, se desejado,
-        // mas por agora mostra as últimas 5 compras individuais.
         sorted.forEach(p => {
             const item = document.createElement('div');
             item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
-            // Precisamos encontrar o número (a chave do objeto), que não está aqui.
-            // Esta função precisa ser repensada. Por agora, vamos desativá-la visualmente.
+            item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o número <span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${p.number}</span></p><p class="text-gray-500 text-xs">${p.purchasedAt.toDate().toLocaleTimeString('pt-BR')}</p>`;
+            recentBuyersList.appendChild(item);
         });
-        recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Recurso de "compradores recentes" em manutenção.</p>';
     }
 
-    function triggerConfetti() { /* ... Lógica existente ... */ }
+    function triggerConfetti() { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } }); }
     function setupShareButtons() { /* ... Lógica existente ... */ }
-    function setupWhatsAppButton() { /* ... Lógica existente ... */ }
+    function setupWhatsAppButton() { if (whatsappFloatBtn) whatsappFloatBtn.href = "https://chat.whatsapp.com/CgRiKh5ANnLADEDMz0dQUe"; }
     async function showRules() { /* ... Lógica existente ... */ }
-    function closeRules() { /* ... Lógica existente ... */ }
+    function closeRules() { if (rulesModal) rulesModal.style.display = 'none'; }
     function setButtonLoading(button, isLoading) { /* ... Lógica existente ... */ }
     async function getLuckyNumbers() { /* ... Lógica existente ... */ }
     
@@ -340,8 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (isTestMode && checkoutBtn) {
         checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
-        checkoutBtn.classList.remove('bg-teal-600');
-        checkoutBtn.classList.add('bg-orange-500');
+        checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+        checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
     }
     if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
     if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
