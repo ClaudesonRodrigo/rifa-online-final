@@ -382,3 +382,89 @@ copyLinkBtn.addEventListener('click', () => {
         copyFeedback.classList.add('hidden');
     }, 2000); // Esconde a mensagem após 2 segundos
 });
+// --- LÓGICA DO RELATÓRIO DE VENDAS POR REVENDEDOR ---
+
+// Importa a função necessária do Firestore SDK
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// Elementos do DOM para o relatório
+const reportRaffleIdInput = document.getElementById('report-raffle-id');
+const generateReportBtn = document.getElementById('generate-report-btn');
+const reportOutputSection = document.getElementById('report-output-section');
+
+generateReportBtn.addEventListener('click', async () => {
+    const raffleId = reportRaffleIdInput.value.trim();
+    if (!raffleId) {
+        alert('Por favor, insira o ID da rifa para gerar o relatório.');
+        return;
+    }
+
+    // Feedback visual de carregamento
+    generateReportBtn.disabled = true;
+    generateReportBtn.textContent = 'A gerar...';
+    reportOutputSection.innerHTML = '<p class="text-center text-sky-400">A consultar o banco de dados...</p>';
+    reportOutputSection.classList.remove('hidden');
+
+    try {
+        // Pega a referência para a subcoleção 'sold_numbers'
+        const soldNumbersRef = collection(db, 'rifas', raffleId, 'sold_numbers');
+        const querySnapshot = await getDocs(soldNumbersRef);
+
+        if (querySnapshot.empty) {
+            reportOutputSection.innerHTML = '<p class="text-center text-yellow-400">Nenhum número vendido para esta rifa ainda.</p>';
+            return;
+        }
+
+        const salesByVendor = {};
+        let totalSoldByVendors = 0;
+
+        // Processa todos os números vendidos
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            const number = doc.id;
+            const vendorId = data.vendorId || 'Vendas Diretas (Sem Vendedor)';
+
+            if (!salesByVendor[vendorId]) {
+                salesByVendor[vendorId] = {
+                    count: 0,
+                    numbers: []
+                };
+            }
+
+            salesByVendor[vendorId].count++;
+            salesByVendor[vendorId].numbers.push(number);
+            
+            if(data.vendorId) {
+                totalSoldByVendors++;
+            }
+        });
+
+        // Monta o HTML do relatório
+        let reportHTML = `<h3 class="text-lg font-semibold text-white">Total de Vendas por Revendedores: ${totalSoldByVendors}</h3>`;
+        
+        for (const vendorId in salesByVendor) {
+            const vendorData = salesByVendor[vendorId];
+            vendorData.numbers.sort(); // Ordena os números
+
+            reportHTML += `
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <p class="font-bold text-teal-400">${vendorId}</p>
+                    <p class="text-sm text-gray-300">Total de números vendidos: <span class="font-bold">${vendorData.count}</span></p>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        ${vendorData.numbers.map(num => `<span class="bg-blue-500 text-white font-bold px-2 py-1 text-xs rounded-full">${num}</span>`).join(' ')}
+                    </div>
+                </div>
+            `;
+        }
+
+        reportOutputSection.innerHTML = reportHTML;
+
+    } catch (error) {
+        console.error("Erro ao gerar relatório:", error);
+        reportOutputSection.innerHTML = `<p class="text-center text-red-500">Ocorreu um erro ao gerar o relatório: ${error.message}</p>`;
+    } finally {
+        // Restaura o botão
+        generateReportBtn.disabled = false;
+        generateReportBtn.textContent = 'Gerar Relatório';
+    }
+});
