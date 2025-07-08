@@ -1,4 +1,4 @@
-// netlify/functions/payment-webhook.js
+// netlify/functions/payment-webhook.js (com debug)
 
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import admin from 'firebase-admin';
@@ -17,18 +17,25 @@ function initializeFirebaseAdmin() {
 }
 
 exports.handler = async function(event) {
+    console.log("--- Início: payment-webhook ---");
     const db = initializeFirebaseAdmin();
     const body = JSON.parse(event.body);
 
     if (body.type !== 'payment') {
+        console.log("Notificação não é do tipo 'payment'. Ignorando.");
         return { statusCode: 200, body: 'Notificação ignorada.' };
     }
 
     try {
         const paymentId = body.data.id;
+        console.log(`Processando pagamento com ID: ${paymentId}`);
+        
         const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN });
         const payment = new Payment(client);
         const paymentInfo = await payment.get({ id: paymentId });
+
+        // LOG DE DEBUG 3 (O MAIS IMPORTANTE):
+        console.log("Informação completa do pagamento recebida do Mercado Pago. Metadata:", paymentInfo.metadata);
 
         if (paymentInfo.status === 'approved' && paymentInfo.metadata) {
             const {
@@ -39,9 +46,10 @@ exports.handler = async function(event) {
                 user_email,
                 user_whatsapp,
                 user_pix,
-                // ✅ ALTERAÇÃO 1: Lemos o ID do vendedor que vem do Mercado Pago
                 vendor_id 
             } = paymentInfo.metadata;
+            
+            console.log("Vendor ID extraído do metadata:", vendor_id);
 
             if (!raffle_id || !user_id) {
                 console.error("ERRO CRÍTICO: ID da rifa ou do utilizador em falta no metadata.");
@@ -70,9 +78,11 @@ exports.handler = async function(event) {
                     createdAt: new Date()
                 };
                 
-                // ✅ ALTERAÇÃO 2: Adicionamos o ID do vendedor ao objeto que será salvo, se ele existir
                 if (vendor_id) {
                     dataToSave.vendorId = vendor_id;
+                    console.log("Adicionando vendorId ao objeto a ser salvo:", vendor_id);
+                } else {
+                    console.log("Nenhum vendorId encontrado para salvar.");
                 }
 
                 const updates = {};
@@ -84,6 +94,8 @@ exports.handler = async function(event) {
             });
 
             console.log(`SUCESSO: Transação concluída para ${user_name}. Vendedor: ${vendor_id || 'Nenhum'}`);
+        } else {
+            console.log(`Pagamento ${paymentId} não está aprovado ou não contém metadata. Status: ${paymentInfo.status}`);
         }
     } catch (error) {
         console.error("ERRO no processamento do webhook:", error);
