@@ -418,4 +418,85 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeRules() {
-        if (rulesModal) rulesModal.
+        if (rulesModal) rulesModal.style.display = 'none';
+    }
+
+    function setButtonLoading(button, isLoading) {
+        if(!button) return;
+        const text = button.querySelector('.gemini-button-text');
+        const spinner = button.querySelector('i.fa-spinner');
+        if (text && spinner) {
+            button.disabled = isLoading;
+            text.classList.toggle('hidden', isLoading);
+            spinner.classList.toggle('hidden', !isLoading);
+        }
+    }
+    
+    async function getLuckyNumbers() {
+        if (!luckThemeInput || !luckyNumbersResult || !getLuckyNumbersBtn) return;
+        const theme = luckThemeInput.value.trim();
+        if (!theme) {
+            luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
+            return;
+        }
+        setButtonLoading(getLuckyNumbersBtn, true);
+        luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
+        try {
+            const response = await fetch(`/.netlify/functions/getLuckyNumbers`, { method: "POST", body: JSON.stringify({ theme: theme, raffleType: raffleType }) });
+            if (!response.ok) throw new Error('Resposta da função Netlify não foi OK.');
+            const data = await response.json();
+            
+            let html = '<div class="grid md:grid-cols-3 gap-4">';
+            if (data.sugestoes && data.sugestoes.length > 0) {
+                data.sugestoes.forEach(s => {
+                    const formattedSuggestedNumber = formatNumberForRaffleType(parseInt(s.numero), raffleType);
+                    const isSold = soldNumbersData[formattedSuggestedNumber];
+                    const buttonClass = isSold ? 'bg-gray-600 cursor-not-allowed opacity-70' : 'bg-blue-500 hover:bg-blue-400 number-available cursor-pointer';
+                    const buttonText = isSold ? `${formattedSuggestedNumber} (Vendido)` : formattedSuggestedNumber;
+                    html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center"><p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p><button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>${buttonText}</button></div>`;
+                });
+            } else {
+                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões.</p>`;
+            }
+            html += '</div>';
+            luckyNumbersResult.innerHTML = html;
+            luckyNumbersResult.querySelectorAll('button[data-number]:not([disabled])').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const gridButton = numberGrid.querySelector(`button[data-number="${e.target.dataset.number}"]`);
+                    if (gridButton && !gridButton.disabled) handleNumberClick({ target: gridButton });
+                });
+            });
+        } catch (error) {
+            console.error("Erro ao chamar a função getLuckyNumbers:", error);
+            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente de novo.</p>`;
+        } finally {
+            setButtonLoading(getLuckyNumbersBtn, false);
+        }
+    }
+    
+    // --- INICIALIZAÇÃO E EVENTOS ---
+    const urlParams = new URLSearchParams(window.location.search);
+    raffleId = urlParams.get('id');
+    isTestMode = urlParams.get('test') === 'true'; 
+    if (!raffleId) {
+        mainContainer.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
+        setTimeout(() => { window.location.href = '/'; }, 3000);
+        return;
+    }
+    // A referência ao documento principal não é mais necessária da mesma forma,
+    // mas pode ser útil manter para certas operações de admin que não implementamos aqui.
+    // rifaDocRef = doc(db, "rifas", raffleId); 
+
+    if (isTestMode && checkoutBtn) {
+        checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
+        checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+        checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+    }
+    saveUserBtn.addEventListener('click', saveUserData);
+    checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+    showRulesBtn.addEventListener('click', showRules);
+    closeRulesModalBtn.addEventListener('click', closeRules);
+    getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    setupAuthListener();
+    setupShareButtons();
+});
