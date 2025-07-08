@@ -341,3 +341,44 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
 });
+// --- LÓGICA DO GERADOR DE LINKS DE REVENDEDOR ---
+
+const raffleIdForVendorInput = document.getElementById('raffle-id-for-vendor');
+const vendorNameInput = document.getElementById('vendor-name');
+const generateVendorLinkBtn = document.getElementById('generate-vendor-link-btn');
+const vendorLinkResultSection = document.getElementById('vendor-link-result');
+const generatedLinkOutput = document.getElementById('generated-link-output');
+const copyLinkBtn = document.getElementById('copy-link-btn');
+const copyFeedback = document.getElementById('copy-feedback');
+
+generateVendorLinkBtn.addEventListener('click', () => {
+    const raffleId = raffleIdForVendorInput.value.trim();
+    const vendorId = vendorNameInput.value.trim();
+
+    if (!raffleId || !vendorId) {
+        alert('Por favor, preencha o ID da Rifa e o Nome do Revendedor.');
+        return;
+    }
+
+    // Pega a URL base do site (ex: https://seusite.netlify.app)
+    const baseUrl = window.location.origin;
+    
+    // Monta o link mágico
+    const vendorLink = `${baseUrl}/rifa.html?id=${raffleId}&vendor=${vendorId}`;
+
+    // Exibe o resultado
+    generatedLinkOutput.value = vendorLink;
+    vendorLinkResultSection.classList.remove('hidden');
+    copyFeedback.classList.add('hidden'); // Esconde a mensagem de "copiado"
+});
+
+copyLinkBtn.addEventListener('click', () => {
+    generatedLinkOutput.select();
+    document.execCommand('copy');
+    
+    // Feedback visual para o usuário
+    copyFeedback.classList.remove('hidden');
+    setTimeout(() => {
+        copyFeedback.classList.add('hidden');
+    }, 2000); // Esconde a mensagem após 2 segundos
+});
