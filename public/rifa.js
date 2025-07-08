@@ -1,4 +1,4 @@
-// public/rifa.js (VERSÃO DE DEBUG COMPLETA - 08/07/2025)
+// public/rifa.js (Versão final, corrigida em 08/07/2025)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-
+    
     // --- ELEMENTOS DO DOM ---
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
@@ -279,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const urlParams = new URLSearchParams(window.location.search);
             const vendorId = urlParams.get('vendor') || null;
-            const dataToSave = { ...currentUser, userId, purchasedAt: new Date() };
+            const dataToSave = { ...currentUser, userId, createdAt: new Date() };
             if (vendorId) {
                 dataToSave.vendorId = vendorId;
             }
@@ -338,59 +338,41 @@ document.addEventListener('DOMContentLoaded', () => {
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    // ✅✅✅ FUNÇÃO COM "LANTERNAS" DE DEBUG ✅✅✅
     function updateRecentBuyers(data) {
-        console.log("%c--- DEBUG: Iniciando updateRecentBuyers ---", "color: orange; font-weight: bold;");
-        console.log("1. Dados recebidos pela função (soldNumbersData):", data);
-
-        if (!recentBuyersList) {
-            console.error("DEBUG ERRO: Elemento 'recentBuyersList' não foi encontrado no HTML.");
-            return;
-        }
-
+        if (!recentBuyersList) return;
+    
         const purchasesByUser = {};
-        console.log("2. Objeto 'purchasesByUser' criado vazio.");
-
         for (const number in data) {
             const purchaseDetails = data[number];
-            console.log(`3. Processando número: ${number}`, purchaseDetails);
-
-            // Adicionando verificação de segurança extra
-            if (purchaseDetails && purchaseDetails.userId && purchaseDetails.purchasedAt && typeof purchaseDetails.purchasedAt.toDate === 'function') {
-                console.log(`--> CONDIÇÃO VERDADEIRA para o número ${number}. Agrupando...`);
+            if (purchaseDetails && purchaseDetails.userId && purchaseDetails.createdAt?.toDate) {
                 const userId = purchaseDetails.userId;
+        
                 if (!purchasesByUser[userId]) {
                     purchasesByUser[userId] = {
                         name: purchaseDetails.name,
                         numbers: [],
-                        lastPurchase: purchaseDetails.purchasedAt.toDate()
+                        lastPurchase: purchaseDetails.createdAt.toDate()
                     };
                 }
+        
                 purchasesByUser[userId].numbers.push(number);
-                if (purchaseDetails.purchasedAt.toDate() > purchasesByUser[userId].lastPurchase) {
-                    purchasesByUser[userId].lastPurchase = purchaseDetails.purchasedAt.toDate();
+        
+                if (purchaseDetails.createdAt.toDate() > purchasesByUser[userId].lastPurchase) {
+                    purchasesByUser[userId].lastPurchase = purchaseDetails.createdAt.toDate();
                 }
-            } else {
-                console.warn(`--> CONDIÇÃO FALSA para o número ${number}. Pulando este número.`);
-                console.warn("   - 'purchaseDetails' existe?", !!purchaseDetails);
-                console.warn("   - 'purchaseDetails.userId' existe?", !!purchaseDetails?.userId);
-                console.warn("   - 'purchaseDetails.purchasedAt.toDate' é uma função?", typeof purchaseDetails?.purchasedAt?.toDate === 'function');
             }
         }
-        
-        console.log("4. Objeto 'purchasesByUser' depois do loop de agrupamento:", purchasesByUser);
-
-        const sortedUsers = Object.values(purchasesByUser).sort((a, b) => b.lastPurchase - a.lastPurchase).slice(0, 5);
-        console.log("5. Usuários ordenados para exibição (top 5):", sortedUsers);
-
+    
+        const sortedUsers = Object.values(purchasesByUser).sort((a, b) => {
+            return b.lastPurchase - a.lastPurchase;
+        }).slice(0, 5);
+    
         recentBuyersList.innerHTML = '';
         if (sortedUsers.length === 0) {
-            console.log("6. Nenhum usuário para exibir. Renderizando mensagem 'Seja o primeiro'.");
             recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
             return;
         }
-
-        console.log("7. Renderizando a lista de usuários no HTML.");
+    
         sortedUsers.forEach(p => {
             const item = document.createElement('div');
             item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
@@ -399,7 +381,6 @@ document.addEventListener('DOMContentLoaded', () => {
             item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
             recentBuyersList.appendChild(item);
         });
-        console.log("%c--- DEBUG: Finalizando updateRecentBuyers ---", "color: orange; font-weight: bold;");
     }
 
     function triggerConfetti() {
