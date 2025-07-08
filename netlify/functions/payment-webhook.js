@@ -1,3 +1,5 @@
+// netlify/functions/payment-webhook.js (Versão com Subcoleção)
+
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import admin from 'firebase-admin';
 
@@ -45,14 +47,15 @@ exports.handler = async function(event) {
             }
 
             const rifaDocRef = db.collection('rifas').doc(raffle_id);
+            const soldNumbersColRef = rifaDocRef.collection('sold_numbers');
 
             await db.runTransaction(async (transaction) => {
-                const rifaDoc = await transaction.get(rifaDocRef);
-                if (!rifaDoc.exists) throw new Error(`Rifa ${raffle_id} não encontrada!`);
-                const rifaData = rifaDoc.data();
-                const alreadyTaken = selected_numbers.filter(num => rifaData[num]);
-                if (alreadyTaken.length > 0) {
-                    throw new Error(`Números já ocupados: ${alreadyTaken.join(', ')}`);
+                const numberDocs = await transaction.getAll(...selected_numbers.map(num => soldNumbersColRef.doc(num)));
+                
+                for (const doc of numberDocs) {
+                    if (doc.exists) {
+                        throw new Error(`O número ${doc.id} já foi comprado.`);
+                    }
                 }
 
                 const dataToSave = {
@@ -68,12 +71,11 @@ exports.handler = async function(event) {
                     dataToSave.vendorId = vendor_id;
                 }
 
-                const updates = {};
+                // ✅ LÓGICA ATUALIZADA: Cria um novo documento para cada número
                 selected_numbers.forEach(number => {
-                    updates[number] = dataToSave;
+                    const newNumberDocRef = soldNumbersColRef.doc(number);
+                    transaction.set(newNumberDocRef, dataToSave);
                 });
-
-                transaction.update(rifaDocRef, updates);
             });
         }
     } catch (error) {
