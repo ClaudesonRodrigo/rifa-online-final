@@ -1,4 +1,4 @@
-// public/rifa.js (Versão final para a estrutura de subcoleção)
+// public/rifa.js (Versão final para a estrutura de subcoleção e com 'updateRecentBuyers' corrigido)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const purchasesByUser = {};
         for (const number in data) {
             const purchaseDetails = data[number];
-            if (purchaseDetails && purchaseDetails.userId && purchaseDetails.purchasedAt) {
+            if (purchaseDetails && purchaseDetails.userId && purchaseDetails.purchasedAt?.toDate) {
                 const userId = purchaseDetails.userId;
         
                 if (!purchasesByUser[userId]) {
@@ -482,6 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { window.location.href = '/'; }, 3000);
         return;
     }
+    
     if (isTestMode && checkoutBtn) {
         checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
