@@ -1,17 +1,13 @@
-// netlify/functions/create-payment.js (com debug)
-
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
 exports.handler = async function(event) {
   const { items, payerData } = JSON.parse(event.body);
-  
-  // LOG DE DEBUG 1:
-  console.log("--- Início: create-payment ---");
-  console.log("Dados recebidos do frontend (payerData):", payerData);
 
   if (!items || items.length === 0 || !payerData || !payerData.raffleId) {
-    console.error("Erro: Dados da compra inválidos ou ID da rifa em falta.");
-    return { statusCode: 400, body: JSON.stringify({ error: "Dados inválidos." }) };
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Dados da compra inválidos ou ID da rifa em falta." }),
+    };
   }
 
   const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN });
@@ -30,9 +26,6 @@ exports.handler = async function(event) {
         vendor_id: payerData.vendorId || null 
     };
 
-    // LOG DE DEBUG 2:
-    console.log("Metadata que será enviado para o Mercado Pago:", metadata);
-
     const result = await preference.create({
       body: {
         items,
@@ -47,8 +40,7 @@ exports.handler = async function(event) {
         notification_url: `${siteUrl}/.netlify/functions/payment-webhook`,
       }
     });
-    
-    console.log("Preferência de pagamento criada com sucesso no Mercado Pago.");
+
     return { statusCode: 200, body: JSON.stringify({ checkoutUrl: result.init_point }) };
 
   } catch (error) {
