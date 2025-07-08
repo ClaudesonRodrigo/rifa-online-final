@@ -1,7 +1,8 @@
-// public/admin.js (Versão Corrigida)
+// public/admin.js (Versão Final e Corrigida)
 
-// ✅ ALTERAÇÃO 1: Adicionamos 'getDocs' à importação principal.
-import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// ✅ CORREÇÃO: A linha que faltava foi adicionada de volta.
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -335,7 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
 
-    // Lógica do Gerador de Links (já adicionada)
+    // Lógica do Gerador de Links
     const raffleIdForVendorInput = document.getElementById('raffle-id-for-vendor');
     const vendorNameInput = document.getElementById('vendor-name');
     const generateVendorLinkBtn = document.getElementById('generate-vendor-link-btn');
@@ -371,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Lógica do Relatório de Vendas (já adicionada)
+    // Lógica do Relatório de Vendas
     const reportRaffleIdInput = document.getElementById('report-raffle-id');
     const generateReportBtn = document.getElementById('generate-report-btn');
     const reportOutputSection = document.getElementById('report-output-section');
@@ -388,7 +389,6 @@ document.addEventListener('DOMContentLoaded', () => {
             reportOutputSection.innerHTML = '<p class="text-center text-sky-400">A consultar o banco de dados...</p>';
             reportOutputSection.classList.remove('hidden');
             try {
-                // ✅ ALTERAÇÃO 2: REMOVEMOS A IMPORTAÇÃO DUPLICADA DAQUI.
                 const soldNumbersRef = collection(db, 'rifas', raffleId, 'sold_numbers');
                 const querySnapshot = await getDocs(soldNumbersRef);
 
@@ -406,10 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const vendorId = data.vendorId || 'Vendas Diretas (Sem Vendedor)';
 
                     if (!salesByVendor[vendorId]) {
-                        salesByVendor[vendorId] = {
-                            count: 0,
-                            numbers: []
-                        };
+                        salesByVendor[vendorId] = { count: 0, numbers: [] };
                     }
 
                     salesByVendor[vendorId].count++;
