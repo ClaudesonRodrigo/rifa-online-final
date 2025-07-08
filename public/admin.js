@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
-    let currentSoldNumbersUnsubscribe = null;
+    let currentSoldNumbersUnsubscribe = null; // Listener para a subcoleção
 
     const handleLogin = async () => {
         loginError.classList.add('hidden');
@@ -99,13 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const type = raffleTypeInput.value;
             if (!name || isNaN(price) || price <= 0) return alert("Preencha nome e preço válidos.");
             try {
-                await addDoc(rafflesCollectionRef, { 
-                    name, 
-                    pricePerNumber: price, 
-                    type: type,
-                    createdAt: new Date(), 
-                    status: 'active' 
-                });
+                await addDoc(rafflesCollectionRef, { name, pricePerNumber: price, type, createdAt: new Date(), status: 'active' });
                 alert(`Rifa "${name}" (${type}) criada!`);
                 raffleNameInput.value = '';
                 rafflePriceInput.value = '';
@@ -345,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
 
-    // Lógica do Gerador de Links
     const raffleIdForVendorInput = document.getElementById('raffle-id-for-vendor');
     const vendorNameInput = document.getElementById('vendor-name');
     const generateVendorLinkBtn = document.getElementById('generate-vendor-link-btn');
@@ -386,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Lógica do Relatório de Vendas
     const reportRaffleIdInput = document.getElementById('report-raffle-id');
     const generateReportBtn = document.getElementById('generate-report-btn');
     const reportOutputSection = document.getElementById('report-output-section');
@@ -394,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(generateReportBtn) {
         generateReportBtn.addEventListener('click', async () => {
             const raffleId = reportRaffleIdInput.value.trim() || currentRaffleId;
-             if(!raffleId) {
+            if(!raffleId) {
                 alert('Por favor, selecione uma rifa da lista ou cole o ID para gerar o relatório.');
                 return;
             }
@@ -409,6 +401,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (querySnapshot.empty) {
                     reportOutputSection.innerHTML = '<p class="text-center text-yellow-400">Nenhum número vendido para esta rifa ainda.</p>';
+                    generateReportBtn.disabled = false;
+                    generateReportBtn.textContent = 'Gerar Relatório';
                     return;
                 }
 
@@ -437,9 +431,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const vendorData = salesByVendor[vendorId];
                     vendorData.numbers.sort();
 
+                    const isDirectSale = vendorId === 'Vendas Diretas (Sem Vendedor)';
                     reportHTML += `
                         <div class="bg-gray-900 p-4 rounded-lg mt-2">
-                            <p class="font-bold text-teal-400">${vendorId}</p>
+                             <div class="flex justify-between items-center mb-2">
+                                <p class="font-bold text-teal-400">${vendorId}</p>
+                                ${!isDirectSale ? `<button class="get-vendor-link-btn bg-sky-600 hover:bg-sky-700 text-xs px-3 py-1 rounded-md" data-vendor-id="${vendorId}">Recuperar Link</button>` : ''}
+                            </div>
                             <p class="text-sm text-gray-300">Total de números vendidos: <span class="font-bold">${vendorData.count}</span></p>
                             <div class="mt-2 flex flex-wrap gap-2">
                                 ${vendorData.numbers.map(num => `<span class="bg-blue-500 text-white font-bold px-2 py-1 text-xs rounded-full">${num}</span>`).join(' ')}
@@ -457,4 +455,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    reportOutputSection.addEventListener('click', (e) => {
+        if (e.target && e.target.classList.contains('get-vendor-link-btn')) {
+            const vendorId = e.target.dataset.vendorId;
+            const raffleId = reportRaffleIdInput.value.trim();
+
+            if (!vendorId) return;
+
+            raffleIdForVendorInput.value = raffleId;
+            vendorNameInput.value = vendorId;
+            generateVendorLinkBtn.click();
+            vendorLinkResultSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
 });
