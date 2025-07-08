@@ -357,30 +357,61 @@ document.addEventListener('DOMContentLoaded', () => {
         const allPurchases = Object.entries(data).map(([number, details]) => ({ number, ...details }));
         if(!allPurchases) return;
 
-        const sortedPurchases = allPurchases.sort((a, b) => {
-            const timeA = a.purchasedAt?.toDate() || 0;
-            const timeB = b.purchasedAt?.toDate() || 0;
-            return timeB - timeA;
-        }).slice(0, 5);
-        
-        recentBuyersList.innerHTML = '';
-        if (sortedPurchases.length === 0) {
-            recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
-            return;
+      // Substitua a função antiga por esta versão corrigida
+
+function updateRecentBuyers(data) {
+    if (!recentBuyersList) return;
+
+    // 1. Agrupar as compras por ID de usuário
+    const purchasesByUser = {};
+    for (const number in data) {
+        const purchaseDetails = data[number];
+        const userId = purchaseDetails.userId;
+
+        if (!purchasesByUser[userId]) {
+            // Se for a primeira vez que vemos este usuário, criamos a sua entrada
+            purchasesByUser[userId] = {
+                name: purchaseDetails.name,
+                numbers: [],
+                lastPurchase: purchaseDetails.purchasedAt.toDate()
+            };
         }
-        
-        sortedPurchases.forEach(p => {
-            const item = document.createElement('div');
-            item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
-            const purchaseTime = p.purchasedAt?.toDate() ? p.purchasedAt.toDate().toLocaleTimeString('pt-BR') : '';
-            item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o número <span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${p.number}</span></p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
-            recentBuyersList.appendChild(item);
-        });
+
+        // Adiciona o número à lista do usuário
+        purchasesByUser[userId].numbers.push(number);
+
+        // Atualiza a data da última compra se esta for mais recente
+        if (purchaseDetails.purchasedAt.toDate() > purchasesByUser[userId].lastPurchase) {
+            purchasesByUser[userId].lastPurchase = purchaseDetails.purchasedAt.toDate();
+        }
     }
 
-    function triggerConfetti() {
-        if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+    // 2. Ordenar os usuários pela compra mais recente e pegar os últimos 5
+    const sortedUsers = Object.values(purchasesByUser).sort((a, b) => {
+        return b.lastPurchase - a.lastPurchase;
+    }).slice(0, 5);
+
+    // 3. Renderizar o HTML
+    recentBuyersList.innerHTML = '';
+    if (sortedUsers.length === 0) {
+        recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
+        return;
     }
+
+    sortedUsers.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
+        
+        // Ordena os números do comprador para uma exibição limpa
+        p.numbers.sort();
+        
+        const purchaseTime = p.lastPurchase ? p.lastPurchase.toLocaleTimeString('pt-BR') : '';
+
+        // Monta o HTML com todos os números agrupados
+        item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
+        recentBuyersList.appendChild(item);
+    });
+}
 
     function setupShareButtons() {
         if (!shareWhatsappBtn) return;
