@@ -2,10 +2,10 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, doc, onSnapshot, updateDoc, getDoc, setDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, getDoc, setDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CONFIGURAÇÃO (Mantida como no seu original) ---
+    // --- CONFIGURAÇÃO ---
     const firebaseConfig = {
         apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
         authDomain: "cemvezesmais-1ab48.firebaseapp.com",
@@ -20,8 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    
-    // --- ELEMENTOS DO DOM (sem alteração) ---
+
+    // --- ELEMENTOS DO DOM ---
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
     const userSection = document.getElementById('user-section');
@@ -61,13 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
     const luckyNumbersResult = document.getElementById('lucky-numbers-result');
 
-    // --- ESTADO DO APLICATIVO (com novas variáveis) ---
+    // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
     let userId = null;
-    let raffleDetails = {};      // Guarda os dados gerais da rifa (nome, preço)
-    let soldNumbersData = {};      // Guarda os números vendidos da subcoleção
+    let raffleDetails = {};
+    let soldNumbersData = {};
     let selectedNumbers = [];
-    let raffleId = null;        // Será pego da URL
+    let raffleId = null;
     let pricePerNumber = 10;
     let isTestMode = false;
     let raffleType = 'dezena';
@@ -97,10 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ✅ LÓGICA ATUALIZADA: Agora temos dois "ouvintes"
     function setupFirestoreListeners() {
         const raffleDocRef = doc(db, "rifas", raffleId);
-        // Ouvinte 1: Para os detalhes da rifa (nome, preço, etc.)
         onSnapshot(raffleDocRef, (docSnap) => {
             if (!docSnap.exists()) {
                 mainContainer.innerHTML = `<p class="text-red-400 text-center">Rifa não encontrada ou foi removida.</p>`;
@@ -110,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateRaffleDetailsUI();
         });
 
-        // Ouvinte 2: Para a subcoleção de números vendidos
         const soldNumbersColRef = collection(db, "rifas", raffleId, "sold_numbers");
         onSnapshot(soldNumbersColRef, (querySnapshot) => {
             soldNumbersData = {};
@@ -158,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
         for (let i = 0; i < maxNumbers; i++) {
             const numberStr = formatNumberForRaffleType(i, raffleType);
-            const ownerData = soldNumbersData[numberStr]; // ✅ USA A VARIÁVEL CORRETA
+            const ownerData = soldNumbersData[numberStr];
             const button = document.createElement('button');
             button.textContent = numberStr;
             button.dataset.number = numberStr;
@@ -188,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleNumberClick(event) {
         const numberStr = event.target.dataset.number;
         const button = event.target;
-        if (soldNumbersData[numberStr] && soldNumbersData[numberStr].userId !== userId) { // ✅ USA A VARIÁVEL CORRETA
+        if (soldNumbersData[numberStr] && soldNumbersData[numberStr].userId !== userId) {
             alert("Este número já foi comprado por outra pessoa. Por favor, escolha outro.");
             return;
         }
@@ -248,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         publicWinnerBoughtNumbers.innerHTML = '';
         const winnerId = player.userId;
         const winnerNumbers = [];
-        for (const numKey in soldNumbersData) { // ✅ USA A VARIÁVEL CORRETA
+        for (const numKey in soldNumbersData) {
             if (soldNumbersData[numKey] && soldNumbersData[numKey].userId === winnerId) {
                 winnerNumbers.push(numKey);
             }
@@ -265,44 +262,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleCheckout() {
         if (isTestMode) return handleTestCheckout();
-        // A lógica de pagamento real precisará ser adaptada no webhook do Netlify,
-        // mas a chamada do frontend já está correta.
+        // A lógica de pagamento real precisa ser adaptada no webhook do Netlify
         alert("A função de pagamento real precisa ter seu Webhook adaptado para a nova estrutura.");
     }
 
-    // ✅ FUNÇÃO ATUALIZADA PARA O NOVO MODELO DE DADOS
     async function handleTestCheckout() {
         if (selectedNumbers.length === 0) return alert("Nenhum número selecionado.");
         if (!window.confirm(`-- MODO DE TESTE --\nConfirma a reserva dos números: ${selectedNumbers.join(', ')}?`)) return;
-        
         checkoutBtn.disabled = true;
         checkoutBtn.textContent = 'A processar...';
         try {
             const soldNumbersColRef = collection(db, "rifas", raffleId, "sold_numbers");
-
-            // Verifica em lote se algum número já foi comprado para evitar erros
             const checkPromises = selectedNumbers.map(num => getDoc(doc(soldNumbersColRef, num)));
             const results = await Promise.all(checkPromises);
             const alreadyTaken = results.find(docSnap => docSnap.exists());
             if (alreadyTaken) {
                 throw new Error(`O número ${alreadyTaken.id} já não está disponível.`);
             }
-
             const urlParams = new URLSearchParams(window.location.search);
             const vendorId = urlParams.get('vendor') || null;
             const dataToSave = { ...currentUser, userId, purchasedAt: new Date() };
             if (vendorId) {
                 dataToSave.vendorId = vendorId;
             }
-
-            // Salva todos os números de uma vez para maior eficiência
             const batch = writeBatch(db);
             selectedNumbers.forEach(numberStr => {
                 const newDocRef = doc(soldNumbersColRef, numberStr);
                 batch.set(newDocRef, dataToSave);
             });
             await batch.commit();
-
             paymentStatusEl.textContent = `SUCESSO NO TESTE! Os seus números foram reservados.`;
             paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
             paymentStatusEl.classList.remove('hidden');
@@ -352,66 +340,55 @@ document.addEventListener('DOMContentLoaded', () => {
         progressPercentage.textContent = `${percentage}%`;
     }
 
+    // ✅ FUNÇÃO CORRIGIDA PARA AGRUPAR NÚMEROS
     function updateRecentBuyers(data) {
         if (!recentBuyersList) return;
-        const allPurchases = Object.entries(data).map(([number, details]) => ({ number, ...details }));
-        if(!allPurchases) return;
+    
+        const purchasesByUser = {};
+        for (const number in data) {
+            const purchaseDetails = data[number];
+            if (!purchaseDetails || !purchaseDetails.userId || !purchaseDetails.purchasedAt) continue;
 
-      // Substitua a função antiga por esta versão corrigida
-
-function updateRecentBuyers(data) {
-    if (!recentBuyersList) return;
-
-    // 1. Agrupar as compras por ID de usuário
-    const purchasesByUser = {};
-    for (const number in data) {
-        const purchaseDetails = data[number];
-        const userId = purchaseDetails.userId;
-
-        if (!purchasesByUser[userId]) {
-            // Se for a primeira vez que vemos este usuário, criamos a sua entrada
-            purchasesByUser[userId] = {
-                name: purchaseDetails.name,
-                numbers: [],
-                lastPurchase: purchaseDetails.purchasedAt.toDate()
-            };
+            const userId = purchaseDetails.userId;
+    
+            if (!purchasesByUser[userId]) {
+                purchasesByUser[userId] = {
+                    name: purchaseDetails.name,
+                    numbers: [],
+                    lastPurchase: purchaseDetails.purchasedAt.toDate()
+                };
+            }
+    
+            purchasesByUser[userId].numbers.push(number);
+    
+            if (purchaseDetails.purchasedAt.toDate() > purchasesByUser[userId].lastPurchase) {
+                purchasesByUser[userId].lastPurchase = purchaseDetails.purchasedAt.toDate();
+            }
         }
-
-        // Adiciona o número à lista do usuário
-        purchasesByUser[userId].numbers.push(number);
-
-        // Atualiza a data da última compra se esta for mais recente
-        if (purchaseDetails.purchasedAt.toDate() > purchasesByUser[userId].lastPurchase) {
-            purchasesByUser[userId].lastPurchase = purchaseDetails.purchasedAt.toDate();
+    
+        const sortedUsers = Object.values(purchasesByUser).sort((a, b) => {
+            return b.lastPurchase - a.lastPurchase;
+        }).slice(0, 5);
+    
+        recentBuyersList.innerHTML = '';
+        if (sortedUsers.length === 0) {
+            recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
+            return;
         }
+    
+        sortedUsers.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
+            p.numbers.sort();
+            const purchaseTime = p.lastPurchase ? p.lastPurchase.toLocaleTimeString('pt-BR') : '';
+            item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
+            recentBuyersList.appendChild(item);
+        });
     }
 
-    // 2. Ordenar os usuários pela compra mais recente e pegar os últimos 5
-    const sortedUsers = Object.values(purchasesByUser).sort((a, b) => {
-        return b.lastPurchase - a.lastPurchase;
-    }).slice(0, 5);
-
-    // 3. Renderizar o HTML
-    recentBuyersList.innerHTML = '';
-    if (sortedUsers.length === 0) {
-        recentBuyersList.innerHTML = '<p class="text-center text-gray-500">Seja o primeiro a participar!</p>';
-        return;
+    function triggerConfetti() {
+        if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
     }
-
-    sortedUsers.forEach(p => {
-        const item = document.createElement('div');
-        item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
-        
-        // Ordena os números do comprador para uma exibição limpa
-        p.numbers.sort();
-        
-        const purchaseTime = p.lastPurchase ? p.lastPurchase.toLocaleTimeString('pt-BR') : '';
-
-        // Monta o HTML com todos os números agrupados
-        item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
-        recentBuyersList.appendChild(item);
-    });
-}
 
     function setupShareButtons() {
         if (!shareWhatsappBtn) return;
@@ -441,81 +418,4 @@ function updateRecentBuyers(data) {
     }
 
     function closeRules() {
-        if (rulesModal) rulesModal.style.display = 'none';
-    }
-
-    function setButtonLoading(button, isLoading) {
-        if(!button) return;
-        const text = button.querySelector('.gemini-button-text');
-        const spinner = button.querySelector('i.fa-spinner');
-        if (text && spinner) {
-            button.disabled = isLoading;
-            text.classList.toggle('hidden', isLoading);
-            spinner.classList.toggle('hidden', !isLoading);
-        }
-    }
-    
-    async function getLuckyNumbers() {
-        if (!luckThemeInput || !luckyNumbersResult || !getLuckyNumbersBtn) return;
-        const theme = luckThemeInput.value.trim();
-        if (!theme) {
-            luckyNumbersResult.innerHTML = `<p class="text-yellow-400">Por favor, digite um tema para o Oráculo.</p>`;
-            return;
-        }
-        setButtonLoading(getLuckyNumbersBtn, true);
-        luckyNumbersResult.innerHTML = `<p class="text-purple-300">A consultar o cosmos...</p>`;
-        try {
-            const response = await fetch(`/.netlify/functions/getLuckyNumbers`, { method: "POST", body: JSON.stringify({ theme: theme, raffleType: raffleType }) });
-            if (!response.ok) throw new Error('Resposta da função Netlify não foi OK.');
-            const data = await response.json();
-            
-            let html = '<div class="grid md:grid-cols-3 gap-4">';
-            if (data.sugestoes && data.sugestoes.length > 0) {
-                data.sugestoes.forEach(s => {
-                    const formattedSuggestedNumber = formatNumberForRaffleType(parseInt(s.numero), raffleType);
-                    const isSold = soldNumbersData[formattedSuggestedNumber]; // ✅ USA A VARIÁVEL CORRETA
-                    const buttonClass = isSold ? 'bg-gray-600 cursor-not-allowed opacity-70' : 'bg-blue-500 hover:bg-blue-400 number-available cursor-pointer';
-                    const buttonText = isSold ? `${formattedSuggestedNumber} (Vendido)` : formattedSuggestedNumber;
-                    html += `<div class="bg-gray-700 p-4 rounded-lg border border-purple-500 flex flex-col items-center"><p class="text-2xl font-bold text-purple-300 mb-2">${s.explicacao}</p><button class="${buttonClass} p-2 rounded-lg text-lg font-bold w-full mt-2" data-number="${formattedSuggestedNumber}" ${isSold ? 'disabled' : ''}>${buttonText}</button></div>`;
-                });
-            } else {
-                html += `<p class="text-gray-400 col-span-full">O Oráculo não conseguiu gerar sugestões.</p>`;
-            }
-            html += '</div>';
-            luckyNumbersResult.innerHTML = html;
-            luckyNumbersResult.querySelectorAll('button[data-number]:not([disabled])').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const gridButton = numberGrid.querySelector(`button[data-number="${e.target.dataset.number}"]`);
-                    if (gridButton && !gridButton.disabled) handleNumberClick({ target: gridButton });
-                });
-            });
-        } catch (error) {
-            console.error("Erro ao chamar a função getLuckyNumbers:", error);
-            luckyNumbersResult.innerHTML = `<p class="text-red-400">O Oráculo está com dor de cabeça. Tente de novo.</p>`;
-        } finally {
-            setButtonLoading(getLuckyNumbersBtn, false);
-        }
-    }
-    
-    // --- INICIALIZAÇÃO E EVENTOS ---
-    const urlParams = new URLSearchParams(window.location.search);
-    raffleId = urlParams.get('id');
-    isTestMode = urlParams.get('test') === 'true'; 
-    if (!raffleId) {
-        mainContainer.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
-        setTimeout(() => { window.location.href = '/'; }, 3000);
-        return;
-    }
-    if (isTestMode && checkoutBtn) {
-        checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
-        checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
-        checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
-    }
-    saveUserBtn.addEventListener('click', saveUserData);
-    checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    showRulesBtn.addEventListener('click', showRules);
-    closeRulesModalBtn.addEventListener('click', closeRules);
-    getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
-    setupAuthListener();
-    setupShareButtons();
-});
+        if (rulesModal) rulesModal.
