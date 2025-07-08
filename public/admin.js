@@ -1,6 +1,5 @@
-// public/admin.js (Versão Final e Corrigida)
+// public/admin.js (Versão Definitiva - Estrutura de Subcoleção)
 
-// ✅ CORREÇÃO: A linha que faltava foi adicionada de volta.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -32,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
-    
+    let currentSoldNumbersUnsubscribe = null;
+
     const handleLogin = async () => {
         loginError.classList.add('hidden');
         try {
@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cleanupListeners = () => {
         if (allRafflesUnsubscribe) allRafflesUnsubscribe();
         if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
+        if (currentSoldNumbersUnsubscribe) currentSoldNumbersUnsubscribe();
     };
 
     function initializeAdminPanel(user) {
@@ -88,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let currentRaffleId = null;
         let allParticipantsData = [];
-        let rawRifaData = {};
+        let raffleDetails = {};
         
         const handleLogout = () => signOut(auth);
 
@@ -138,32 +139,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const declareWinner = async () => {
             if (!currentRaffleId) return alert("Nenhuma rifa selecionada.");
             const winningNumberRaw = winningNumberInput.value.trim();
-            const raffleType = rawRifaData.type || 'dezena';
+            const raffleType = raffleDetails.type || 'dezena';
             let paddedWinningNumber;
 
             if (raffleType === 'dezena') {
                 paddedWinningNumber = winningNumberRaw.padStart(2, '0');
-                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 99 || winningNumberRaw.length > 2) {
-                    return alert("Número da sorteio inválido para Dezena (00-99).");
-                }
+                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 99 || winningNumberRaw.length > 2) return alert("Número inválido para Dezena (00-99).");
             } else if (raffleType === 'centena') {
                 paddedWinningNumber = winningNumberRaw.padStart(3, '0');
-                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 999 || winningNumberRaw.length > 3) {
-                    return alert("Número da sorteio inválido para Centena (000-999).");
-                }
+                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 999 || winningNumberRaw.length > 3) return alert("Número inválido para Centena (000-999).");
             } else if (raffleType === 'milhar') {
                 paddedWinningNumber = winningNumberRaw.padStart(4, '0');
-                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 9999 || winningNumberRaw.length > 4) {
-                    return alert("Número da sorteio inválido para Milhar (0000-9999).");
-                }
-            } else {
-                return alert("Tipo de sorteio desconhecido. Não é possível declarar o ganhador.");
-            }
-
-            const winnerData = rawRifaData[paddedWinningNumber] || null;
+                if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 9999 || winningNumberRaw.length > 4) return alert("Número inválido para Milhar (0000-9999).");
+            } else { return alert("Tipo de sorteio desconhecido."); }
 
             try {
-                await updateDoc(doc(db, "rifas", currentRaffleId), { winner: { number: paddedWinningNumber, player: winnerData }, status: 'finished' });
+                const winnerDocRef = doc(db, "rifas", currentRaffleId, "sold_numbers", paddedWinningNumber);
+                const winnerDoc = await getDoc(winnerDocRef);
+                const winnerData = winnerDoc.exists() ? winnerDoc.data() : null;
+
+                await updateDoc(doc(db, "rifas", currentRaffleId), { 
+                    winner: { number: paddedWinningNumber, player: winnerData }, 
+                    status: 'finished' 
+                });
                 alert(`Sorteio finalizado!`);
             } catch (e) { console.error("Erro ao declarar ganhador:", e); }
         };
@@ -183,10 +181,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const showEditRaffleNameUI = () => {
-            if (!rawRifaData.name) return;
+            if (!raffleDetails.name) return;
             raffleNameDisplay.classList.add('hidden');
             editRaffleNameSection.classList.remove('hidden');
-            editRaffleNameInput.value = rawRifaData.name;
+            editRaffleNameInput.value = raffleDetails.name;
             editRaffleNameInput.focus();
         };
 
@@ -224,43 +222,54 @@ document.addEventListener('DOMContentLoaded', () => {
             raffleDetailsSection.classList.remove('hidden');
             hideEditRaffleNameUI();
             listenToAllRaffles();
+
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
-            const ref = doc(db, "rifas", raffleId);
-            currentRaffleUnsubscribe = onSnapshot(ref, (doc) => {
-                rawRifaData = doc.data() || {};
-                processRifaData(rawRifaData);
-                const placeholderMap = {
-                    'dezena': 'Nº Sorteado (00-99)',
-                    'centena': 'Nº Sorteado (000-999)',
-                    'milhar': 'Nº Sorteado (0000-9999)'
-                };
-                winningNumberInput.placeholder = placeholderMap[rawRifaData.type || 'dezena'];
-                if (rawRifaData.winner) showWinnerInAdminPanel(rawRifaData.winner);
-                else {
+            if (currentSoldNumbersUnsubscribe) currentSoldNumbersUnsubscribe();
+
+            const raffleDocRef = doc(db, "rifas", raffleId);
+            currentRaffleUnsubscribe = onSnapshot(raffleDocRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    raffleDetailsSection.classList.add('hidden');
+                    return;
+                }
+                raffleDetails = docSnap.data();
+                if (raffleDetails.winner) {
+                    showWinnerInAdminPanel(raffleDetails.winner);
+                } else {
                     declareWinnerArea.classList.remove('hidden');
                     winnerInfoAdmin.classList.add('hidden');
                     noWinnerInfoAdmin.classList.add('hidden');
                 }
+                const placeholderMap = { 'dezena': 'Nº (00-99)', 'centena': 'Nº (000-999)', 'milhar': 'Nº (0000-9999)' };
+                winningNumberInput.placeholder = placeholderMap[raffleDetails.type || 'dezena'];
+            });
+
+            const soldNumbersColRef = collection(db, "rifas", raffleId, "sold_numbers");
+            currentSoldNumbersUnsubscribe = onSnapshot(soldNumbersColRef, (snapshot) => {
+                const soldNumbers = {};
+                snapshot.forEach(doc => {
+                    soldNumbers[doc.id] = doc.data();
+                });
+                processRifaData(soldNumbers);
             });
         };
         
-        const processRifaData = (data) => {
+        const processRifaData = (soldNumbers) => {
             const participants = {};
-            let soldCount = 0;
-            const expectedLength = (data.type === 'centena' ? 3 : data.type === 'milhar' ? 4 : 2);
-            for (const key in data) {
-                if (!isNaN(key) && key.length === expectedLength) {
-                    soldCount++;
-                    const pData = data[key];
-                    if (pData?.userId) {
-                        if (!participants[pData.userId]) participants[pData.userId] = { ...pData, numbers: [] };
-                        participants[pData.userId].numbers.push(key);
+            const soldCount = Object.keys(soldNumbers).length;
+
+            for (const number in soldNumbers) {
+                const pData = soldNumbers[number];
+                if (pData?.userId) {
+                    if (!participants[pData.userId]) {
+                        participants[pData.userId] = { ...pData, numbers: [] };
                     }
+                    participants[pData.userId].numbers.push(number);
                 }
             }
             allParticipantsData = Object.values(participants);
             renderTable(allParticipantsData);
-            updateSummary(soldCount, allParticipantsData.length, data.pricePerNumber);
+            updateSummary(soldCount, allParticipantsData.length, raffleDetails.pricePerNumber);
         };
         
         const renderTable = (data) => {
@@ -278,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateSummary = (sold, parts, price = 0) => {
             soldNumbersEl.textContent = sold;
             totalParticipantsEl.textContent = parts;
-            totalRevenueEl.textContent = (sold * price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            totalRevenueEl.textContent = (sold * (price || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         };
 
         const showWinnerInAdminPanel = (info) => {
@@ -347,10 +356,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(generateVendorLinkBtn) {
         generateVendorLinkBtn.addEventListener('click', () => {
-            const raffleId = raffleIdForVendorInput.value.trim();
+            const raffleId = raffleIdForVendorInput.value.trim() || currentRaffleId;
+            if(!raffleId) {
+                alert('Por favor, selecione uma rifa da lista ou cole o ID.');
+                return;
+            }
+            raffleIdForVendorInput.value = raffleId;
             const vendorId = vendorNameInput.value.trim();
-            if (!raffleId || !vendorId) {
-                alert('Por favor, preencha o ID da Rifa e o Nome do Revendedor.');
+            if (!vendorId) {
+                alert('Por favor, preencha o Nome do Revendedor.');
                 return;
             }
             const baseUrl = window.location.origin;
@@ -379,11 +393,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(generateReportBtn) {
         generateReportBtn.addEventListener('click', async () => {
-            const raffleId = reportRaffleIdInput.value.trim();
-            if (!raffleId) {
-                alert('Por favor, insira o ID da rifa para gerar o relatório.');
+            const raffleId = reportRaffleIdInput.value.trim() || currentRaffleId;
+             if(!raffleId) {
+                alert('Por favor, selecione uma rifa da lista ou cole o ID para gerar o relatório.');
                 return;
             }
+            reportRaffleIdInput.value = raffleId;
             generateReportBtn.disabled = true;
             generateReportBtn.textContent = 'A gerar...';
             reportOutputSection.innerHTML = '<p class="text-center text-sky-400">A consultar o banco de dados...</p>';
@@ -408,7 +423,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!salesByVendor[vendorId]) {
                         salesByVendor[vendorId] = { count: 0, numbers: [] };
                     }
-
                     salesByVendor[vendorId].count++;
                     salesByVendor[vendorId].numbers.push(number);
                     
@@ -424,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     vendorData.numbers.sort();
 
                     reportHTML += `
-                        <div class="bg-gray-900 p-4 rounded-lg">
+                        <div class="bg-gray-900 p-4 rounded-lg mt-2">
                             <p class="font-bold text-teal-400">${vendorId}</p>
                             <p class="text-sm text-gray-300">Total de números vendidos: <span class="font-bold">${vendorData.count}</span></p>
                             <div class="mt-2 flex flex-wrap gap-2">
