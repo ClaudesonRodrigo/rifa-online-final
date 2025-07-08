@@ -1,4 +1,4 @@
-// public/rifa.js (Versão final para a estrutura de subcoleção e com 'updateRecentBuyers' corrigido)
+// public/rifa.js (Versão Definitiva - 08/07/2025)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    // ✅ FUNÇÃO CORRIGIDA E COMPLETA PARA AGRUPAR NÚMEROS
+    // ✅✅✅ ESTA É A FUNÇÃO CORRIGIDA ✅✅✅
     function updateRecentBuyers(data) {
         if (!recentBuyersList) return;
     
