@@ -1,4 +1,4 @@
-// public/rifa.js (Versão Definitiva - 08/07/2025)
+// public/rifa.js (Versão final e corrigida)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-
+    
     // --- ELEMENTOS DO DOM ---
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
@@ -339,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    // ✅✅✅ ESTA É A FUNÇÃO CORRIGIDA ✅✅✅
     function updateRecentBuyers(data) {
         if (!recentBuyersList) return;
     
