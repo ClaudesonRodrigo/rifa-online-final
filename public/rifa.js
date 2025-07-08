@@ -262,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleCheckout() {
         if (isTestMode) return handleTestCheckout();
-        // A lógica de pagamento real precisa ser adaptada no webhook do Netlify
         alert("A função de pagamento real precisa ter seu Webhook adaptado para a nova estrutura.");
     }
 
@@ -340,29 +339,29 @@ document.addEventListener('DOMContentLoaded', () => {
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    // ✅ FUNÇÃO CORRIGIDA PARA AGRUPAR NÚMEROS
+    // ✅ FUNÇÃO CORRIGIDA E COMPLETA PARA AGRUPAR NÚMEROS
     function updateRecentBuyers(data) {
         if (!recentBuyersList) return;
     
         const purchasesByUser = {};
         for (const number in data) {
             const purchaseDetails = data[number];
-            if (!purchaseDetails || !purchaseDetails.userId || !purchaseDetails.purchasedAt) continue;
-
-            const userId = purchaseDetails.userId;
-    
-            if (!purchasesByUser[userId]) {
-                purchasesByUser[userId] = {
-                    name: purchaseDetails.name,
-                    numbers: [],
-                    lastPurchase: purchaseDetails.purchasedAt.toDate()
-                };
-            }
-    
-            purchasesByUser[userId].numbers.push(number);
-    
-            if (purchaseDetails.purchasedAt.toDate() > purchasesByUser[userId].lastPurchase) {
-                purchasesByUser[userId].lastPurchase = purchaseDetails.purchasedAt.toDate();
+            if (purchaseDetails && purchaseDetails.userId && purchaseDetails.purchasedAt) {
+                const userId = purchaseDetails.userId;
+        
+                if (!purchasesByUser[userId]) {
+                    purchasesByUser[userId] = {
+                        name: purchaseDetails.name,
+                        numbers: [],
+                        lastPurchase: purchaseDetails.purchasedAt.toDate()
+                    };
+                }
+        
+                purchasesByUser[userId].numbers.push(number);
+        
+                if (purchaseDetails.purchasedAt.toDate() > purchasesByUser[userId].lastPurchase) {
+                    purchasesByUser[userId].lastPurchase = purchaseDetails.purchasedAt.toDate();
+                }
             }
         }
     
@@ -483,10 +482,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { window.location.href = '/'; }, 3000);
         return;
     }
-    // A referência ao documento principal não é mais necessária da mesma forma,
-    // mas pode ser útil manter para certas operações de admin que não implementamos aqui.
-    // rifaDocRef = doc(db, "rifas", raffleId); 
-
     if (isTestMode && checkoutBtn) {
         checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
