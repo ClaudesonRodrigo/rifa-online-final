@@ -107,18 +107,34 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { console.error("Erro ao criar rifa:", e); }
         };
         
-        const deleteRaffle = async (raffleId, raffleName) => {
-            if (window.confirm(`Tem a certeza que quer excluir a rifa "${raffleName}"?`)) {
-                try {
-                    await deleteDoc(doc(db, "rifas", raffleId));
-                    if (currentRaffleId === raffleId) {
-                        raffleDetailsSection.classList.add('hidden');
-                        currentRaffleId = null;
-                    }
-                    alert(`Rifa "${raffleName}" excluída.`);
-                } catch (e) { console.error("Erro ao excluir rifa:", e); }
+        // Substitua a função deleteRaffle antiga por esta
+
+const deleteRaffle = async (raffleId, raffleName) => {
+    if (window.confirm(`Tem a certeza que quer excluir a rifa "${raffleName}"? Esta ação não pode ser desfeita.`)) {
+        try {
+            // Chama a nossa nova função de backend para fazer o trabalho sujo
+            const response = await fetch('/.netlify/functions/delete-raffle', {
+                method: 'POST',
+                body: JSON.stringify({ raffleId: raffleId }),
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Falha na resposta do servidor.');
             }
-        };
+
+            if (currentRaffleId === raffleId) {
+                raffleDetailsSection.classList.add('hidden');
+                currentRaffleId = null;
+            }
+            alert(`Rifa "${raffleName}" excluída com sucesso.`);
+
+        } catch (e) {
+            console.error("Erro ao tentar apagar rifa:", e);
+            alert(`Não foi possível apagar a rifa: ${e.message}`);
+        }
+    }
+};
 
         const saveRaffleName = async () => {
             const newName = editRaffleNameInput.value.trim();
