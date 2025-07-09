@@ -1,108 +1,104 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel de Administração - Rifa Online</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração - Rifa Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-900 text-gray-200 min-h-screen">
- 
-    <div id="login-screen" class="flex flex-col items-center justify-center min-h-screen p-4">
-        <div class="w-full max-w-sm p-8 bg-gray-800 rounded-2xl shadow-lg">
-            <h1 class="text-2xl font-bold text-center text-blue-300 mb-6">Acesso do Administrador</h1>
-            <div class="space-y-4">
-                <div>
-                    <label for="admin-email" class="block text-sm font-medium">E-mail</label>
-                    <input type="email" id="admin-email" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="seu.email@admin.com">
-                </div>
-                <div>
-                    <label for="admin-password" class="block text-sm font-medium">Senha</label>
-                    <input type="password" id="admin-password" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="••••••••">
-                </div>
-            </div>
-            <button id="login-btn" class="w-full mt-6 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">Entrar</button>
-            <p id="login-error" class="text-red-400 text-center mt-4 hidden">E-mail ou senha incorretos.</p>
-        </div>
-    </div>
 
-    <div id="admin-panel" class="hidden p-4 md:p-8">
-        <header class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-blue-300">Painel de Administração</h1>
-                <p id="admin-email-display" class="text-sm text-gray-400"></p>
-            </div>
-            <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold">Sair</button>
-        </header>
+    <div id="login-screen" class="flex flex-col items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-sm p-8 bg-gray-800 rounded-2xl shadow-lg">
+            <h1 class="text-2xl font-bold text-center text-blue-300 mb-6">Acesso do Administrador</h1>
+            <div class="space-y-4">
+                <div>
+                    <label for="admin-email" class="block text-sm font-medium">E-mail</label>
+                    <input type="email" id="admin-email" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="seu.email@admin.com">
+                </div>
+                <div>
+                    <label for="admin-password" class="block text-sm font-medium">Senha</label>
+                    <input type="password" id="admin-password" class="w-full mt-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white" placeholder="••••••••">
+                </div>
+            </div>
+            <button id="login-btn" class="w-full mt-6 p-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors">Entrar</button>
+            <p id="login-error" class="text-red-400 text-center mt-4 hidden">E-mail ou senha incorretos.</p>
+        </div>
+    </div>
 
-        <div class="bg-gray-800 p-6 rounded-lg mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Configurações Gerais</h2>
-            <div>
-                <label for="rules-textarea" class="block text-sm font-medium text-gray-300 mb-2">Regras Gerais do Sorteio</label>
-                <textarea id="rules-textarea" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Escreva aqui as regras que se aplicam a todas as rifas..."></textarea>
-                <button id="save-rules-btn" class="mt-3 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">Salvar Regras</button>
-            </div>
-        </div>
-         <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
-           <h2 class="text-2xl font-bold text-teal-400 mb-4 border-b border-gray-700 pb-2">Gerador de Links para Revendedores</h2>
-    
-    <div class="space-y-4">
-        <div>
-            <label for="raffle-id-for-vendor" class="block text-sm font-medium text-gray-300 mb-1">ID da Rifa:</label>
-            <input type="text" id="raffle-id-for-vendor" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:ring-teal-500 focus:border-teal-500" placeholder="Cole o ID da rifa aqui...">
+    <div id="admin-panel" class="hidden p-4 md:p-8">
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-300">Painel de Administração</h1>
+                <p id="admin-email-display" class="text-sm text-gray-400"></p>
+            </div>
+            <button id="logout-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold">Sair</button>
+        </header>
+
+        <div class="bg-gray-800 p-6 rounded-lg mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Configurações Gerais</h2>
+            <div>
+                <label for="rules-text-area" class="block text-sm font-medium text-gray-300 mb-2">Regras Gerais do Sorteio</label>
+                <textarea id="rules-text-area" rows="6" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Escreva aqui as regras que se aplicam a todas as rifas..."></textarea>
+                <button id="save-rules-btn" class="mt-3 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold">Salvar Regras</button>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
+            <h2 class="text-2xl font-bold text-teal-400 mb-4 border-b border-gray-700 pb-2">Gerador de Links para Revendedores</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="raffle-id-for-vendor" class="block text-sm font-medium text-gray-300 mb-1">ID da Rifa:</label>
+                    <input type="text" id="raffle-id-for-vendor" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:ring-teal-500 focus:border-teal-500" placeholder="Cole o ID da rifa aqui...">
+                </div>
+                <div>
+                    <label for="vendor-name" class="block text-sm font-medium text-gray-300 mb-1">Nome ou ID do Revendedor:</label>
+                    <input type="text" id="vendor-name" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:ring-teal-500 focus:border-teal-500" placeholder="ex: atanazio_123">
+                </div>
+                <button id="generate-vendor-link-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                    Gerar Link Mágico
+                </button>
+                <div id="vendor-link-result" class="hidden mt-4 bg-gray-900 p-4 rounded-md">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Link Gerado:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="generated-link-output" class="w-full bg-gray-700 text-green-400 p-2 rounded-md border-0" readonly>
+                        <button id="copy-link-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md" title="Copiar para a área de transferência">
+                            Copiar
+                        </button>
+                    </div>
+                    <p id="copy-feedback" class="text-green-500 text-xs mt-2 hidden">Link copiado!</p>
+                </div>
+            </div>
         </div>
         
-        <div>
-            <label for="vendor-name" class="block text-sm font-medium text-gray-300 mb-1">Nome ou ID do Revendedor:</label>
-            <input type="text" id="vendor-name" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:ring-teal-500 focus:border-teal-500" placeholder="ex: atanazio_123">
-        </div>
-
-        <button id="generate-vendor-link-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
-            Gerar Link Mágico
-        </button>
-
-        <div id="vendor-link-result" class="hidden mt-4 bg-gray-900 p-4 rounded-md">
-            <label class="block text-sm font-medium text-gray-300 mb-2">Link Gerado:</label>
-            <div class="flex items-center space-x-2">
-                <input type="text" id="generated-link-output" class="w-full bg-gray-700 text-green-400 p-2 rounded-md border-0" readonly>
-                <button id="copy-link-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md" title="Copiar para a área de transferência">
-                    Copiar
+        <div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
+            <h2 class="text-2xl font-bold text-sky-400 mb-4 border-b border-gray-700 pb-2">Relatório de Vendas por Revendedor</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="report-raffle-id" class="block text-sm font-medium text-gray-300 mb-1">ID da Rifa para Análise:</label>
+                    <input type="text" id="report-raffle-id" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:ring-sky-500 focus:border-sky-500" placeholder="Cole o ID da rifa aqui...">
+                </div>
+                <button id="generate-report-btn" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                    Gerar Relatório
                 </button>
+                <div id="report-output-section" class="hidden mt-4 space-y-3">
+                </div>
             </div>
-            <p id="copy-feedback" class="text-green-500 text-xs mt-2 hidden">Link copiado!</p>
-        </div>
-    </div>
-</div>
-<div class="bg-gray-800 p-6 rounded-lg shadow-lg mt-8">
-    <h2 class="text-2xl font-bold text-sky-400 mb-4 border-b border-gray-700 pb-2">Relatório de Vendas por Revendedor</h2>
-    
-    <div class="space-y-4">
-        <div>
-            <label for="report-raffle-id" class="block text-sm font-medium text-gray-300 mb-1">ID da Rifa para Análise:</label>
-            <input type="text" id="report-raffle-id" class="w-full bg-gray-700 text-white p-2 rounded-md border border-gray-600 focus:ring-sky-500 focus:border-sky-500" placeholder="Cole o ID da rifa aqui...">
         </div>
 
-        <button id="generate-report-btn" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
-            Gerar Relatório
-        </button>
-
-        <div id="report-output-section" class="hidden mt-4 space-y-3">
-            </div>
-    </div>
-</div>
-        <div class="bg-gray-800 p-6 rounded-lg mb-8">
-            <h2 class="text-2xl font-semibold mb-4">Gerir Rifas</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <h3 class="text-xl font-semibold text-teal-300 mb-3">Criar Nova Rifa</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="raffle-name" class="block text-sm font-medium">Nome do Prémio</label>
-                            <input type="text" id="raffle-name" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Ex: iPhone 15 Pro">
-                        </div>
+        <div class="bg-gray-800 p-6 rounded-lg mb-8 mt-8">
+            <h2 class="text-2xl font-semibold mb-4">Gerir Rifas</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-xl font-semibold text-teal-300 mb-3">Criar Nova Rifa</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="raffle-name" class="block text-sm font-medium">Nome do Prémio</label>
+                            <input type="text" id="raffle-name" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="Ex: iPhone 15 Pro">
+                        </div>
                         <div>
                             <label for="raffle-type" class="block text-sm font-medium">Tipo de Sorteio</label>
                             <select id="raffle-type" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
@@ -111,70 +107,70 @@
                                 <option value="milhar">Milhar (0000-9999) - 10.000 números</option>
                             </select>
                         </div>
-                        <div>
-                            <label for="raffle-price" class="block text-sm font-medium">Preço por Número (R$)</label>
-                            <input type="number" id="raffle-price" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="10">
-                        </div>
-                        <button id="create-raffle-btn" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-semibold">Criar Rifa</button>
-                    </div>
-                </div>
-                <div>
-                    <h3 class="text-xl font-semibold text-blue-300 mb-3">Rifas Ativas e Encerradas</h3>
-                    <div id="raffles-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"><p class="text-gray-500">A carregar lista de rifas...</p></div>
-                </div>
-            </div>
-        </div>
+                        <div>
+                            <label for="raffle-price" class="block text-sm font-medium">Preço por Número (R$)</label>
+                            <input type="number" id="raffle-price" class="w-full mt-1 p-2 bg-gray-700 border border-gray-600 rounded-lg" placeholder="10">
+                        </div>
+                        <button id="create-raffle-btn" class="w-full p-3 bg-teal-600 hover:bg-teal-700 rounded-lg font-semibold">Criar Rifa</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-blue-300 mb-3">Rifas Ativas e Encerradas</h3>
+                    <div id="raffles-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"><p class="text-gray-500">A carregar lista de rifas...</p></div>
+                </div>
+            </div>
+        </div>
 
-        <div id="raffle-details-section" class="hidden">
-            <div class="flex items-center gap-4 mb-4">
-                <h2 class="text-2xl font-semibold">Detalhes da Rifa:</h2>
-                <div id="raffle-name-display" class="flex items-center gap-3">
-                    <span id="details-raffle-name" class="text-2xl font-bold text-yellow-400"></span>
-                    <button id="edit-raffle-name-btn" title="Editar Nome da Rifa" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-pencil-alt"></i></button>
-                </div>
-                <div id="edit-raffle-name-section" class="hidden flex items-center gap-2">
-                    <input type="text" id="edit-raffle-name-input" class="p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
-                    <button id="save-raffle-name-btn" class="p-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold">Salvar</button>
-                    <button id="cancel-edit-raffle-name-btn" class="p-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancelar</button>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Números Vendidos</h2><p id="sold-numbers" class="text-4xl font-bold">0</p></div>
-                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Total de Participantes</h2><p id="total-participants" class="text-4xl font-bold">0</p></div>
-                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Arrecadação</h2><p id="total-revenue" class="text-4xl font-bold">R$ 0,00</p></div>
-            </div>
-            <div class="bg-gray-800 p-6 rounded-lg mb-8">
-                <h2 class="text-2xl font-semibold mb-4">Declarar Resultado do Sorteio</h2>
-                <div id="declare-winner-area">
-                    <p class="text-gray-400 mb-4">Insira os 2 últimos dígitos do 1º prémio da Loteria Federal para finalizar a rifa.</p>
-                    <div class="flex flex-col sm:flex-row items-center gap-4">
-                        <input type="number" id="winning-number-input" class="p-3 bg-gray-700 border border-gray-600 rounded-lg w-full sm:w-auto" placeholder="Nº Sorteado (00-99)">
-                        <button id="declare-winner-btn" class="w-full sm:w-auto p-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors">Declarar Ganhador</button>
-                    </div>
-                </div>
-                <div id="winner-info-admin" class="mt-6 hidden">
-                    <h3 class="text-xl font-bold text-green-400"><i class="fas fa-trophy mr-2"></i>Sorteio Finalizado!</h3>
-                    <div class="mt-2 bg-gray-900/50 p-4 rounded-lg">
-                        <p><strong>Número Sorteado:</strong> <span id="admin-winner-number" class="font-bold text-2xl"></span></p>
-                        <p><strong>Ganhador:</strong> <span id="admin-winner-name" class="font-bold"></span></p>
-                        <p><strong>Contacto:</strong> <span id="admin-winner-contact"></span></p>
-                        <p><strong>Chave PIX para pagamento:</strong> <strong id="admin-winner-pix" class="text-yellow-300"></strong></p>
-                    </div>
-                </div>
-                 <div id="no-winner-info-admin" class="mt-6 hidden bg-red-900/50 p-4 rounded-lg"><p class="text-yellow-400"><i class="fas fa-exclamation-triangle mr-2"></i>O número sorteado não foi escolhido por ninguém.</p></div>
-            </div>
-            <div class="bg-gray-800 p-6 rounded-lg overflow-x-auto">
-                <div class="flex justify-between items-center mb-4">
-                     <h2 class="text-2xl font-semibold">Lista de Participantes</h2>
-                     <input type="text" id="search-input" placeholder="Buscar por nome ou número..." class="p-2 bg-gray-700 border border-gray-600 rounded-lg">
-                </div>
-                <table class="w-full text-left">
-                    <thead><tr class="border-b border-gray-700"><th class="p-3">Nome</th><th class="p-3">Contacto</th><th class="p-3">Chave PIX</th><th class="p-3">Números Escolhidos</th></tr></thead>
-                    <tbody id="participants-table-body"><tr><td colspan="4" class="text-center p-8 text-gray-500">Selecione uma rifa acima para ver os detalhes.</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    <script type="module" src="admin.js"></script>
+        <div id="raffle-details-section" class="hidden">
+            <div class="flex items-center gap-4 mb-4">
+                <h2 class="text-2xl font-semibold">Detalhes da Rifa:</h2>
+                <div id="raffle-name-display" class="flex items-center gap-3">
+                    <span id="details-raffle-name" class="text-2xl font-bold text-yellow-400"></span>
+                    <button id="edit-raffle-name-btn" title="Editar Nome da Rifa" class="text-gray-400 hover:text-white transition-colors"><i class="fas fa-pencil-alt"></i></button>
+                </div>
+                <div id="edit-raffle-name-section" class="hidden flex items-center gap-2">
+                    <input type="text" id="edit-raffle-name-input" class="p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    <button id="save-raffle-name-btn" class="p-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold">Salvar</button>
+                    <button id="cancel-edit-raffle-name-btn" class="p-2 bg-gray-600 hover:bg-gray-500 rounded-lg">Cancelar</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Números Vendidos</h2><p id="sold-numbers" class="text-4xl font-bold">0</p></div>
+                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Total de Participantes</h2><p id="total-participants" class="text-4xl font-bold">0</p></div>
+                <div class="bg-gray-800 p-6 rounded-lg"><h2 class="text-gray-400 text-lg">Arrecadação</h2><p id="total-revenue" class="text-4xl font-bold">R$ 0,00</p></div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Declarar Resultado do Sorteio</h2>
+                <div id="declare-winner-area">
+                    <p class="text-gray-400 mb-4">Insira os 2 últimos dígitos do 1º prémio da Loteria Federal para finalizar a rifa.</p>
+                    <div class="flex flex-col sm:flex-row items-center gap-4">
+                        <input type="number" id="winning-number-input" class="p-3 bg-gray-700 border border-gray-600 rounded-lg w-full sm:w-auto" placeholder="Nº Sorteado (00-99)">
+                        <button id="declare-winner-btn" class="w-full sm:w-auto p-3 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors">Declarar Ganhador</button>
+                    </div>
+                </div>
+                <div id="winner-info-admin" class="mt-6 hidden">
+                    <h3 class="text-xl font-bold text-green-400"><i class="fas fa-trophy mr-2"></i>Sorteio Finalizado!</h3>
+                    <div class="mt-2 bg-gray-900/50 p-4 rounded-lg">
+                        <p><strong>Número Sorteado:</strong> <span id="admin-winner-number" class="font-bold text-2xl"></span></p>
+                        <p><strong>Ganhador:</strong> <span id="admin-winner-name" class="font-bold"></span></p>
+                        <p><strong>Contacto:</strong> <span id="admin-winner-contact"></span></p>
+                        <p><strong>Chave PIX para pagamento:</strong> <strong id="admin-winner-pix" class="text-yellow-300"></strong></p>
+                    </div>
+                </div>
+                 <div id="no-winner-info-admin" class="mt-6 hidden bg-red-900/50 p-4 rounded-lg"><p class="text-yellow-400"><i class="fas fa-exclamation-triangle mr-2"></i>O número sorteado não foi escolhido por ninguém.</p></div>
+            </div>
+            <div class="bg-gray-800 p-6 rounded-lg overflow-x-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-semibold">Lista de Participantes</h2>
+                    <input type="text" id="search-input" placeholder="Buscar por nome ou número..." class="p-2 bg-gray-700 border border-gray-600 rounded-lg">
+                </div>
+                <table class="w-full text-left">
+                    <thead><tr class="border-b border-gray-700"><th class="p-3">Nome</th><th class="p-3">Contacto</th><th class="p-3">Chave PIX</th><th class="p-3">Números Escolhidos</th></tr></thead>
+                    <tbody id="participants-table-body"><tr><td colspan="4" class="text-center p-8 text-gray-500">Selecione uma rifa acima para ver os detalhes.</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="admin.js"></script>
 </body>
 </html>
