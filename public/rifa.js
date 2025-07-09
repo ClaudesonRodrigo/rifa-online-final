@@ -1,4 +1,4 @@
-// public/rifa.js (Versão final para a estrutura de subcoleção)
+// public/rifa.js (Versão final, corrigida em 08/07/2025)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-
+    
     // --- ELEMENTOS DO DOM ---
     const mainContainer = document.getElementById('main-container');
     const loadingSection = document.getElementById('loading-section');
@@ -124,7 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (raffleType === 'centena') totalNumbersInRaffle = 1000;
         else if (raffleType === 'milhar') totalNumbersInRaffle = 10000;
         else totalNumbersInRaffle = 100;
-
         if (welcomeUserSpan) welcomeUserSpan.textContent = currentUser.name;
         if (raffleTitle) raffleTitle.textContent = raffleDetails.name;
         setupWhatsAppButton();
@@ -262,7 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleCheckout() {
         if (isTestMode) return handleTestCheckout();
-        // A lógica de pagamento real precisa ser adaptada no webhook do Netlify
         alert("A função de pagamento real precisa ter seu Webhook adaptado para a nova estrutura.");
     }
 
@@ -281,7 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const urlParams = new URLSearchParams(window.location.search);
             const vendorId = urlParams.get('vendor') || null;
-            const dataToSave = { ...currentUser, userId, purchasedAt: new Date() };
+            const dataToSave = { ...currentUser, userId, createdAt: new Date() };
             if (vendorId) {
                 dataToSave.vendorId = vendorId;
             }
@@ -340,29 +338,28 @@ document.addEventListener('DOMContentLoaded', () => {
         progressPercentage.textContent = `${percentage}%`;
     }
 
-    // ✅ FUNÇÃO CORRIGIDA PARA AGRUPAR NÚMEROS
     function updateRecentBuyers(data) {
         if (!recentBuyersList) return;
     
         const purchasesByUser = {};
         for (const number in data) {
             const purchaseDetails = data[number];
-            if (!purchaseDetails || !purchaseDetails.userId || !purchaseDetails.purchasedAt) continue;
-
-            const userId = purchaseDetails.userId;
-    
-            if (!purchasesByUser[userId]) {
-                purchasesByUser[userId] = {
-                    name: purchaseDetails.name,
-                    numbers: [],
-                    lastPurchase: purchaseDetails.purchasedAt.toDate()
-                };
-            }
-    
-            purchasesByUser[userId].numbers.push(number);
-    
-            if (purchaseDetails.purchasedAt.toDate() > purchasesByUser[userId].lastPurchase) {
-                purchasesByUser[userId].lastPurchase = purchaseDetails.purchasedAt.toDate();
+            if (purchaseDetails && purchaseDetails.userId && purchaseDetails.createdAt?.toDate) {
+                const userId = purchaseDetails.userId;
+        
+                if (!purchasesByUser[userId]) {
+                    purchasesByUser[userId] = {
+                        name: purchaseDetails.name,
+                        numbers: [],
+                        lastPurchase: purchaseDetails.createdAt.toDate()
+                    };
+                }
+        
+                purchasesByUser[userId].numbers.push(number);
+        
+                if (purchaseDetails.createdAt.toDate() > purchasesByUser[userId].lastPurchase) {
+                    purchasesByUser[userId].lastPurchase = purchaseDetails.createdAt.toDate();
+                }
             }
         }
     
@@ -380,7 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'bg-gray-700/50 p-3 rounded-lg flex items-center justify-between text-sm';
             p.numbers.sort();
-            const purchaseTime = p.lastPurchase ? p.lastPurchase.toLocaleTimeString('pt-BR') : '';
+            const purchaseTime = p.lastPurchase.toLocaleTimeString('pt-BR');
             item.innerHTML = `<p><strong class="text-teal-400">${p.name}</strong> comprou o(s) número(s) ${p.numbers.map(n => `<span class="font-bold bg-blue-500 text-white px-2 py-1 rounded-full text-xs">${n}</span>`).join(' ')}</p><p class="text-gray-500 text-xs">${purchaseTime}</p>`;
             recentBuyersList.appendChild(item);
         });
@@ -483,10 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { window.location.href = '/'; }, 3000);
         return;
     }
-    // A referência ao documento principal não é mais necessária da mesma forma,
-    // mas pode ser útil manter para certas operações de admin que não implementamos aqui.
-    // rifaDocRef = doc(db, "rifas", raffleId); 
-
+    
     if (isTestMode && checkoutBtn) {
         checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
         checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');

@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let allRafflesUnsubscribe = null;
     let currentRaffleUnsubscribe = null;
-    let currentSoldNumbersUnsubscribe = null; // Listener para a subcoleção
+    let currentSoldNumbersUnsubscribe = null;
 
     const handleLogin = async () => {
         loginError.classList.add('hidden');
@@ -108,15 +108,25 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         const deleteRaffle = async (raffleId, raffleName) => {
-            if (window.confirm(`Tem a certeza que quer excluir a rifa "${raffleName}"?`)) {
+            if (window.confirm(`Tem a certeza que quer excluir a rifa "${raffleName}"? Esta ação não pode ser desfeita.`)) {
                 try {
-                    await deleteDoc(doc(db, "rifas", raffleId));
+                    const response = await fetch('/.netlify/functions/delete-raffle', {
+                        method: 'POST',
+                        body: JSON.stringify({ raffleId: raffleId }),
+                    });
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || 'Falha na resposta do servidor.');
+                    }
                     if (currentRaffleId === raffleId) {
                         raffleDetailsSection.classList.add('hidden');
                         currentRaffleId = null;
                     }
-                    alert(`Rifa "${raffleName}" excluída.`);
-                } catch (e) { console.error("Erro ao excluir rifa:", e); }
+                    alert(`Rifa "${raffleName}" excluída com sucesso.`);
+                } catch (e) {
+                    console.error("Erro ao tentar apagar rifa:", e);
+                    alert(`Não foi possível apagar a rifa: ${e.message}`);
+                }
             }
         };
 
@@ -135,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const winningNumberRaw = winningNumberInput.value.trim();
             const raffleType = raffleDetails.type || 'dezena';
             let paddedWinningNumber;
-
             if (raffleType === 'dezena') {
                 paddedWinningNumber = winningNumberRaw.padStart(2, '0');
                 if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 99 || winningNumberRaw.length > 2) return alert("Número inválido para Dezena (00-99).");
@@ -146,12 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 paddedWinningNumber = winningNumberRaw.padStart(4, '0');
                 if (parseInt(paddedWinningNumber, 10) < 0 || parseInt(paddedWinningNumber, 10) > 9999 || winningNumberRaw.length > 4) return alert("Número inválido para Milhar (0000-9999).");
             } else { return alert("Tipo de sorteio desconhecido."); }
-
             try {
                 const winnerDocRef = doc(db, "rifas", currentRaffleId, "sold_numbers", paddedWinningNumber);
                 const winnerDoc = await getDoc(winnerDocRef);
                 const winnerData = winnerDoc.exists() ? winnerDoc.data() : null;
-
                 await updateDoc(doc(db, "rifas", currentRaffleId), { 
                     winner: { number: paddedWinningNumber, player: winnerData }, 
                     status: 'finished' 
@@ -216,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
             raffleDetailsSection.classList.remove('hidden');
             hideEditRaffleNameUI();
             listenToAllRaffles();
-
             if (currentRaffleUnsubscribe) currentRaffleUnsubscribe();
             if (currentSoldNumbersUnsubscribe) currentSoldNumbersUnsubscribe();
 
@@ -251,7 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const processRifaData = (soldNumbers) => {
             const participants = {};
             const soldCount = Object.keys(soldNumbers).length;
-
             for (const number in soldNumbers) {
                 const pData = soldNumbers[number];
                 if (pData?.userId) {
@@ -309,7 +314,6 @@ document.addEventListener('DOMContentLoaded', () => {
         saveRaffleNameBtn.addEventListener('click', saveRaffleName);
         cancelEditRaffleNameBtn.addEventListener('click', hideEditRaffleNameUI);
         saveRulesBtn.addEventListener('click', saveRules);
-        
         rafflesListEl.addEventListener('click', (e) => {
             const deleteBtn = e.target.closest('.delete-raffle-btn');
             if (deleteBtn) {
@@ -401,51 +405,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (querySnapshot.empty) {
                     reportOutputSection.innerHTML = '<p class="text-center text-yellow-400">Nenhum número vendido para esta rifa ainda.</p>';
-                    generateReportBtn.disabled = false;
-                    generateReportBtn.textContent = 'Gerar Relatório';
-                    return;
-                }
+                } else {
+                    const salesByVendor = {};
+                    let totalSoldByVendors = 0;
 
-                const salesByVendor = {};
-                let totalSoldByVendors = 0;
+                    querySnapshot.forEach(doc => {
+                        const data = doc.data();
+                        const number = doc.id;
+                        const vendorId = data.vendorId || 'Vendas Diretas (Sem Vendedor)';
 
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    const number = doc.id;
-                    const vendorId = data.vendorId || 'Vendas Diretas (Sem Vendedor)';
+                        if (!salesByVendor[vendorId]) {
+                            salesByVendor[vendorId] = { count: 0, numbers: [] };
+                        }
+                        salesByVendor[vendorId].count++;
+                        salesByVendor[vendorId].numbers.push(number);
+                        
+                        if(data.vendorId) {
+                            totalSoldByVendors++;
+                        }
+                    });
 
-                    if (!salesByVendor[vendorId]) {
-                        salesByVendor[vendorId] = { count: 0, numbers: [] };
-                    }
-                    salesByVendor[vendorId].count++;
-                    salesByVendor[vendorId].numbers.push(number);
+                    let reportHTML = `<h3 class="text-lg font-semibold text-white">Total de Vendas por Revendedores: ${totalSoldByVendors}</h3>`;
                     
-                    if(data.vendorId) {
-                        totalSoldByVendors++;
+                    for (const vendorId in salesByVendor) {
+                        const vendorData = salesByVendor[vendorId];
+                        vendorData.numbers.sort();
+
+                        const isDirectSale = vendorId === 'Vendas Diretas (Sem Vendedor)';
+                        reportHTML += `
+                            <div class="bg-gray-900 p-4 rounded-lg mt-2">
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="font-bold text-teal-400">${vendorId}</p>
+                                    ${!isDirectSale ? `<button class="get-vendor-link-btn bg-sky-600 hover:bg-sky-700 text-xs px-3 py-1 rounded-md" data-vendor-id="${vendorId}">Recuperar Link</button>` : ''}
+                                </div>
+                                <p class="text-sm text-gray-300">Total de números vendidos: <span class="font-bold">${vendorData.count}</span></p>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    ${vendorData.numbers.map(num => `<span class="bg-blue-500 text-white font-bold px-2 py-1 text-xs rounded-full">${num}</span>`).join(' ')}
+                                </div>
+                            </div>
+                        `;
                     }
-                });
-
-                let reportHTML = `<h3 class="text-lg font-semibold text-white">Total de Vendas por Revendedores: ${totalSoldByVendors}</h3>`;
-                
-                for (const vendorId in salesByVendor) {
-                    const vendorData = salesByVendor[vendorId];
-                    vendorData.numbers.sort();
-
-                    const isDirectSale = vendorId === 'Vendas Diretas (Sem Vendedor)';
-                    reportHTML += `
-                        <div class="bg-gray-900 p-4 rounded-lg mt-2">
-                             <div class="flex justify-between items-center mb-2">
-                                <p class="font-bold text-teal-400">${vendorId}</p>
-                                ${!isDirectSale ? `<button class="get-vendor-link-btn bg-sky-600 hover:bg-sky-700 text-xs px-3 py-1 rounded-md" data-vendor-id="${vendorId}">Recuperar Link</button>` : ''}
-                            </div>
-                            <p class="text-sm text-gray-300">Total de números vendidos: <span class="font-bold">${vendorData.count}</span></p>
-                            <div class="mt-2 flex flex-wrap gap-2">
-                                ${vendorData.numbers.map(num => `<span class="bg-blue-500 text-white font-bold px-2 py-1 text-xs rounded-full">${num}</span>`).join(' ')}
-                            </div>
-                        </div>
-                    `;
+                    reportOutputSection.innerHTML = reportHTML;
                 }
-                reportOutputSection.innerHTML = reportHTML;
             } catch (error) {
                 console.error("Erro ao gerar relatório:", error);
                 reportOutputSection.innerHTML = `<p class="text-center text-red-500">Ocorreu um erro ao gerar o relatório: ${error.message}</p>`;
@@ -459,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     reportOutputSection.addEventListener('click', (e) => {
         if (e.target && e.target.classList.contains('get-vendor-link-btn')) {
             const vendorId = e.target.dataset.vendorId;
-            const raffleId = reportRaffleIdInput.value.trim();
+            const raffleId = reportRaffleIdInput.value.trim() || currentRaffleId;
 
             if (!vendorId) return;
 
