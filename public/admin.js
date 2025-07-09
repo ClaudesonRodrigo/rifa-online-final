@@ -1,4 +1,4 @@
-// public/admin.js (Versão Definitiva - Estrutura de Subcoleção)
+// public/admin.js (Versão Definitiva - Correção da função de Regras)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -82,7 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const editRaffleNameInput = document.getElementById('edit-raffle-name-input');
         const saveRaffleNameBtn = document.getElementById('save-raffle-name-btn');
         const cancelEditRaffleNameBtn = document.getElementById('cancel-edit-raffle-name-btn');
-        const rulesTextarea = document.getElementById('rules-textarea');
+        
+        // ✅ CORREÇÃO APLICADA AQUI
+        const rulesTextArea = document.getElementById('rules-text-area'); 
         const saveRulesBtn = document.getElementById('save-rules-btn');
 
         adminEmailDisplay.textContent = `Logado como: ${user.email}`;
@@ -167,18 +169,37 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) { console.error("Erro ao declarar ganhador:", e); }
         };
         
+        // ✅ LÓGICA CORRIGIDA E COMPLETA PARA AS REGRAS
         const loadRules = async () => {
             try {
                 const docSnap = await getDoc(settingsDocRef);
-                if (docSnap.exists()) rulesTextarea.value = docSnap.data().text || '';
-            } catch (e) { console.error("Erro ao carregar regras:", e); }
+                if (docSnap.exists() && rulesTextArea) {
+                    rulesTextArea.value = docSnap.data().text || '';
+                }
+            } catch (e) { 
+                console.error("Erro ao carregar regras:", e); 
+                alert("Não foi possível carregar as regras.");
+            }
         };
 
         const saveRules = async () => {
+            if (!rulesTextArea.value) {
+                alert("O campo de regras não pode estar vazio.");
+                return;
+            }
+            saveRulesBtn.disabled = true;
+            saveRulesBtn.textContent = 'A salvar...';
+
             try {
-                await setDoc(settingsDocRef, { text: rulesTextarea.value.trim() });
-                alert("Regras guardadas com sucesso!");
-            } catch (e) { console.error("Erro ao guardar as regras:", e); }
+                await setDoc(settingsDocRef, { text: rulesTextArea.value });
+                alert("Regras salvas com sucesso!");
+            } catch (error) {
+                console.error("Erro ao salvar as regras: ", error);
+                alert("Ocorreu um erro ao salvar as regras. Tente novamente.");
+            } finally {
+                saveRulesBtn.disabled = false;
+                saveRulesBtn.textContent = 'Salvar Regras';
+            }
         };
 
         const showEditRaffleNameUI = () => {
@@ -313,7 +334,10 @@ document.addEventListener('DOMContentLoaded', () => {
         editRaffleNameBtn.addEventListener('click', showEditRaffleNameUI);
         saveRaffleNameBtn.addEventListener('click', saveRaffleName);
         cancelEditRaffleNameBtn.addEventListener('click', hideEditRaffleNameUI);
+        
+        // ✅ EVENT LISTENER CORRIGIDO E ATIVADO
         saveRulesBtn.addEventListener('click', saveRules);
+        
         rafflesListEl.addEventListener('click', (e) => {
             const deleteBtn = e.target.closest('.delete-raffle-btn');
             if (deleteBtn) {
@@ -326,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         listenToAllRaffles();
-        loadRules();
+        loadRules(); // Carrega as regras quando o painel é inicializado
     }
     
     onAuthStateChanged(auth, (user) => {
@@ -343,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.addEventListener('click', handleLogin);
     adminPasswordInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') handleLogin(); });
 
+    // Lógica do Gerador de Links
     const raffleIdForVendorInput = document.getElementById('raffle-id-for-vendor');
     const vendorNameInput = document.getElementById('vendor-name');
     const generateVendorLinkBtn = document.getElementById('generate-vendor-link-btn');
@@ -353,9 +378,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(generateVendorLinkBtn) {
         generateVendorLinkBtn.addEventListener('click', () => {
-            const raffleId = raffleIdForVendorInput.value.trim() || currentRaffleId;
+            const raffleId = raffleIdForVendorInput.value.trim(); // Removido o || currentRaffleId para evitar confusão
             if(!raffleId) {
-                alert('Por favor, selecione uma rifa da lista ou cole o ID.');
+                alert('Por favor, cole o ID da rifa para gerar o link.');
                 return;
             }
             raffleIdForVendorInput.value = raffleId;
@@ -383,15 +408,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Lógica do Relatório de Vendas
     const reportRaffleIdInput = document.getElementById('report-raffle-id');
     const generateReportBtn = document.getElementById('generate-report-btn');
     const reportOutputSection = document.getElementById('report-output-section');
 
     if(generateReportBtn) {
         generateReportBtn.addEventListener('click', async () => {
-            const raffleId = reportRaffleIdInput.value.trim() || currentRaffleId;
+            const raffleId = reportRaffleIdInput.value.trim(); // Removido o || currentRaffleId
             if(!raffleId) {
-                alert('Por favor, selecione uma rifa da lista ou cole o ID para gerar o relatório.');
+                alert('Por favor, cole o ID da rifa para gerar o relatório.');
                 return;
             }
             reportRaffleIdInput.value = raffleId;
@@ -460,9 +486,9 @@ document.addEventListener('DOMContentLoaded', () => {
     reportOutputSection.addEventListener('click', (e) => {
         if (e.target && e.target.classList.contains('get-vendor-link-btn')) {
             const vendorId = e.target.dataset.vendorId;
-            const raffleId = reportRaffleIdInput.value.trim() || currentRaffleId;
+            const raffleId = reportRaffleIdInput.value.trim();
 
-            if (!vendorId) return;
+            if (!vendorId || !raffleId) return;
 
             raffleIdForVendorInput.value = raffleId;
             vendorNameInput.value = vendorId;
