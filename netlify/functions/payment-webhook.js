@@ -1,27 +1,30 @@
-// netlify/functions/payment-webhook.js (Versão com Subcoleção)
+// netlify/functions/payment-webhook.js (Atualizado com contador)
 
 import { MercadoPagoConfig, Payment } from 'mercadopago';
 import admin from 'firebase-admin';
 
+// Função para inicializar o Firebase Admin (sem alterações)
 function initializeFirebaseAdmin() {
-    if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        throw new Error("A chave de serviço do Firebase não está configurada.");
+    if (admin.apps.length) {
+        return admin.firestore();
     }
-    if (!admin.apps.length) {
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-        admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount),
-        });
-    }
+    const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8'));
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+    });
     return admin.firestore();
 }
 
 exports.handler = async function(event) {
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: 'Method Not Allowed' };
+    }
+
     const db = initializeFirebaseAdmin();
     const body = JSON.parse(event.body);
 
     if (body.type !== 'payment') {
-        return { statusCode: 200, body: 'Notificação ignorada.' };
+        return { statusCode: 200, body: 'Notificação não relacionada a pagamento, ignorada.' };
     }
 
     try {
@@ -42,15 +45,17 @@ exports.handler = async function(event) {
                 vendor_id
             } = paymentInfo.metadata;
 
-            if (!raffle_id || !user_id) {
-                return { statusCode: 400, body: 'Dados essenciais em falta.' };
+            if (!raffle_id || !user_id || !selected_numbers || selected_numbers.length === 0) {
+                console.warn("Webhook recebido com dados de metadados insuficientes.", paymentInfo.metadata);
+                return { statusCode: 400, body: 'Dados essenciais em falta nos metadados do pagamento.' };
             }
 
             const rifaDocRef = db.collection('rifas').doc(raffle_id);
             const soldNumbersColRef = rifaDocRef.collection('sold_numbers');
 
             await db.runTransaction(async (transaction) => {
-                const numberDocs = await transaction.getAll(...selected_numbers.map(num => soldNumbersColRef.doc(num)));
+                const numberDocsPromises = selected_numbers.map(num => transaction.get(soldNumbersColRef.doc(num)));
+                const numberDocs = await Promise.all(numberDocsPromises);
                 
                 for (const doc of numberDocs) {
                     if (doc.exists) {
@@ -71,11 +76,14 @@ exports.handler = async function(event) {
                     dataToSave.vendorId = vendor_id;
                 }
 
-                // ✅ LÓGICA ATUALIZADA: Cria um novo documento para cada número
                 selected_numbers.forEach(number => {
                     const newNumberDocRef = soldNumbersColRef.doc(number);
                     transaction.set(newNumberDocRef, dataToSave);
                 });
+
+                // ✅ NOVA LÓGICA: Incrementa o contador de vendidos no documento principal
+                const increment = admin.firestore.FieldValue.increment(selected_numbers.length);
+                transaction.update(rifaDocRef, { soldCount: increment });
             });
         }
     } catch (error) {
