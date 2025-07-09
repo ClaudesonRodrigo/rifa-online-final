@@ -1,4 +1,4 @@
-// public/admin.js (Versão Definitiva - Correção da função de Regras)
+// public/admin.js (Versão Definitiva - Correção da função de Regras - COMPLETO)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(generateVendorLinkBtn) {
         generateVendorLinkBtn.addEventListener('click', () => {
-            const raffleId = raffleIdForVendorInput.value.trim(); // Removido o || currentRaffleId para evitar confusão
+            const raffleId = raffleIdForVendorInput.value.trim();
             if(!raffleId) {
                 alert('Por favor, cole o ID da rifa para gerar o link.');
                 return;
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(generateReportBtn) {
         generateReportBtn.addEventListener('click', async () => {
-            const raffleId = reportRaffleIdInput.value.trim(); // Removido o || currentRaffleId
+            const raffleId = reportRaffleIdInput.value.trim();
             if(!raffleId) {
                 alert('Por favor, cole o ID da rifa para gerar o relatório.');
                 return;
