@@ -60,6 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const luckThemeInput = document.getElementById('luck-theme-input');
     const getLuckyNumbersBtn = document.getElementById('get-lucky-numbers-btn');
     const luckyNumbersResult = document.getElementById('lucky-numbers-result');
+    const myNumbersSection = document.getElementById('my-numbers-section');
+    const myNumbersList = document.getElementById('my-numbers-list');
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -85,7 +87,27 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
+    // NOVA FUNÇÃO
+    function displayMyNumbers(myNumbers) {
+        if (!myNumbersSection || !myNumbersList) return;
+    
+        // Se o usuário não tem números comprados, esconde a seção e termina
+        if (myNumbers.length === 0) {
+            myNumbersSection.classList.add('hidden');
+            return;
+        }
+    
+        // Se ele tem números, mostra a seção e preenche a lista
+        myNumbersSection.classList.remove('hidden');
+        myNumbersList.innerHTML = ''; // Limpa a lista antes de adicionar
+    
+        myNumbers.sort().forEach(num => {
+            const el = document.createElement('span');
+            el.className = 'bg-purple-600 text-white font-bold px-4 py-2 rounded-full text-lg shadow-lg';
+            el.textContent = num;
+            myNumbersList.appendChild(el);
+        });
+    }
     function loadUserDataOrShowLogin() {
         const savedUser = localStorage.getItem(`rifaUser`);
         if (savedUser) {
@@ -138,11 +160,20 @@ document.addEventListener('DOMContentLoaded', () => {
         checkPaymentStatus();
     }
 
+    // Função existente, agora modificada
     function updateSoldNumbersUI() {
         const soldCount = Object.keys(soldNumbersData).length;
         updateRaffleProgress(soldCount, totalNumbersInRaffle);
         updateRecentBuyers(soldNumbersData);
         renderNumberGrid(totalNumbersInRaffle);
+    
+        // ✅ LÓGICA ADICIONADA AQUI ✅
+        // Filtra a lista de todos os números vendidos para encontrar apenas os do usuário atual
+        const myNumbers = Object.keys(soldNumbersData).filter(
+            number => soldNumbersData[number].userId === userId
+        );
+        // Chama a nova função para exibir os números encontrados
+        displayMyNumbers(myNumbers);
     }
 
     function renderNumberGrid(maxNumbers) {
