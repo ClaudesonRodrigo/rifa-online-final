@@ -1,4 +1,4 @@
-// public/rifa.js (Versão final, corrigida em 08/07/2025)
+// public/rifa.js (Versão final, corrigida em 11/07/2025)
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -87,19 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // NOVA FUNÇÃO
+
     function displayMyNumbers(myNumbers) {
         if (!myNumbersSection || !myNumbersList) return;
     
-        // Se o usuário não tem números comprados, esconde a seção e termina
         if (myNumbers.length === 0) {
             myNumbersSection.classList.add('hidden');
             return;
         }
     
-        // Se ele tem números, mostra a seção e preenche a lista
         myNumbersSection.classList.remove('hidden');
-        myNumbersList.innerHTML = ''; // Limpa a lista antes de adicionar
+        myNumbersList.innerHTML = ''; 
     
         myNumbers.sort().forEach(num => {
             const el = document.createElement('span');
@@ -108,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             myNumbersList.appendChild(el);
         });
     }
+
     function loadUserDataOrShowLogin() {
         const savedUser = localStorage.getItem(`rifaUser`);
         if (savedUser) {
@@ -160,18 +159,18 @@ document.addEventListener('DOMContentLoaded', () => {
         checkPaymentStatus();
     }
 
-    // Função existente, agora modificada
+    // ✅ FUNÇÃO CORRIGIDA E SEM CONFLITOS ✅
     function updateSoldNumbersUI() {
         const soldCount = Object.keys(soldNumbersData).length;
         updateRaffleProgress(soldCount, totalNumbersInRaffle);
         updateRecentBuyers(soldNumbersData);
         renderNumberGrid(totalNumbersInRaffle);
     
-        // ✅ LÓGICA ADICIONADA AQUI ✅
         // Filtra a lista de todos os números vendidos para encontrar apenas os do usuário atual
         const myNumbers = Object.keys(soldNumbersData).filter(
-            number => soldNumbersData[number].userId === userId
+            number => soldNumbersData[number]?.userId === userId
         );
+    
         // Chama a nova função para exibir os números encontrados
         displayMyNumbers(myNumbers);
     }
@@ -290,57 +289,54 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
-   // Substitua a sua função handleCheckout atual por esta:
+    async function handleCheckout() {
+        if (isTestMode) return handleTestCheckout();
+        if (selectedNumbers.length === 0) return;
 
-async function handleCheckout() {
-    if (isTestMode) return handleTestCheckout();
-    if (selectedNumbers.length === 0) return;
-
-    checkoutBtn.disabled = true;
-    checkoutBtn.textContent = 'A gerar link...';
-    paymentStatusEl.textContent = 'Aguarde...';
-    paymentStatusEl.classList.remove('hidden');
-    
-    const items = selectedNumbers.map(n => ({ 
-        id: formatNumberForRaffleType(parseInt(n), raffleType), 
-        title: `Rifa - ${raffleDetails.name} - Nº ${formatNumberForRaffleType(parseInt(n), raffleType)}`, 
-        quantity: 1, 
-        unit_price: pricePerNumber, 
-        currency_id: 'BRL' 
-    }));
-    
-    const payerData = { ...currentUser, userId, raffleId: raffleId };
-    
-    // Captura o vendorId da URL, se existir
-    const urlParams = new URLSearchParams(window.location.search);
-    const vendorId = urlParams.get('vendor') || null;
-    if (vendorId) {
-        payerData.vendorId = vendorId;
-    }
-
-    try {
-        const res = await fetch('/.netlify/functions/create-payment', { 
-            method: 'POST', 
-            body: JSON.stringify({ items, payerData }) 
-        });
-
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || 'Falha ao gerar link de pagamento.');
+        checkoutBtn.disabled = true;
+        checkoutBtn.textContent = 'A gerar link...';
+        paymentStatusEl.textContent = 'Aguarde...';
+        paymentStatusEl.classList.remove('hidden');
+        
+        const items = selectedNumbers.map(n => ({ 
+            id: formatNumberForRaffleType(parseInt(n), raffleType), 
+            title: `Rifa - ${raffleDetails.name} - Nº ${formatNumberForRaffleType(parseInt(n), raffleType)}`, 
+            quantity: 1, 
+            unit_price: pricePerNumber, 
+            currency_id: 'BRL' 
+        }));
+        
+        const payerData = { ...currentUser, userId, raffleId: raffleId };
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const vendorId = urlParams.get('vendor') || null;
+        if (vendorId) {
+            payerData.vendorId = vendorId;
         }
 
-        const data = await res.json();
-        if (data.checkoutUrl) {
-            localStorage.setItem('pendingRaffleId', raffleId);
-            localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers.map(n => formatNumberForRaffleType(parseInt(n), raffleType))));
-            window.location.href = data.checkoutUrl;
+        try {
+            const res = await fetch('/.netlify/functions/create-payment', { 
+                method: 'POST', 
+                body: JSON.stringify({ items, payerData }) 
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Falha ao gerar link de pagamento.');
+            }
+
+            const data = await res.json();
+            if (data.checkoutUrl) {
+                localStorage.setItem('pendingRaffleId', raffleId);
+                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers.map(n => formatNumberForRaffleType(parseInt(n), raffleType))));
+                window.location.href = data.checkoutUrl;
+            }
+        } catch (e) {
+            paymentStatusEl.textContent = `Erro ao gerar link: ${e.message}`;
+            checkoutBtn.disabled = false;
+            checkoutBtn.textContent = 'Pagar com Mercado Pago';
         }
-    } catch (e) {
-        paymentStatusEl.textContent = `Erro ao gerar link: ${e.message}`;
-        checkoutBtn.disabled = false;
-        checkoutBtn.textContent = 'Pagar com Mercado Pago';
     }
-}
 
     async function handleTestCheckout() {
         if (selectedNumbers.length === 0) return alert("Nenhum número selecionado.");
@@ -424,7 +420,7 @@ async function handleCheckout() {
             const purchaseDetails = data[number];
             if (purchaseDetails && purchaseDetails.userId && purchaseDetails.createdAt?.toDate) {
                 const userId = purchaseDetails.userId;
-        
+            
                 if (!purchasesByUser[userId]) {
                     purchasesByUser[userId] = {
                         name: purchaseDetails.name,
@@ -432,9 +428,9 @@ async function handleCheckout() {
                         lastPurchase: purchaseDetails.createdAt.toDate()
                     };
                 }
-        
+            
                 purchasesByUser[userId].numbers.push(number);
-        
+            
                 if (purchaseDetails.createdAt.toDate() > purchasesByUser[userId].lastPurchase) {
                     purchasesByUser[userId].lastPurchase = purchaseDetails.createdAt.toDate();
                 }
