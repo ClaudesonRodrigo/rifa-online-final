@@ -3,21 +3,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, onSnapshot, getDoc, setDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+import { app } from './firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CONFIGURAÇÃO ---
-    const firebaseConfig = {
-        apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
-        authDomain: "cemvezesmais-1ab48.firebaseapp.com",
-        projectId: "cemvezesmais-1ab48",
-        storageBucket: "cemvezesmais-1ab48.firebasestorage.app",
-        messagingSenderId: "206492928997",
-        appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
-        measurementId: "G-G3BX961SHY"
-    };
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
-    const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
     
