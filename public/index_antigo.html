@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifas Online - Sorte Premiada</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4 md:p-8">
+
+    <div class="w-full max-w-5xl mx-auto">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
+                Rifas Disponíveis
+            </h1>
+            <p class="text-gray-400 mt-2">Escolha uma rifa abaixo e participe para ganhar!</p>
+        </header>
+
+        <!-- Container para a lista de rifas -->
+        <main id="raffles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- As rifas serão carregadas aqui pelo JavaScript -->
+            <div class="text-center md:col-span-2 lg:col-span-3 py-10">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
+                <p class="mt-4 text-lg">A carregar rifas...</p>
+            </div>
+        </main>
+
+        <footer class="text-center mt-12">
+            <a href="/admin.html" class="text-sm text-gray-500 hover:text-blue-400">Acesso do Administrador</a>
+        </footer>
+    </div>
+
+    <!-- Este script é responsável por esta página -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>

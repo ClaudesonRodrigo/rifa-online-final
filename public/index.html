@@ -1,39 +1,153 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rifas Online - Sorte Premiada</title>
+    <title>Sorteio Sergipano - A Sua Sorte Começa Aqui!</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-900 text-white min-h-screen p-4 md:p-8">
+<body class="bg-gray-900 text-white">
 
-    <div class="w-full max-w-5xl mx-auto">
-        <header class="text-center mb-10">
-            <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
-                Rifas Disponíveis
+    <section id="hero" class="h-screen flex items-center justify-center text-center bg-cover bg-center" style="background-image: url('/image/sorteio-festa.jpg');">
+        <div class="bg-black bg-opacity-70 p-10 rounded-lg">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white">
+                Sorteios pela Federal: <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">A Sua Chance de Ganhar!</span>
             </h1>
-            <p class="text-gray-400 mt-2">Escolha uma rifa abaixo e participe para ganhar!</p>
-        </header>
+            <p class="text-lg md:text-xl text-gray-300 mt-4 max-w-2xl mx-auto">
+                Participe de nossos sorteios com total segurança e concorra a prêmios incríveis. O próximo ganhador pode ser você.
+            </p>
+            <a href="#rifas-ativas" class="mt-8 inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 px-8 rounded-full transition-transform transform hover:scale-105">
+                Ver Sorteio Ativados Agora
+            </a>
+        </div>
+    </section>
 
-        <!-- Container para a lista de rifas -->
-        <main id="raffles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- As rifas serão carregadas aqui pelo JavaScript -->
-            <div class="text-center md:col-span-2 lg:col-span-3 py-10">
-                <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
-                <p class="mt-4 text-lg">A carregar rifas...</p>
+    <section id="como-funciona" class="py-20 bg-gray-800">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-12">Participar é Fácil, Rápido e 100% Seguro</h2>
+            <div class="grid md:grid-cols-4 gap-10">
+                <div class="text-center">
+                    <div class="text-blue-400 text-5xl mb-4"><i class="fas fa-tasks"></i></div>
+                    <h3 class="text-xl font-bold mb-2">1. Escolha O Sorteio</h3>
+                    <p class="text-gray-400">Navegue pelos prêmios e escolha o que mais te agrada.</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-blue-400 text-5xl mb-4"><i class="fas fa-check-double"></i></div>
+                    <h3 class="text-xl font-bold mb-2">2. Selecione os Números</h3>
+                    <p class="text-gray-400">Escolha quantos números da sorte você quiser na cartela.</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-blue-400 text-5xl mb-4"><i class="fas fa-credit-card"></i></div>
+                    <h3 class="text-xl font-bold mb-2">3. Pague com Segurança</h3>
+                    <p class="text-gray-400">Pagamento 100% seguro via PIX ou Cartão com Mercado Pago.</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-blue-400 text-5xl mb-4"><i class="fas fa-trophy"></i></div>
+                    <h3 class="text-xl font-bold mb-2">4. Acompanhe e Torça!</h3>
+                    <p class="text-gray-400">Sorteios baseados na Loteria Federal. Boa sorte!</p>
+                </div>
             </div>
-        </main>
+        </div>
+    </section>
 
-        <footer class="text-center mt-12">
-            <a href="/admin.html" class="text-sm text-gray-500 hover:text-blue-400">Acesso do Administrador</a>
-        </footer>
+    <section id="rifas-ativas" class="py-20">
+        <div class="w-full max-w-5xl mx-auto px-4">
+            <header class="text-center mb-10">
+                <h2 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300">
+                    Prêmios Esperando por Você
+                </h2>
+                <p class="text-gray-400 mt-2">Escolha um sorteio abaixo e participe para ganhar!</p>
+            </header>
+            <main id="raffles-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="text-center md:col-span-2 lg:col-span-3 py-10">
+                    <i class="fas fa-spinner fa-spin text-4xl text-blue-400"></i>
+                    <p class="mt-4 text-lg">A carregar sorteio...</p>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <section id="prova-social" class="py-20 bg-gray-800">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-12">A Sorte já Bateu na Porta de Muitos Sergipanos!</h2>
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                 <div class="bg-gray-700 p-6 rounded-lg flex items-center gap-4">
+                    <img src="https://ui-avatars.com/api/?name=Maria+Silva&background=0ea5e9&color=fff&size=96" alt="Foto de Ganhadora" class="rounded-full">
+                    <div>
+                        <p class="font-bold text-lg">Maria S. - Aracaju/SE</p>
+                        <p class="text-yellow-400 font-semibold">Ganhadora de R$ 5.000 no PIX</p>
+                        <p class="text-gray-300 mt-2 italic">"No começo duvidei, mas arrisquei e ganhei! O site é muito sério e recebi o prêmio no mesmo dia. Recomendo!"</p>
+                    </div>
+                 </div>
+                 <div class="bg-gray-700 p-6 rounded-lg flex items-center gap-4">
+                    <img src="https://ui-avatars.com/api/?name=Joao+Costa&background=10b981&color=fff&size=96" alt="Foto de Ganhador" class="rounded-full">
+                    <div>
+                        <p class="font-bold text-lg">João C. - Itabaiana/SE</p>
+                        <p class="text-yellow-400 font-semibold">Ganhador de uma Moto 0km</p>
+                        <p class="text-gray-300 mt-2 italic">"Comprei só 3 números pra testar e fui o sorteado! Inacreditável! Plataforma de confiança."</p>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </section>
+
+   <section id="faq" class="py-20">
+    <div class="max-w-3xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-12">Dúvidas Frequentes</h2>
+        
+        <div class="space-y-4">
+            <div class="bg-gray-800 rounded-lg">
+                <button class="faq-question w-full flex justify-between items-center text-left p-4 font-semibold text-lg">
+                    <span>O site Sorteio Sergipano é confiável?</span>
+                    <i class="fas fa-plus transition-transform"></i>
+                </button>
+                <div class="faq-answer hidden p-4 border-t border-gray-700 text-gray-300">
+                    <p>Sim! Nossa plataforma utiliza o Mercado Pago, um dos gateways de pagamento mais seguros do Brasil, para todas as transações. Além disso, nossos sorteios são todos baseados nos resultados oficiais da Loteria Federal, garantindo total transparência e isenção.</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg">
+                <button class="faq-question w-full flex justify-between items-center text-left p-4 font-semibold text-lg">
+                    <span>Como sei que o sorteio não é manipulado?</span>
+                    <i class="fas fa-plus transition-transform"></i>
+                </button>
+                <div class="faq-answer hidden p-4 border-t border-gray-700 text-gray-300">
+                    <p>A lisura do sorteio é nossa prioridade máxima. Utilizamos os resultados do 1º prêmio da Loteria Federal como base para definir o número ganhador. Qualquer pessoa pode conferir o resultado diretamente no site da Caixa Econômica Federal na data do sorteio.</p>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 rounded-lg">
+                <button class="faq-question w-full flex justify-between items-center text-left p-4 font-semibold text-lg">
+                    <span>Se eu ganhar, como recebo o meu prêmio?</span>
+                    <i class="fas fa-plus transition-transform"></i>
+                </button>
+                <div class="faq-answer hidden p-4 border-t border-gray-700 text-gray-300">
+                    <p>Entraremos em contato com o ganhador através do e-mail e WhatsApp cadastrados no momento da compra. Para prêmios em dinheiro (PIX), a transferência é feita para a chave PIX informada. Para prêmios físicos, combinamos a entrega diretamente com o ganhador.</p>
+                </div>
+            </div>
+        </div>
     </div>
+</section>
 
-    <!-- Este script é responsável por esta página -->
+    <section id="cta-final" class="py-20 bg-blue-900/20">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold">Não Deixe a Sua Sorte Passar.</h2>
+            <a href="#rifas-ativas" class="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 px-8 rounded-full transition-transform transform hover:scale-105">
+                Participar de um dos sorteios Agora!
+            </a>
+        </div>
+    </section>
+
+    <footer class="text-center py-8 border-t border-gray-800">
+        <p class="text-gray-500">&copy; 2025 Sorteio Federal. Todos os direitos reservados.</p>
+        <a href="/admin.html" class="text-sm text-gray-500 hover:text-blue-400 mt-2 inline-block">Acesso do Administrador</a>
+    </footer>
+
     <script type="module" src="script.js"></script>
+    <script type="module" src="landing-page.js"></script> </body>
+</html>
 </body>
 </html>
