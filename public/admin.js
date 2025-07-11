@@ -7,8 +7,6 @@ import { app } from './firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    
-    const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
     const rafflesCollectionRef = collection(db, "rifas");
