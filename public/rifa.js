@@ -5,7 +5,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getFirestore, doc, onSnapshot, getDoc, setDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { app } from './firebase-init.js';
 
-
+document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
     const db = getFirestore(app);
