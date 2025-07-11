@@ -3,16 +3,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { app } from './firebase-init.js';
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCNFkoa4Ark8R2uzhX95NlV8Buwg2GHhvo",
-    authDomain: "cemvezesmais-1ab48.firebaseapp.com",
-    projectId: "cemvezesmais-1ab48",
-    storageBucket: "cemvezesmais-1ab48.firebasestorage.app",
-    messagingSenderId: "206492928997",
-    appId: "1:206492928997:web:763cd52f3e9e91a582fd0c",
-    measurementId: "G-G3BX961SHY"
-};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
