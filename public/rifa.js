@@ -143,6 +143,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateRaffleProgress(soldCount, totalNumbersInRaffle);
         updateRecentBuyers(soldNumbersData);
         renderNumberGrid(totalNumbersInRaffle);
+        const myNumbers = Object.keys(soldNumbersData).filter(
+        number => soldNumbersData[number]?.userId === userId
+        );
+        displayMyNumbers(myNumbers);
     }
 
     function renderNumberGrid(maxNumbers) {
