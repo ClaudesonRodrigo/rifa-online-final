@@ -5,8 +5,6 @@ import { getFirestore, collection, query, where, onSnapshot } from "https://www.
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { app } from './firebase-init.js';
 
-
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const rafflesCollectionRef = collection(db, "rifas");
