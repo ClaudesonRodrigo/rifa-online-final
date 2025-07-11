@@ -8,7 +8,6 @@ import { app } from './firebase-init.js';
 
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
-    const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
     
