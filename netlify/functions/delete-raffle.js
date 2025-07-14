@@ -1,83 +1,87 @@
-// netlify/functions/delete-raffle.js - Versão Corrigida
+// netlify/functions/delete-raffle.js - Versão Correta para o projeto rifa-online-final
 
-const admin = require('./firebase-admin-config');
-const db = admin.firestore();
+const admin = require('firebase-admin');
 
-// Função auxiliar para apagar uma coleção inteira (necessária para os sub-dados)
-async function deleteCollection(collectionPath, batchSize) {
-  const collectionRef = db.collection(collectionPath);
-  const query = collectionRef.limit(batchSize);
+// Função para inicializar o Firebase Admin
+function initializeFirebaseAdmin() {
+    // Evita que o app seja inicializado mais de uma vez se a função for chamada "a quente"
+    if (admin.apps.length) {
+        return;
+    }
+    // Pega a chave da variável de ambiente e decodifica
+    const serviceAccount = JSON.parse(
+        Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8')
+    );
+    // Inicializa o Firebase
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+    });
+}
 
-  return new Promise((resolve, reject) => {
-    deleteQueryBatch(query, resolve).catch(reject);
-  });
+// Função para apagar uma coleção inteira em lotes
+async function deleteCollection(db, collectionPath, batchSize) {
+    const collectionRef = db.collection(collectionPath);
+    const query = collectionRef.limit(batchSize);
 
-  async function deleteQueryBatch(query, resolve) {
+    return new Promise((resolve, reject) => {
+        deleteQueryBatch(query, resolve, db).catch(reject);
+    });
+}
+
+async function deleteQueryBatch(query, resolve, db) {
     const snapshot = await query.get();
-
     if (snapshot.size === 0) {
-      return resolve();
+        return resolve();
     }
 
     const batch = db.batch();
     snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
+        batch.delete(doc.ref);
     });
     await batch.commit();
 
     process.nextTick(() => {
-      deleteQueryBatch(query, resolve);
+        deleteQueryBatch(query, resolve, db);
     });
-  }
 }
 
-exports.handler = async (event) => {
-  // 1. Validação de segurança básica
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Método não permitido' }),
-      headers: { 'Content-Type': 'application/json' },
-    };
-  }
-
-  try {
-    const { raffleId } = JSON.parse(event.body);
-    if (!raffleId) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'O ID do sorteio (raffleId) é obrigatório' }),
-        headers: { 'Content-Type': 'application/json' },
-      };
+// Handler principal da função Netlify
+exports.handler = async function(event) {
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: 'Method Not Allowed' };
     }
 
-    const raffleRef = db.collection('rifas').doc(raffleId);
+    try {
+        const { raffleId } = JSON.parse(event.body);
+        if (!raffleId) {
+            return { statusCode: 400, body: JSON.stringify({ error: 'O ID do sorteio é obrigatório.' }) };
+        }
 
-    // Apagar sub-coleções primeiro para não deixar dados órfãos
-    await deleteCollection(`rifas/${raffleId}/sold_numbers`, 100);
-    await deleteCollection(`rifas/${raffleId}/vendors`, 100); // Se você usa a gestão de revendedores
+        // Garante que o Firebase Admin está inicializado
+        initializeFirebaseAdmin();
+        const db = admin.firestore();
+        
+        const raffleRef = db.collection('rifas').doc(raffleId);
+        
+        // Apaga a subcoleção 'sold_numbers'
+        await deleteCollection(db, `rifas/${raffleId}/sold_numbers`, 100);
 
-    // Agora apagar o documento principal do sorteio
-    await raffleRef.delete();
+        // Apaga a subcoleção 'vendors' (se existir)
+        await deleteCollection(db, `rifas/${raffleId}/vendors`, 100);
 
-    console.log(`SUCESSO: Sorteio ${raffleId} e seus sub-dados foram apagados.`);
+        // Apaga o documento principal do sorteio
+        await raffleRef.delete();
 
-    // 2. Resposta de sucesso em JSON
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: `Sorteio ${raffleId} apagado com sucesso!` }),
-      headers: { 'Content-Type': 'application/json' },
-    };
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ message: `Sorteio ${raffleId} e todos os seus dados foram apagados com sucesso.` }),
+        };
 
-  } catch (error) {
-    console.error("ERRO AO APAGAR SORTEIO:", error);
-
-    // 3. Resposta de erro SEMPRE em JSON
-    return {
-      statusCode: 500,
-      // Garante que a mensagem de erro esteja dentro de um objeto JSON válido
-      body: JSON.stringify({ error: `Falha ao apagar o sorteio: ${error.message}` }),
-      headers: { 'Content-Type': 'application/json' },
-    };
-  }
+    } catch (error) {
+        console.error("Erro ao apagar sorteio:", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: `Falha ao apagar o sorteio: ${error.message}` }),
+        };
+    }
 };
