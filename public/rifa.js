@@ -169,10 +169,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const isRaffleOver = !!raffleDetails.winner;
         if (!numberGrid) return;
         numberGrid.innerHTML = '';
-        if (maxNumbers === 10000) numberGrid.className = "grid grid-cols-10 sm:grid-cols-20 gap-1 md:gap-2 mb-8";
-        else if (maxNumbers === 1000) numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
-        else numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
-        for (let i = 0; i < maxNumbers; i++) {
+        // ✅ VERSÃO NOVA E RESPONSIVA
+            if (maxNumbers === 10000) {
+                numberGrid.className = "grid-milhar mb-8"; // Usa nossa nova classe inteligente
+            } else {
+                // Mantém a lógica antiga para dezena e centena, que já funciona bem
+                numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
+            }
             const numberStr = formatNumberForRaffleType(i, raffleType);
             const ownerData = soldNumbersData[numberStr];
             const button = document.createElement('button');
