@@ -165,39 +165,47 @@ document.addEventListener('DOMContentLoaded', () => {
         displayMyNumbers(myNumbers);
     }
 
-    function renderNumberGrid(maxNumbers) {
-        const isRaffleOver = !!raffleDetails.winner;
-        if (!numberGrid) return;
-        numberGrid.innerHTML = '';
-        // ✅ VERSÃO NOVA E RESPONSIVA
-            if (maxNumbers === 10000) {
-                numberGrid.className = "grid-milhar mb-8"; // Usa nossa nova classe inteligente
-            } else {
-                // Mantém a lógica antiga para dezena e centena, que já funciona bem
-                numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
-            }
-            const numberStr = formatNumberForRaffleType(i, raffleType);
-            const ownerData = soldNumbersData[numberStr];
-            const button = document.createElement('button');
-            button.textContent = numberStr;
-            button.dataset.number = numberStr;
-            button.className = "p-2 rounded-lg text-xs sm:text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
-            if (ownerData) {
-                button.disabled = true;
-                button.classList.add(ownerData.userId === userId ? 'bg-purple-600' : 'bg-gray-600', 'cursor-not-allowed', 'opacity-70');
-            } else {
-                if (isRaffleOver) {
-                    button.disabled = true;
-                    button.classList.add('bg-gray-700', 'cursor-not-allowed', 'opacity-50');
-                } else {
-                    button.classList.add(selectedNumbers.includes(numberStr) ? 'number-selected' : 'bg-blue-500', 'hover:bg-blue-400', 'number-available');
-                    button.addEventListener('click', handleNumberClick);
-                }
-            }
-            numberGrid.appendChild(button);
-        }
+   function renderNumberGrid(maxNumbers) {
+    const isRaffleOver = !!raffleDetails.winner;
+    if (!numberGrid) return;
+    
+    numberGrid.innerHTML = '';
+
+    // ✅ LÓGICA DE RESPONSIVIDADE ATUALIZADA
+    if (maxNumbers === 10000) {
+        numberGrid.className = "grid-milhar mb-8"; // Usa a nova classe CSS flexível
+    } else {
+        // Mantém a lógica antiga para dezena e centena
+        numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
     }
 
+    for (let i = 0; i < maxNumbers; i++) {
+        const numberStr = formatNumberForRaffleType(i, raffleType);
+        const ownerData = soldNumbersData[numberStr];
+        const button = document.createElement('button');
+        button.textContent = numberStr;
+        button.dataset.number = numberStr;
+        
+        // ✅ LÓGICA DE CLASSES DO BOTÃO ATUALIZADA
+        // Inclui text-xs e sm:text-sm para melhor responsividade da fonte
+        let buttonClasses = "p-2 rounded-lg text-xs sm:text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+
+        if (ownerData) {
+            button.disabled = true;
+            buttonClasses += (ownerData.userId === userId ? ' bg-purple-600' : ' bg-gray-600') + ' cursor-not-allowed opacity-70';
+        } else {
+            if (isRaffleOver) {
+                button.disabled = true;
+                buttonClasses += ' bg-gray-700 cursor-not-allowed opacity-50';
+            } else {
+                buttonClasses += selectedNumbers.includes(numberStr) ? ' number-selected' : ' bg-blue-500 hover:bg-blue-400 number-available';
+                button.addEventListener('click', handleNumberClick);
+            }
+        }
+        button.className = buttonClasses;
+        numberGrid.appendChild(button);
+    }
+}
     function formatNumberForRaffleType(num, type) {
         if (type === 'centena') return num.toString().padStart(3, '0');
         if (type === 'milhar') return num.toString().padStart(4, '0');
