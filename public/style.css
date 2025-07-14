@@ -70,3 +70,15 @@ body {
 .delay-100 { transition-delay: 100ms; }
 .delay-200 { transition-delay: 200ms; }
 .delay-300 { transition-delay: 300ms; }
+/* Adicionado para a responsividade da rifa de Milhar */
+.grid-milhar {
+  display: grid;
+  gap: 0.25rem; /* 4px de espaço, pode ajustar se quiser */
+  
+  /* A mágica acontece aqui:
+    - auto-fill: Crie quantas colunas puder.
+    - minmax(55px, 1fr): Cada coluna deve ter no MÍNIMO 55px de largura, 
+      mas pode crescer para preencher o espaço disponível (1fr).
+  */
+  grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+}
