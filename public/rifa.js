@@ -5,6 +5,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gsta
 import { getFirestore, doc, onSnapshot, getDoc, setDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 import { app } from './firebase-init.js';
 
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- INICIALIZAÇÃO DOS SERVIÇOS ---
@@ -52,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const luckyNumbersResult = document.getElementById('lucky-numbers-result');
     const myNumbersSection = document.getElementById('my-numbers-section');
     const myNumbersList = document.getElementById('my-numbers-list');
+    const cotasSection = document.getElementById('cotas-section');
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -96,6 +98,38 @@ document.addEventListener('DOMContentLoaded', () => {
             myNumbersList.appendChild(el);
         });
     }
+    const handleCotaClick = (event) => {
+    if (!event.target.classList.contains('cota-btn')) return;
+
+    const quantity = parseInt(event.target.dataset.quantity, 10);
+    
+    const allPossibleNumbers = Array.from({ length: totalNumbersInRaffle }, (_, i) => formatNumberForRaffleType(i, raffleType));
+    
+    const availableNumbers = allPossibleNumbers.filter(num => !soldNumbersData[num]);
+
+    if (availableNumbers.length < quantity) {
+        return alert(`Não há ${quantity} números disponíveis para esta cota. Por favor, escolha uma cota menor ou selecione manualmente.`);
+    }
+
+    for (let i = availableNumbers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availableNumbers[i], availableNumbers[j]] = [availableNumbers[j], availableNumbers[i]];
+    }
+
+    const randomSelection = availableNumbers.slice(0, quantity);
+
+    selectedNumbers = []; 
+    randomSelection.forEach(num => {
+        if (!selectedNumbers.includes(num)) {
+            selectedNumbers.push(num);
+        }
+    });
+    
+    alert(`${quantity} números aleatórios foram adicionados ao seu carrinho!`);
+    updateShoppingCart();
+    renderNumberGrid(totalNumbersInRaffle);
+    shoppingCartSection.scrollIntoView({ behavior: 'smooth' });
+};
 
     function loadUserDataOrShowLogin() {
         const savedUser = localStorage.getItem(`rifaUser`);
@@ -165,46 +199,53 @@ document.addEventListener('DOMContentLoaded', () => {
         displayMyNumbers(myNumbers);
     }
 
-   function renderNumberGrid(maxNumbers) {
+ function renderNumberGrid(maxNumbers) {
     const isRaffleOver = !!raffleDetails.winner;
     if (!numberGrid) return;
     
     numberGrid.innerHTML = '';
 
-    // ✅ LÓGICA DE RESPONSIVIDADE ATUALIZADA
-    if (maxNumbers === 10000) {
-        numberGrid.className = "grid-milhar mb-8"; // Usa a nova classe CSS flexível
+    // Aplica a classe responsiva para sorteios grandes
+    if (maxNumbers >= 1000) {
+        numberGrid.className = "grid-milhar mb-8";
     } else {
-        // Mantém a lógica antiga para dezena e centena
         numberGrid.className = "grid grid-cols-5 sm:grid-cols-10 gap-2 md:gap-3 mb-8";
     }
 
-    for (let i = 0; i < maxNumbers; i++) {
-        const numberStr = formatNumberForRaffleType(i, raffleType);
-        const ownerData = soldNumbersData[numberStr];
+    const allPossibleNumbers = Array.from({ length: maxNumbers }, (_, i) => formatNumberForRaffleType(i, raffleType));
+    let numbersToDisplay = [];
+
+    // Para sorteios grandes, mostra apenas os primeiros 200 disponíveis
+    if (maxNumbers > 200) {
+        numbersToDisplay = allPossibleNumbers.filter(num => !soldNumbersData[num]).slice(0, 200);
+    } else {
+        // Para sorteios pequenos, mostra todos os disponíveis
+        numbersToDisplay = allPossibleNumbers.filter(num => !soldNumbersData[num]);
+    }
+
+    if (numbersToDisplay.length === 0 && Object.keys(soldNumbersData).length > 0) {
+        numberGrid.innerHTML = '<p class="col-span-full text-center text-gray-400">Parece que todos os números visíveis foram comprados. Tente uma cota aleatória!</p>';
+        return;
+    }
+    
+    // O loop agora itera sobre a lista otimizada
+    numbersToDisplay.forEach(numberStr => {
         const button = document.createElement('button');
         button.textContent = numberStr;
         button.dataset.number = numberStr;
-        
-        // ✅ LÓGICA DE CLASSES DO BOTÃO ATUALIZADA
-        // Inclui text-xs e sm:text-sm para melhor responsividade da fonte
         let buttonClasses = "p-2 rounded-lg text-xs sm:text-sm md:text-base font-bold transition-all duration-200 ease-in-out";
+        const isSelected = selectedNumbers.includes(numberStr);
 
-        if (ownerData) {
+        if (isRaffleOver) {
             button.disabled = true;
-            buttonClasses += (ownerData.userId === userId ? ' bg-purple-600' : ' bg-gray-600') + ' cursor-not-allowed opacity-70';
+            buttonClasses += ' bg-gray-700 cursor-not-allowed opacity-50';
         } else {
-            if (isRaffleOver) {
-                button.disabled = true;
-                buttonClasses += ' bg-gray-700 cursor-not-allowed opacity-50';
-            } else {
-                buttonClasses += selectedNumbers.includes(numberStr) ? ' number-selected' : ' bg-blue-500 hover:bg-blue-400 number-available';
-                button.addEventListener('click', handleNumberClick);
-            }
+            buttonClasses += isSelected ? ' number-selected' : ' bg-blue-500 hover:bg-blue-400 number-available';
+            button.addEventListener('click', handleNumberClick);
         }
         button.className = buttonClasses;
         numberGrid.appendChild(button);
-    }
+    });
 }
     function formatNumberForRaffleType(num, type) {
         if (type === 'centena') return num.toString().padStart(3, '0');
@@ -566,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showRulesBtn.addEventListener('click', showRules);
     closeRulesModalBtn.addEventListener('click', closeRules);
     getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+    cotasSection.addEventListener('click', handleCotaClick);
     setupAuthListener();
     setupShareButtons();
 });
