@@ -1,6 +1,6 @@
 // netlify/functions/delete-raffle.js - Versão Correta para o projeto rifa-online-final
-
-const admin = require('firebase-admin');
+const admin = require('./firebase-admin-config');
+const db = admin.firestore();
 
 // Função para inicializar o Firebase Admin
 function initializeFirebaseAdmin() {
