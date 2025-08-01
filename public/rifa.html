@@ -22,10 +22,9 @@
             <div class="max-w-md mx-auto">
                 <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo à Rifa!</h2>
                 <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha os seus dados abaixo.</p>
-                <div class="mb-4"><label for="name" class="block mb-2 text-sm font-medium">Nome Completo</label><input type="text" id="name" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-4"><label for="email" class="block mb-2 text-sm font-medium">E-mail</label><input type="email" id="email" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-4"><label for="whatsapp" class="block mb-2 text-sm font-medium">WhatsApp</label><input type="tel" id="whatsapp" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
-                <div class="mb-6"><label for="pix" class="block mb-2 text-sm font-medium">Chave PIX</label><input type="text" id="pix" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-4"><label for="whatsapp" class="block mb-2 text-sm font-medium">WhatsApp</label><input type="tel" id="whatsapp" class="bg-gray-700 ..." required></div>
+                <div class="mb-6"><label for="cpf" class="block mb-2 text-sm font-medium">CPF</label><input type="text" id="cpf" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" placeholder="000.000.000-00" required></div>
+                <div class="mb-6"><label for="pix" class="block mb-2 text-sm font-medium">Chave PIX</label><input type="text" id="pix" class="bg-gray-700 ..." required></div>
                 <button id="save-user-btn" class="w-full text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar e Escolher Números</button>
             </div>
         </div>
@@ -120,7 +119,31 @@
     </div>
 
     <a id="whatsapp-float-btn" href="#" target="_blank" class="whatsapp-float fixed bottom-6 right-6 bg-green-500 w-16 h-16 rounded-full flex items-center justify-center shadow-lg"><i class="fab fa-whatsapp text-4xl"></i></a>
+
+
+    <div id="pix-modal" class="fixed inset-0 z-50 items-center justify-center hidden bg-black bg-opacity-70">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-sm mx-auto relative border border-teal-500 text-center">
+            <h3 class="text-2xl font-bold text-teal-300 mb-4">Pague com PIX para Finalizar</h3>
+            <p class="text-gray-400 mb-4">Escaneie o QR Code abaixo com o app do seu banco.</p>
+            
+            <div id="pix-qrcode-container" class="p-2 bg-white rounded-lg inline-block">
+                <img id="pix-qrcode-image" src="" alt="PIX QR Code">
+            </div>
     
+            <p class="text-gray-400 my-4">ou use o PIX Copia e Cola:</p>
+    
+            <div class="flex items-center space-x-2">
+                <input type="text" id="pix-payload-input" class="w-full bg-gray-700 text-teal-400 p-2 rounded-md border-0" readonly>
+                <button id="copy-pix-btn" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-md" title="Copiar código">
+                    Copiar
+                </button>
+            </div>
+            <p id="copy-pix-feedback" class="text-green-500 text-xs mt-2 hidden">Copiado!</p>
+    
+            <button id="close-pix-modal-btn" class="mt-8 text-sm text-gray-400 hover:text-white">Fechar</button>
+        </div>
+    </div>
     <script type="module" src="rifa.js"></script>
 </body>
 </html>
+
