@@ -419,30 +419,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // ✅ SUBSTITUA SUA FUNÇÃO 'checkPaymentStatus' POR ESTA
     function checkPaymentStatus() {
         const params = new URLSearchParams(window.location.search);
-        const status = params.get('status');
+        const status = params.get('pagamento'); // Procura por 'pagamento=sucesso' ou 'pagamento=cancelado'
+        const sessionId = params.get('session_id');
         const pendingId = localStorage.getItem('pendingRaffleId');
+    
         if (status && raffleId && raffleId === pendingId) {
             const numbers = localStorage.getItem('pendingNumbers');
-            if (status === 'approved' && numbers) {
+            if (status === 'sucesso' && numbers) {
                 paymentStatusEl.textContent = `Pagamento aprovado! Os seus números ${JSON.parse(numbers).join(', ')} foram reservados.`;
                 paymentStatusEl.className = 'text-center text-green-400 mt-4 text-lg font-semibold';
                 paymentStatusEl.classList.remove('hidden');
                 triggerConfetti();
                 if (shareModal) shareModal.style.display = 'flex';
-            } else if (status === 'failure') {
-                paymentStatusEl.textContent = 'O pagamento falhou. Tente novamente.';
-                paymentStatusEl.className = 'text-center text-red-400 mt-4';
+            } else if (status === 'cancelado') {
+                paymentStatusEl.textContent = 'O pagamento foi cancelado. Você pode tentar novamente.';
+                paymentStatusEl.className = 'text-center text-yellow-400 mt-4';
                 paymentStatusEl.classList.remove('hidden');
             }
+            
+            // Limpa o localStorage e a URL para não mostrar a mensagem novamente
             localStorage.removeItem('pendingNumbers');
             localStorage.removeItem('pendingRaffleId');
-            if (window.history.replaceState) {
-                const url = new URL(window.location);
-                url.search = '';
-                window.history.replaceState({path:url.href}, '', url.href);
-            }
+            const cleanUrl = new URL(window.location);
+            cleanUrl.searchParams.delete('pagamento');
+            cleanUrl.searchParams.delete('session_id');
+            window.history.replaceState({}, document.title, cleanUrl.href);
         }
     }
 
