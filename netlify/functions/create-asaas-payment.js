@@ -1,8 +1,7 @@
-// netlify/functions/create-asaas-payment.js
+// netlify/functions/create-asaas-payment.js - VERSÃO ATUALIZADA
 
 const axios = require('axios');
 
-// Configura o Axios para se comunicar com a API da Asaas
 const asaasAPI = axios.create({
     baseURL: 'https://api.asaas.com/v3',
     headers: {
@@ -19,26 +18,21 @@ exports.handler = async (event) => {
     try {
         const { raffleId, selectedNumbers, participant } = JSON.parse(event.body);
 
-        // Validação básica dos dados recebidos
-        if (!raffleId || !selectedNumbers || !participant || !participant.name) {
+        if (!raffleId || !selectedNumbers || !participant || !participant.name || !participant.cpf) {
             return { statusCode: 400, body: JSON.stringify({ error: 'Dados da compra incompletos.' }) };
         }
 
-        // --- ETAPA 1: Criar o Cliente na Asaas ---
-        // (Ou buscar se já existir, mas para rifas, criar um novo é mais simples)
         const customerResponse = await asaasAPI.post('/customers', {
             name: participant.name,
             email: participant.email,
-            mobilePhone: participant.whatsapp.replace(/\D/g, ''), // Remove caracteres não numéricos do WhatsApp
-            cpfCnpj: participant.cpf // O frontend precisará enviar o CPF
+            mobilePhone: participant.whatsapp.replace(/\D/g, ''),
+            cpfCnpj: participant.cpf.replace(/\D/g, '')
         });
         const customerId = customerResponse.data.id;
 
-        // --- ETAPA 2: Criar a Cobrança PIX para o Cliente ---
-        const pricePerNumber = 10.50; // IMPORTANTE: Este valor deve vir do seu banco de dados no futuro
+        const pricePerNumber = 10.50; // Idealmente, buscar este valor do DB
         const totalValue = selectedNumbers.length * pricePerNumber;
-
-        // Adiciona 1 dia de validade para o PIX
+        
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + 1);
         const formattedDueDate = dueDate.toISOString().split('T')[0];
@@ -48,19 +42,24 @@ exports.handler = async (event) => {
             billingType: 'PIX',
             value: totalValue,
             dueDate: formattedDueDate,
-            description: `Sorteio Sergipano - Rifa #${raffleId} - Números: ${selectedNumbers.join(', ')}`
+            description: `Sorteio Sergipano - Rifa #${raffleId} - Números: ${selectedNumbers.join(', ')}`,
+            // ✅ "ETIQUETA" ADICIONADA AQUI ✅
+            externalReference: JSON.stringify({ 
+                raffleId: raffleId,
+                selectedNumbers: selectedNumbers,
+                payerData: { ...participant }
+            })
         });
 
         const paymentData = paymentResponse.data;
 
-        // Se a cobrança for criada e o PIX estiver disponível, retorna os dados para o frontend
         if (paymentData.status === 'PENDING' && paymentData.pixQrCodeUrl) {
             return {
                 statusCode: 200,
                 body: JSON.stringify({
                     paymentId: paymentData.id,
                     qrCodeImage: paymentData.pixQrCodeUrl,
-                    payload: paymentData.pixPayload, // O código do "PIX Copia e Cola"
+                    payload: paymentData.pixPayload,
                     value: paymentData.value
                 })
             };
