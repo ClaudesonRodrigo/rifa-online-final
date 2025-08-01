@@ -77,6 +77,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalNumbersInRaffle = 100;
 
     // --- FUNÇÕES DE LÓGICA ---
+    const copyPixPayload = () => {
+        pixPayloadInput.select();
+        document.execCommand('copy');
+        copyPixFeedback.classList.remove('hidden');
+        setTimeout(() => {
+            copyPixFeedback.classList.add('hidden');
+        }, 2000);
+    };
 
     function setupAuthListener() {
         onAuthStateChanged(auth, user => {
@@ -635,4 +643,5 @@ if(closePixModalBtn) closePixModalBtn.addEventListener('click', () => {
     setupAuthListener();
     setupShareButtons();
 });
+
 
