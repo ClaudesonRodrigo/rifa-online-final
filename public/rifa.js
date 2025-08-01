@@ -54,6 +54,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const myNumbersSection = document.getElementById('my-numbers-section');
     const myNumbersList = document.getElementById('my-numbers-list');
     const cotasSection = document.getElementById('cotas-section');
+    const cpfInput = document.getElementById('cpf'); // ✅ Novo seletor CPF
+    const pixModal = document.getElementById('pix-modal'); // ✅ Novos seletores do Modal
+    const pixQrCodeContainer = document.getElementById('pix-qrcode-container');
+    const pixQrCodeImage = document.getElementById('pix-qrcode-image');
+    const pixPayloadInput = document.getElementById('pix-payload-input');
+    const copyPixBtn = document.getElementById('copy-pix-btn');
+    const copyPixFeedback = document.getElementById('copy-pix-feedback');
+    const closePixModalBtn = document.getElementById('close-pix-modal-btn');
+    
 
     // --- ESTADO DO APLICATIVO ---
     let currentUser = null;
@@ -292,17 +301,23 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
     }
 
-    function saveUserData() {
-        if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
-            currentUser = { name: nameInput.value.trim(), email: emailInput.value.trim(), whatsapp: whatsappInput.value.trim(), pix: pixInput.value.trim() };
+   function saveUserData() {
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+        const whatsapp = whatsappInput.value.trim();
+        const pix = pixInput.value.trim();
+        const cpf = cpfInput.value.trim(); // Pega o CPF
+
+        if (name && email && whatsapp && pix && cpf) { // Valida o CPF
+            currentUser = { name, email, whatsapp, pix, cpf };
             localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
             userSection.classList.add('hidden');
-            loadingSection.classList.remove('hidden');
-            setupFirestoreListeners();
+            appSection.classList.remove('hidden');
         } else {
-            alert("Por favor, preencha todos os campos.");
+            alert("Por favor, preencha todos os campos, incluindo o CPF.");
         }
     }
+    
 
     function displayPublicWinner(winnerData) {
         if (!winnerDisplaySection || !publicWinnerNumber || !publicWinnerName || !publicWinnerBoughtNumbers) return;
@@ -331,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (shoppingCartSection) shoppingCartSection.classList.add('hidden');
     }
 
-   // ✅ 'handleCheckout' Stripe
+   // ✅ 'handleCheckout'
     async function handleCheckout() {
         if (isTestMode) return handleTestCheckout();
         if (selectedNumbers.length === 0) return;
@@ -591,26 +606,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- INICIALIZAÇÃO E EVENTOS ---
-    const urlParams = new URLSearchParams(window.location.search);
-    raffleId = urlParams.get('id');
-    isTestMode = urlParams.get('test') === 'true'; 
-    if (!raffleId) {
-        mainContainer.innerHTML = '<p class="text-red-400">ID da rifa não encontrado. A redirecionar...</p>';
-        setTimeout(() => { window.location.href = '/'; }, 3000);
-        return;
-    }
+   const urlParams = new URLSearchParams(window.location.search);
+raffleId = urlParams.get('id');
+isTestMode = urlParams.get('test') === 'true'; 
+
+if (!raffleId) {
+    mainContainer.innerHTML = '<p class="text-red-400">ID do sorteio não encontrado. A redirecionar...</p>';
+    setTimeout(() => { window.location.href = '/'; }, 3000);
+    return;
+}
+
+// Anexa os listeners aos elementos que já existem na página
+if (saveUserBtn) saveUserBtn.addEventListener('click', saveUserData);
+if (checkoutBtn) checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
+if (showRulesBtn) showRulesBtn.addEventListener('click', showRules);
+if (closeRulesModalBtn) closeRulesModalBtn.addEventListener('click', closeRules);
+if (getLuckyNumbersBtn) getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
+if (cotasSection) cotasSection.addEventListener('click', handleCotaClick);
+
+// ✅ NOVOS LISTENERS PARA O MODAL DO PIX
+if(copyPixBtn) copyPixBtn.addEventListener('click', copyPixPayload);
+if(closePixModalBtn) closePixModalBtn.addEventListener('click', () => {
+    pixModal.classList.add('hidden');
+    pixModal.classList.remove('flex');
+});
     
-    if (isTestMode && checkoutBtn) {
-        checkoutBtn.textContent = 'Finalizar Teste (Sem Custo)';
-        checkoutBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
-        checkoutBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
-    }
-    saveUserBtn.addEventListener('click', saveUserData);
-    checkoutBtn.addEventListener('click', (e) => { e.preventDefault(); handleCheckout(); });
-    showRulesBtn.addEventListener('click', showRules);
-    closeRulesModalBtn.addEventListener('click', closeRules);
-    getLuckyNumbersBtn.addEventListener('click', getLuckyNumbers);
-    cotasSection.addEventListener('click', handleCotaClick);
+// Inicia o processo
     setupAuthListener();
     setupShareButtons();
 });
+
