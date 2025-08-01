@@ -309,20 +309,26 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
     }
 
-   function saveUserData() {
-        const name = nameInput.value.trim();
-        const email = emailInput.value.trim();
-        const whatsapp = whatsappInput.value.trim();
-        const pix = pixInput.value.trim();
-        const cpf = cpfInput.value.trim(); // Pega o CPF
 
-        if (name && email && whatsapp && pix && cpf) { // Valida o CPF
-            currentUser = { name, email, whatsapp, pix, cpf };
+    function saveUserData() {
+        // Valida apenas os campos que existem neste projeto
+        if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
+            currentUser = { 
+                name: nameInput.value.trim(), 
+                email: emailInput.value.trim(), 
+                whatsapp: whatsappInput.value.trim(), 
+                pix: pixInput.value.trim() 
+            };
             localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
+            
             userSection.classList.add('hidden');
-            appSection.classList.remove('hidden');
+            // A linha abaixo foi corrigida para appSection, que é o que mostra a grade
+            appSection.classList.remove('hidden'); 
+            
+            // Removemos o loadingSection, pois a próxima função já lida com isso
+            setupFirestoreListeners();
         } else {
-            alert("Por favor, preencha todos os campos, incluindo o CPF.");
+            alert("Por favor, preencha todos os campos.");
         }
     }
     
@@ -643,5 +649,6 @@ if(closePixModalBtn) closePixModalBtn.addEventListener('click', () => {
     setupAuthListener();
     setupShareButtons();
 });
+
 
 
