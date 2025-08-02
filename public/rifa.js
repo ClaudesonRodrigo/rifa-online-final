@@ -148,16 +148,32 @@ document.addEventListener('DOMContentLoaded', () => {
     shoppingCartSection.scrollIntoView({ behavior: 'smooth' });
 };
 
+    // ✅ 'loadUserDataOrShowLogin'
+    
     function loadUserDataOrShowLogin() {
         const savedUser = localStorage.getItem(`rifaUser`);
-        if (savedUser) {
+        
+        // Verifica se existe um usuário salvo E se esse usuário já tem o campo CPF
+        if (savedUser && JSON.parse(savedUser).cpf) {
+            // Se estiver tudo OK, o usuário está completo e pode prosseguir
             currentUser = JSON.parse(savedUser);
+            loadingSection.classList.add('hidden');
+            userSection.classList.add('hidden');
+            appSection.classList.remove('hidden');
             setupFirestoreListeners();
         } else {
+            // Se não houver usuário ou se faltar o CPF, força o preenchimento dos dados
+            
+            // Se existiam dados antigos mas incompletos, limpa para evitar problemas
+            if (savedUser) {
+                localStorage.removeItem('rifaUser');
+            }
+            
             loadingSection.classList.add('hidden');
             userSection.classList.remove('hidden');
+            appSection.classList.add('hidden');
         }
-    }
+}
 
     function setupFirestoreListeners() {
         const raffleDocRef = doc(db, "rifas", raffleId);
@@ -651,6 +667,7 @@ if(closePixModalBtn) closePixModalBtn.addEventListener('click', () => {
     setupAuthListener();
     setupShareButtons();
 });
+
 
 
 
