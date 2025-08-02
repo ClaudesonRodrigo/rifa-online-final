@@ -310,23 +310,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-       function saveUserData() {
+       // ✅ SUBSTITUA SUA FUNÇÃO 'saveUserData' POR ESTA
+    function saveUserData() {
+        // Adicionamos a constante para o campo CPF
+        const cpfInput = document.getElementById('cpf');
+    
         const name = nameInput.value.trim();
         const email = emailInput.value.trim();
         const whatsapp = whatsappInput.value.trim();
         const pix = pixInput.value.trim();
-        const cpf = cpfInput.value.trim();
+        const cpf = cpfInput ? cpfInput.value.trim() : ''; // Pega o CPF
     
-        // Agora validamos todos os campos
+        // Agora validamos todos os campos, incluindo o CPF
         if (name && email && whatsapp && pix && cpf) {
             currentUser = { name, email, whatsapp, pix, cpf };
             localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
-    
+            
             userSection.classList.add('hidden');
             appSection.classList.remove('hidden');
-            setupFirestoreListeners();
+            // A função setupFirestoreListeners não é mais necessária aqui, 
+            // pois ela é chamada na inicialização principal
         } else {
-            alert("Por favor, preencha todos os campos.");
+            alert("Por favor, preencha todos os campos, incluindo o CPF.");
         }
     }
     
@@ -360,49 +365,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
    // ✅ 'handleCheckout'
     async function handleCheckout() {
-        if (isTestMode) return handleTestCheckout();
-        if (selectedNumbers.length === 0) return;
+        if (selectedNumbers.length === 0) return alert("Selecione pelo menos um número.");
+    
+        // Garante que os dados do usuário foram preenchidos
+        if (!currentUser || !currentUser.cpf) {
+            return alert("Dados do usuário incompletos. Por favor, preencha suas informações primeiro.");
+        }
     
         checkoutBtn.disabled = true;
-        checkoutBtn.textContent = 'Gerando link seguro...';
-        paymentStatusEl.textContent = 'Aguarde, conectando com nosso sistema de pagamento...';
-        paymentStatusEl.classList.remove('hidden');
-        
-        const items = selectedNumbers.map(n => ({ 
-            id: n, 
-            title: `Sorteio - ${raffleDetails.name} - Nº ${n}`, 
-            quantity: 1, 
-            unit_price: pricePerNumber
-        }));
-        
+        checkoutBtn.textContent = 'Gerando PIX...';
+    
         const urlParams = new URLSearchParams(window.location.search);
         const vendorId = urlParams.get('vendor') || null;
-        const payerData = { ...currentUser, userId, vendorId: vendorId };
+        const participantData = { ...currentUser, userId, vendorId };
     
         try {
-            // Aponta para a nova função da Stripe
-            const res = await fetch('/.netlify/functions/create-asaas-payment', { 
+            const response = await fetch('/.netlify/functions/create-asaas-payment', {
                 method: 'POST',
-                body: JSON.stringify({ items, raffleId, payerData }) 
+                body: JSON.stringify({
+                    raffleId: raffleId,
+                    selectedNumbers: selectedNumbers,
+                    participant: participantData
+                })
             });
     
-            if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.error || 'Falha ao gerar link de pagamento.');
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Não foi possível gerar a cobrança.');
             }
     
-            const data = await res.json();
-            
-            if (data.checkoutUrl) {
-                localStorage.setItem('pendingRaffleId', raffleId);
-                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers));
-                // Redireciona para a página da Stripe
-                window.location.href = data.checkoutUrl;
-            }
-        } catch (e) {
-            paymentStatusEl.textContent = `Erro: ${e.message}`;
+            const data = await response.json();
+    
+            // Lógica para mostrar o Modal do PIX (que faremos a seguir)
+            // Por enquanto, vamos apenas logar os dados recebidos
+            console.log("PIX gerado com sucesso:", data);
+            alert("QR Code do PIX gerado! (Verifique o console para os dados)");
+    
+    
+        } catch (error) {
+            alert(`Erro ao gerar PIX: ${error.message}`);
+        } finally {
             checkoutBtn.disabled = false;
-            checkoutBtn.textContent = 'Tentar Novamente';
+            checkoutBtn.textContent = 'Finalizar Pagamento';
         }
     }
 
@@ -647,6 +651,7 @@ if(closePixModalBtn) closePixModalBtn.addEventListener('click', () => {
     setupAuthListener();
     setupShareButtons();
 });
+
 
 
 
