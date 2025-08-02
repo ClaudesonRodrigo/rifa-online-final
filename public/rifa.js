@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
     const whatsappInput = document.getElementById('whatsapp');
+    const cpfInput = document.getElementById('cpf')
     const pixInput = document.getElementById('pix');
     const saveUserBtn = document.getElementById('save-user-btn');
     const winnerDisplaySection = document.getElementById('winner-display-section');
@@ -649,6 +650,7 @@ if(closePixModalBtn) closePixModalBtn.addEventListener('click', () => {
     setupAuthListener();
     setupShareButtons();
 });
+
 
 
 
