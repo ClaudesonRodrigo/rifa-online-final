@@ -20,8 +20,12 @@
 
         <div id="user-section" class="hidden">
             <div class="max-w-md mx-auto">
-                <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo à Rifa!</h2>
+                <h2 class="text-2xl md:text-3xl font-bold text-center mb-6 text-blue-300">Bem-vindo ao Sorteio!</h2>
                 <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha os seus dados abaixo.</p>
+                
+                <div class="mb-4"><label for="name" class="block ...">Nome Completo</label><input type="text" id="name" ...></div>
+                <div class="mb-4"><label for="email" class="block ...">E-mail</label><input type="email" id="email" ...></div>
+    
                 <div class="mb-4"><label for="whatsapp" class="block mb-2 text-sm font-medium">WhatsApp</label><input type="tel" id="whatsapp" class="bg-gray-700 ..." required></div>
                 <div class="mb-6"><label for="cpf" class="block mb-2 text-sm font-medium">CPF</label><input type="text" id="cpf" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" placeholder="000.000.000-00" required></div>
                 <div class="mb-6"><label for="pix" class="block mb-2 text-sm font-medium">Chave PIX</label><input type="text" id="pix" class="bg-gray-700 ..." required></div>
@@ -31,7 +35,7 @@
 
         <div id="app-section" class="hidden">
             <header class="text-center mb-8">
-                <a href="/" class="text-blue-400 hover:text-blue-300 mb-4 inline-block">&larr; Voltar para todas as rifas</a>
+                <a href="/" class="text-blue-400 hover:text-blue-300 mb-4 inline-block">&larr; Voltar para todos so Sorteios</a>
                 <h1 id="raffle-title" class="text-3xl md:text-4xl font-bold title-pulse text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300"></h1>
                 <div class="flex justify-center items-center gap-4 mt-2">
                     <button id="show-rules-btn" class="text-sm text-gray-400 hover:text-blue-400 underline">Ver Regras do Sorteio</button>
@@ -146,4 +150,5 @@
     <script type="module" src="rifa.js"></script>
 </body>
 </html>
+
 
