@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
         try {
             // Aponta para a nova função da Stripe
-            const res = await fetch('/.netlify/functions/create-stripe-payment-session', { 
+            const res = await fetch('/.netlify/functions/create-asaas-payment', { 
                 method: 'POST',
                 body: JSON.stringify({ items, raffleId, payerData }) 
             });
@@ -647,6 +647,7 @@ if(closePixModalBtn) closePixModalBtn.addEventListener('click', () => {
     setupAuthListener();
     setupShareButtons();
 });
+
 
 
 
