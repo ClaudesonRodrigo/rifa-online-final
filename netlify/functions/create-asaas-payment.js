@@ -2,8 +2,9 @@
 
 const axios = require('axios');
 
+// ✅ VERSÃO CORRIGIDA (apontando para Sandbox)
 const asaasAPI = axios.create({
-    baseURL: 'https://api.asaas.com/v3',
+    baseURL: 'https://sandbox.asaas.com/api/v3',
     headers: {
         'Content-Type': 'application/json',
         'access_token': process.env.ASAAS_API_KEY
