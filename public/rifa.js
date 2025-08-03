@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const paymentStatusEl = document.getElementById('payment-status');
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
+    const cpfInput = document.getElementById('cpf')
     const whatsappInput = document.getElementById('whatsapp');
     const pixInput = document.getElementById('pix');
     const saveUserBtn = document.getElementById('save-user-btn');
@@ -99,37 +100,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     const handleCotaClick = (event) => {
-    if (!event.target.classList.contains('cota-btn')) return;
+        if (!event.target.classList.contains('cota-btn')) return;
 
-    const quantity = parseInt(event.target.dataset.quantity, 10);
-    
-    const allPossibleNumbers = Array.from({ length: totalNumbersInRaffle }, (_, i) => formatNumberForRaffleType(i, raffleType));
-    
-    const availableNumbers = allPossibleNumbers.filter(num => !soldNumbersData[num]);
+        const quantity = parseInt(event.target.dataset.quantity, 10);
+        
+        const allPossibleNumbers = Array.from({ length: totalNumbersInRaffle }, (_, i) => formatNumberForRaffleType(i, raffleType));
+        
+        const availableNumbers = allPossibleNumbers.filter(num => !soldNumbersData[num]);
 
-    if (availableNumbers.length < quantity) {
-        return alert(`Não há ${quantity} números disponíveis para esta cota. Por favor, escolha uma cota menor ou selecione manualmente.`);
-    }
-
-    for (let i = availableNumbers.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [availableNumbers[i], availableNumbers[j]] = [availableNumbers[j], availableNumbers[i]];
-    }
-
-    const randomSelection = availableNumbers.slice(0, quantity);
-
-    selectedNumbers = []; 
-    randomSelection.forEach(num => {
-        if (!selectedNumbers.includes(num)) {
-            selectedNumbers.push(num);
+        if (availableNumbers.length < quantity) {
+            return alert(`Não há ${quantity} números disponíveis para esta cota. Por favor, escolha uma cota menor ou selecione manualmente.`);
         }
-    });
-    
-    alert(`${quantity} números aleatórios foram adicionados ao seu carrinho!`);
-    updateShoppingCart();
-    renderNumberGrid(totalNumbersInRaffle);
-    shoppingCartSection.scrollIntoView({ behavior: 'smooth' });
-};
+
+        for (let i = availableNumbers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [availableNumbers[i], availableNumbers[j]] = [availableNumbers[j], availableNumbers[i]];
+        }
+
+        const randomSelection = availableNumbers.slice(0, quantity);
+
+        selectedNumbers = []; 
+        randomSelection.forEach(num => {
+            if (!selectedNumbers.includes(num)) {
+                selectedNumbers.push(num);
+            }
+        });
+        
+        alert(`${quantity} números aleatórios foram adicionados ao seu carrinho!`);
+        updateShoppingCart();
+        renderNumberGrid(totalNumbersInRaffle);
+        shoppingCartSection.scrollIntoView({ behavior: 'smooth' });
+    };
 
     function loadUserDataOrShowLogin() {
         const savedUser = localStorage.getItem(`rifaUser`);
@@ -292,15 +293,22 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutBtn.classList.remove('pointer-events-none', 'opacity-50');
     }
 
+    // Na função saveUserData()
     function saveUserData() {
-        if (nameInput.value && emailInput.value && whatsappInput.value && pixInput.value) {
-            currentUser = { name: nameInput.value.trim(), email: emailInput.value.trim(), whatsapp: whatsappInput.value.trim(), pix: pixInput.value.trim() };
+        if (nameInput.value && emailInput.value && whatsappInput.value && cpfInput.value && pixInput.value) {
+            currentUser = { 
+                name: nameInput.value.trim(), 
+                email: emailInput.value.trim(), 
+                whatsapp: whatsappInput.value.trim(), 
+                cpf: cpfInput.value.trim(), 
+                pix: pixInput.value.trim() 
+            };
             localStorage.setItem(`rifaUser`, JSON.stringify(currentUser));
             userSection.classList.add('hidden');
             loadingSection.classList.remove('hidden');
             setupFirestoreListeners();
         } else {
-            alert("Por favor, preencha todos os campos.");
+            alert("Por favor, preencha todos os campos, incluindo o CPF.");
         }
     }
 
@@ -336,8 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedNumbers.length === 0) return;
 
         checkoutBtn.disabled = true;
-        checkoutBtn.textContent = 'A gerar link...';
-        paymentStatusEl.textContent = 'Aguarde...';
+        checkoutBtn.textContent = 'Gerando PIX...';
+        paymentStatusEl.textContent = 'Aguarde, estamos gerando seu QR Code PIX...';
         paymentStatusEl.classList.remove('hidden');
         
         const items = selectedNumbers.map(n => ({ 
@@ -348,6 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currency_id: 'BRL' 
         }));
         
+        // Certifique-se que o CPF está incluído nos dados do pagador
         const payerData = { ...currentUser, userId, raffleId: raffleId };
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -364,20 +373,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.error || 'Falha ao gerar link de pagamento.');
+                throw new Error(err.error || 'Falha ao gerar o PIX.');
             }
 
             const data = await res.json();
-            if (data.checkoutUrl) {
-                localStorage.setItem('pendingRaffleId', raffleId);
-                localStorage.setItem('pendingNumbers', JSON.stringify(selectedNumbers.map(n => formatNumberForRaffleType(parseInt(n), raffleType))));
-                window.location.href = data.checkoutUrl;
-            }
+            
+            // AQUI ESTÁ A NOVA LÓGICA: MOSTRAR O QR CODE
+            showPixModal(data.qrCodeImage, data.qrCodePayload);
+
+            paymentStatusEl.innerHTML = `PIX gerado com sucesso! Pague para garantir seus números. <br> A página será atualizada automaticamente após o pagamento.`;
+            checkoutBtn.classList.add('hidden'); // Esconde o botão de pagar
+            
         } catch (e) {
-            paymentStatusEl.textContent = `Erro ao gerar link: ${e.message}`;
+            paymentStatusEl.textContent = `Erro ao gerar PIX: ${e.message}`;
             checkoutBtn.disabled = false;
-            checkoutBtn.textContent = 'Pagar com Mercado Pago';
+            checkoutBtn.textContent = 'Tentar Novamente';
         }
+    }
+
+
+    // ▼▼▼ FUNÇÃO ATUALIZADA E MAIS SEGURA ▼▼▼
+    function showPixModal(base64Image, pixPayload) {
+        const modal = document.getElementById('pix-modal');
+        const qrCodeImg = document.getElementById('pix-qr-code');
+        const pixCopyPaste = document.getElementById('pix-copy-paste-input');
+        const copyBtn = document.getElementById('copy-pix-btn'); // Pegamos o botão aqui
+        
+        // Verificação de segurança: só continua se todos os elementos existirem
+        if (!modal || !qrCodeImg || !pixCopyPaste || !copyBtn) {
+            console.error("Elementos do modal PIX não foram encontrados no HTML.");
+            alert("Erro ao exibir o modal de pagamento. Verifique o console.");
+            return;
+        }
+        
+        qrCodeImg.src = `data:image/png;base64,${base64Image}`;
+        pixCopyPaste.value = pixPayload;
+        
+        // Adiciona o evento de clique AQUI, somente quando o modal for aberto
+        copyBtn.onclick = () => {
+            pixCopyPaste.select();
+            document.execCommand('copy');
+            alert('Código PIX copiado para a área de transferência!');
+        };
+
+        modal.style.display = 'flex';
     }
 
     async function handleTestCheckout() {
