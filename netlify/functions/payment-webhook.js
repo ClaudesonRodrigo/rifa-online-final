@@ -1,9 +1,8 @@
-// netlify/functions/payment-webhook.js (Atualizado com contador)
+// netlify/functions/payment-webhook.js
 
-import { MercadoPagoConfig, Payment } from 'mercadopago';
-import admin from 'firebase-admin';
+const admin = require('firebase-admin');
 
-// Função para inicializar o Firebase Admin (sem alterações)
+// Função para inicializar o Firebase Admin
 function initializeFirebaseAdmin() {
     if (admin.apps.length) {
         return admin.firestore();
@@ -21,75 +20,80 @@ exports.handler = async function(event) {
     }
 
     const db = initializeFirebaseAdmin();
-    const body = JSON.parse(event.body);
-
-    if (body.type !== 'payment') {
-        return { statusCode: 200, body: 'Notificação não relacionada a pagamento, ignorada.' };
-    }
-
+    
     try {
-        const paymentId = body.data.id;
-        const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN });
-        const payment = new Payment(client);
-        const paymentInfo = await payment.get({ id: paymentId });
+        const notification = JSON.parse(event.body);
 
-        if (paymentInfo.status === 'approved' && paymentInfo.metadata) {
-            const {
-                selected_numbers,
-                raffle_id,
-                user_id,
-                user_name,
-                user_email,
-                user_whatsapp,
-                user_pix,
-                vendor_id
-            } = paymentInfo.metadata;
+        // O evento que nos interessa é a confirmação do pagamento
+        if (notification.event !== 'PAYMENT_CONFIRMED' && notification.event !== 'PAYMENT_RECEIVED') {
+            return { statusCode: 200, body: 'Notificação não relevante, ignorada.' };
+        }
+        
+        const paymentInfo = notification.payment;
+        const { metadata } = paymentInfo;
 
-            if (!raffle_id || !user_id || !selected_numbers || selected_numbers.length === 0) {
-                console.warn("Webhook recebido com dados de metadados insuficientes.", paymentInfo.metadata);
-                return { statusCode: 400, body: 'Dados essenciais em falta nos metadados do pagamento.' };
+        if (!metadata || !metadata.raffle_id || !metadata.user_id || !metadata.selected_numbers) {
+            console.warn("Webhook Asaas recebido com metadados insuficientes.", metadata);
+            return { statusCode: 400, body: 'Dados essenciais em falta nos metadados do pagamento.' };
+        }
+
+        const {
+            selected_numbers,
+            raffle_id,
+            user_id,
+            user_name,
+            user_email,
+            user_whatsapp,
+            user_pix,
+            vendor_id
+        } = metadata;
+
+        const rifaDocRef = db.collection('rifas').doc(raffle_id);
+        const soldNumbersColRef = rifaDocRef.collection('sold_numbers');
+
+        // Usamos uma transação para garantir que os números não sejam vendidos duas vezes
+        await db.runTransaction(async (transaction) => {
+            const numberDocsPromises = selected_numbers.map(num => transaction.get(soldNumbersColRef.doc(num)));
+            const numberDocs = await Promise.all(numberDocsPromises);
+            
+            for (const doc of numberDocs) {
+                if (doc.exists) {
+                    // Se o número já foi comprado, registramos um log e pulamos o resto
+                    console.error(`TENTATIVA DE COMPRA DUPLA: O número ${doc.id} na rifa ${raffle_id} já foi vendido.`);
+                    return; // Aborta a transação para este pagamento
+                }
             }
 
-            const rifaDocRef = db.collection('rifas').doc(raffle_id);
-            const soldNumbersColRef = rifaDocRef.collection('sold_numbers');
+            const dataToSave = {
+                name: user_name,
+                email: user_email,
+                whatsapp: user_whatsapp,
+                pix: user_pix,
+                userId: user_id,
+                createdAt: new Date(),
+                paymentProvider: 'asaas',
+                paymentId: paymentInfo.id
+            };
+            
+            if (vendor_id) {
+                dataToSave.vendorId = vendor_id;
+            }
 
-            await db.runTransaction(async (transaction) => {
-                const numberDocsPromises = selected_numbers.map(num => transaction.get(soldNumbersColRef.doc(num)));
-                const numberDocs = await Promise.all(numberDocsPromises);
-                
-                for (const doc of numberDocs) {
-                    if (doc.exists) {
-                        throw new Error(`O número ${doc.id} já foi comprado.`);
-                    }
-                }
-
-                const dataToSave = {
-                    name: user_name,
-                    email: user_email,
-                    whatsapp: user_whatsapp,
-                    pix: user_pix,
-                    userId: user_id,
-                    createdAt: new Date()
-                };
-                
-                if (vendor_id) {
-                    dataToSave.vendorId = vendor_id;
-                }
-
-                selected_numbers.forEach(number => {
-                    const newNumberDocRef = soldNumbersColRef.doc(number);
-                    transaction.set(newNumberDocRef, dataToSave);
-                });
-
-                // ✅ NOVA LÓGICA: Incrementa o contador de vendidos no documento principal
-                const increment = admin.firestore.FieldValue.increment(selected_numbers.length);
-                transaction.update(rifaDocRef, { soldCount: increment });
+            selected_numbers.forEach(number => {
+                const newNumberDocRef = soldNumbersColRef.doc(number);
+                transaction.set(newNumberDocRef, dataToSave);
             });
-        }
+
+            // Incrementa o contador de vendidos no documento principal
+            const increment = admin.firestore.FieldValue.increment(selected_numbers.length);
+            transaction.update(rifaDocRef, { soldCount: increment });
+        });
+
     } catch (error) {
-        console.error("ERRO no processamento do webhook:", error);
+        console.error("ERRO no processamento do webhook Asaas:", error);
         return { statusCode: 500, body: `Erro interno: ${error.message}` };
     }
 
+    // Responda ao Asaas com status 200 para confirmar o recebimento.
     return { statusCode: 200, body: 'Webhook recebido com sucesso.' };
 };
