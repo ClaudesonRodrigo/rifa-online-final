@@ -1,6 +1,7 @@
 // netlify/functions/payment-webhook.js
 
 const admin = require('firebase-admin');
+const fetch = require('node-fetch'); // Precisamos do fetch aqui também
 
 // Função para inicializar o Firebase Admin
 function initializeFirebaseAdmin() {
@@ -24,12 +25,32 @@ exports.handler = async function(event) {
     try {
         const notification = JSON.parse(event.body);
 
-        // O evento que nos interessa é a confirmação do pagamento
         if (notification.event !== 'PAYMENT_CONFIRMED' && notification.event !== 'PAYMENT_RECEIVED') {
             return { statusCode: 200, body: 'Notificação não relevante, ignorada.' };
         }
         
-        const paymentInfo = notification.payment;
+        const paymentId = notification.payment.id;
+        if (!paymentId) {
+             console.warn("Webhook recebido sem ID de pagamento.");
+             return { statusCode: 400, body: 'ID do pagamento ausente.' };
+        }
+
+        // PASSO EXTRA: Buscar os detalhes completos do pagamento no Asaas
+        const fullPaymentResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${paymentId}`, {
+            method: 'GET',
+            headers: {
+                'access_token': process.env.ASAAS_API_KEY
+            }
+        });
+
+        const paymentInfo = await fullPaymentResponse.json();
+
+        if (!fullPaymentResponse.ok) {
+            console.error('Falha ao buscar detalhes do pagamento no Asaas:', paymentInfo.errors);
+            throw new Error('Não foi possível obter os detalhes da cobrança.');
+        }
+
+        // AGORA SIM, pegamos os metadados do objeto completo que buscamos
         const { metadata } = paymentInfo;
 
         if (!metadata || !metadata.raffle_id || !metadata.user_id || !metadata.selected_numbers) {
@@ -51,16 +72,14 @@ exports.handler = async function(event) {
         const rifaDocRef = db.collection('rifas').doc(raffle_id);
         const soldNumbersColRef = rifaDocRef.collection('sold_numbers');
 
-        // Usamos uma transação para garantir que os números não sejam vendidos duas vezes
         await db.runTransaction(async (transaction) => {
-            const numberDocsPromises = selected_numbers.map(num => transaction.get(soldNumbersColRef.doc(num)));
+            const numberDocsPromises = selected_numbers.map(num => transaction.get(soldNumbersColRef.doc(String(num))));
             const numberDocs = await Promise.all(numberDocsPromises);
             
             for (const doc of numberDocs) {
                 if (doc.exists) {
-                    // Se o número já foi comprado, registramos um log e pulamos o resto
                     console.error(`TENTATIVA DE COMPRA DUPLA: O número ${doc.id} na rifa ${raffle_id} já foi vendido.`);
-                    return; // Aborta a transação para este pagamento
+                    return;
                 }
             }
 
@@ -80,11 +99,10 @@ exports.handler = async function(event) {
             }
 
             selected_numbers.forEach(number => {
-                const newNumberDocRef = soldNumbersColRef.doc(number);
+                const newNumberDocRef = soldNumbersColRef.doc(String(number));
                 transaction.set(newNumberDocRef, dataToSave);
             });
 
-            // Incrementa o contador de vendidos no documento principal
             const increment = admin.firestore.FieldValue.increment(selected_numbers.length);
             transaction.update(rifaDocRef, { soldCount: increment });
         });
@@ -94,6 +112,5 @@ exports.handler = async function(event) {
         return { statusCode: 500, body: `Erro interno: ${error.message}` };
     }
 
-    // Responda ao Asaas com status 200 para confirmar o recebimento.
     return { statusCode: 200, body: 'Webhook recebido com sucesso.' };
 };
