@@ -1,8 +1,7 @@
-// netlify/functions/payment-webhook.js - VERSÃO FINAL CORRIGIDA
+// netlify/functions/payment-webhook.js
 
 const admin = require('firebase-admin');
 
-// Função para inicializar o Firebase Admin
 function initializeFirebaseAdmin() {
     if (admin.apps.length) { return admin.firestore(); }
     const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8'));
