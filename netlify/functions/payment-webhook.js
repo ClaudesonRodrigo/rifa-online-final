@@ -18,26 +18,23 @@ exports.handler = async function(event) {
     
     try {
         const notification = JSON.parse(event.body);
-
         if (notification.event !== 'PAYMENT_CONFIRMED' && notification.event !== 'PAYMENT_RECEIVED') {
             return { statusCode: 200, body: 'Notificação não relevante.' };
         }
         
         const paymentInfo = notification.payment;
-        const externalReference = paymentInfo.externalReference; // Pegamos o nosso ID de volta!
+        const externalReference = paymentInfo.externalReference;
 
         if (!externalReference) {
             console.warn("Webhook recebido sem externalReference.");
             return { statusCode: 400, body: 'externalReference ausente.' };
         }
 
-        // PASSO 1: Buscar os dados da compra no nosso Firebase usando o ID
         const pendingDocRef = db.collection('pending_payments').doc(externalReference);
         const pendingDoc = await pendingDocRef.get();
-
         if (!pendingDoc.exists) {
-            console.error(`Documento pendente não encontrado para a referência: ${externalReference}`);
-            return { statusCode: 404, body: 'Registro da intenção de compra não encontrado.' };
+            console.error(`Documento pendente não encontrado: ${externalReference}`);
+            return { statusCode: 404, body: 'Registro de compra não encontrado.' };
         }
 
         const purchaseData = pendingDoc.data();
@@ -46,7 +43,6 @@ exports.handler = async function(event) {
             user_email, user_whatsapp, user_pix, vendor_id
         } = purchaseData;
 
-        // PASSO 2: Executar a transação para salvar os números
         const rifaDocRef = db.collection('rifas').doc(raffle_id);
         const soldNumbersColRef = rifaDocRef.collection('sold_numbers');
 
@@ -54,9 +50,7 @@ exports.handler = async function(event) {
             const numberDocsPromises = selected_numbers.map(num => transaction.get(soldNumbersColRef.doc(String(num))));
             const numberDocs = await Promise.all(numberDocsPromises);
             
-            for (const doc of numberDocs) {
-                if (doc.exists) { return; }
-            }
+            for (const doc of numberDocs) { if (doc.exists) { return; } }
 
             const dataToSave = {
                 name: user_name, email: user_email, whatsapp: user_whatsapp, pix: user_pix,
@@ -74,7 +68,6 @@ exports.handler = async function(event) {
             transaction.update(rifaDocRef, { soldCount: increment });
         });
 
-        // PASSO 3: Limpar o registro pendente após o sucesso
         await pendingDocRef.delete();
 
     } catch (error) {
