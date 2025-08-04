@@ -21,7 +21,7 @@ exports.handler = async function(event) {
         const description = `Pagamento para a rifa: ${payerData.raffleId}. Números: ${items.map(i => i.id).join(', ')}`;
         const externalReference = `RIFA_${payerData.raffleId}_${new Date().getTime()}`;
 
-        // 1. Criar o cliente no Asaas (no ambiente de Testes/Sandbox)
+        // 1. Criar o cliente no Asaas
         const customerResponse = await fetch('https://sandbox.asaas.com/api/v3/customers', {
             method: 'POST',
             headers: {
@@ -44,8 +44,7 @@ exports.handler = async function(event) {
         }
         const customerId = customerData.id;
 
-
-        // 2. Criar a cobrança PIX (no ambiente de Testes/Sandbox)
+        // 2. Criar a cobrança PIX
         const paymentResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
             method: 'POST',
             headers: {
@@ -79,13 +78,30 @@ exports.handler = async function(event) {
             throw new Error(paymentData.errors[0].description);
         }
 
-        // 3. Retornar os dados do PIX para o frontend
+        const paymentId = paymentData.id;
+
+        // ETAPA 2.5: FAZER A SEGUNDA CHAMADA PARA BUSCAR O QR CODE (ESTAVA FALTANDO)
+        const qrCodeResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${paymentId}/pixQrCode`, {
+            method: 'GET',
+            headers: {
+                'access_token': process.env.ASAAS_API_KEY
+            }
+        });
+
+        const qrCodeData = await qrCodeResponse.json();
+
+        if (!qrCodeResponse.ok) {
+            console.error('Erro ao buscar QR Code Asaas:', qrCodeData.errors);
+            throw new Error('Falha ao obter os dados do PIX QR Code.');
+        }
+
+        // 3. Retornar os dados CORRETOS do PIX para o frontend
         return {
             statusCode: 200,
             body: JSON.stringify({
-                paymentId: paymentData.id,
-                qrCodePayload: paymentData.pixQrCode.payload,
-                qrCodeImage: paymentData.pixQrCode.encodedImage,
+                paymentId: paymentId,
+                qrCodePayload: qrCodeData.payload,       // Agora usando qrCodeData
+                qrCodeImage: qrCodeData.encodedImage,    // Agora usando qrCodeData
                 externalReference: paymentData.externalReference
             })
         };
