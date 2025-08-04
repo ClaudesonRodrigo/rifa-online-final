@@ -1,9 +1,8 @@
 // netlify/functions/create-payment.js
 
-const admin = require('firebase-admin'); // PRECISAMOS DO FIREBASE ADMIN AQUI AGORA
+const admin = require('firebase-admin');
 const fetch = require('node-fetch');
 
-// Função de inicialização do Firebase Admin
 function initializeFirebaseAdmin() {
     if (admin.apps.length) { return; }
     const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8'));
@@ -17,7 +16,6 @@ exports.handler = async function(event) {
 
     try {
         const { items, payerData } = JSON.parse(event.body);
-
         if (!items || !payerData || !payerData.cpf) {
             return { statusCode: 400, body: JSON.stringify({ error: "Dados inválidos." }) };
         }
@@ -25,7 +23,6 @@ exports.handler = async function(event) {
         initializeFirebaseAdmin();
         const db = admin.firestore();
 
-        // PASSO 1: Criar um registro de "intenção de compra" no nosso Firebase
         const pendingRef = db.collection('pending_payments').doc();
         const pendingId = pendingRef.id;
 
@@ -40,42 +37,31 @@ exports.handler = async function(event) {
             vendor_id: payerData.vendorId || null,
             createdAt: new Date()
         };
-        
         await pendingRef.set(dataToSave);
 
-        // PASSO 2: Criar a cobrança no Asaas, passando nosso ID como externalReference
         const totalValue = items.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
         
         const paymentResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'access_token': process.env.ASAAS_API_KEY
-            },
+            headers: { 'Content-Type': 'application/json', 'access_token': process.env.ASAAS_API_KEY },
             body: JSON.stringify({
                 customer: { name: payerData.name, cpfCnpj: payerData.cpf },
                 billingType: 'PIX',
                 dueDate: new Date().toISOString().split('T')[0],
                 value: totalValue,
                 description: `Pagamento Rifa - Pedido ${pendingId}`,
-                externalReference: pendingId, // Passando nosso ID aqui!
+                externalReference: pendingId,
             })
         });
 
         const paymentData = await paymentResponse.json();
-
-        if (!paymentResponse.ok) {
-            console.error('Erro ao criar cobrança Asaas:', paymentData.errors);
-            throw new Error(paymentData.errors[0].description);
-        }
+        if (!paymentResponse.ok) { throw new Error(paymentData.errors[0].description); }
 
         const qrCodeResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${paymentData.id}/pixQrCode`, {
             method: 'GET',
             headers: { 'access_token': process.env.ASAAS_API_KEY }
         });
-
         const qrCodeData = await qrCodeResponse.json();
-
         if (!qrCodeResponse.ok) { throw new Error('Falha ao obter QR Code.'); }
 
         return {
@@ -86,7 +72,6 @@ exports.handler = async function(event) {
                 qrCodeImage: qrCodeData.encodedImage
             })
         };
-
     } catch (error) {
         console.error("Erro em create-payment:", error);
         return { statusCode: 500, body: JSON.stringify({ error: `Falha: ${error.message}` }) };
