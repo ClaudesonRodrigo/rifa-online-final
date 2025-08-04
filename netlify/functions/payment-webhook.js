@@ -1,7 +1,6 @@
 // netlify/functions/payment-webhook.js
 
 const admin = require('firebase-admin');
-const fetch = require('node-fetch');
 
 function initializeFirebaseAdmin() {
     if (admin.apps.length) { return admin.firestore(); }
@@ -19,49 +18,35 @@ exports.handler = async function(event) {
     
     try {
         const notification = JSON.parse(event.body);
-        
-        // LOG 1: Mostrar a notificação crua que chega do Asaas
-        console.log('Webhook INICIAL recebido:', JSON.stringify(notification, null, 2));
 
         if (notification.event !== 'PAYMENT_CONFIRMED' && notification.event !== 'PAYMENT_RECEIVED') {
-            return { statusCode: 200, body: 'Notificação não relevante, ignorada.' };
+            return { statusCode: 200, body: 'Notificação não relevante.' };
         }
         
-        const paymentId = notification.payment.id;
-        if (!paymentId) {
-             console.warn("Webhook recebido sem ID de pagamento.");
-             return { statusCode: 400, body: 'ID do pagamento ausente.' };
+        const paymentInfo = notification.payment;
+        const externalReference = paymentInfo.externalReference; // Pegamos o nosso ID de volta!
+
+        if (!externalReference) {
+            console.warn("Webhook recebido sem externalReference.");
+            return { statusCode: 400, body: 'externalReference ausente.' };
         }
 
-        // LOG 2: Confirmar que estamos buscando os detalhes
-        console.log('Buscando detalhes completos para o ID:', paymentId);
-        const fullPaymentResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${paymentId}`, {
-            method: 'GET',
-            headers: { 'access_token': process.env.ASAAS_API_KEY }
-        });
+        // PASSO 1: Buscar os dados da compra no nosso Firebase usando o ID
+        const pendingDocRef = db.collection('pending_payments').doc(externalReference);
+        const pendingDoc = await pendingDocRef.get();
 
-        const paymentInfo = await fullPaymentResponse.json();
-
-        // LOG 3: Mostrar o objeto COMPLETO que recebemos de volta do Asaas
-        console.log('Resposta COMPLETA do Asaas:', JSON.stringify(paymentInfo, null, 2));
-
-        if (!fullPaymentResponse.ok) {
-            console.error('Falha ao buscar detalhes do pagamento no Asaas:', paymentInfo.errors);
-            throw new Error('Não foi possível obter os detalhes da cobrança.');
+        if (!pendingDoc.exists) {
+            console.error(`Documento pendente não encontrado para a referência: ${externalReference}`);
+            return { statusCode: 404, body: 'Registro da intenção de compra não encontrado.' };
         }
 
-        const { metadata } = paymentInfo;
-
-        if (!metadata || !metadata.raffle_id || !metadata.user_id || !metadata.selected_numbers) {
-            console.warn("Webhook Asaas recebido com metadados insuficientes.", metadata);
-            return { statusCode: 400, body: 'Dados essenciais em falta nos metadados do pagamento.' };
-        }
-
+        const purchaseData = pendingDoc.data();
         const {
             selected_numbers, raffle_id, user_id, user_name,
             user_email, user_whatsapp, user_pix, vendor_id
-        } = metadata;
+        } = purchaseData;
 
+        // PASSO 2: Executar a transação para salvar os números
         const rifaDocRef = db.collection('rifas').doc(raffle_id);
         const soldNumbersColRef = rifaDocRef.collection('sold_numbers');
 
@@ -70,10 +55,7 @@ exports.handler = async function(event) {
             const numberDocs = await Promise.all(numberDocsPromises);
             
             for (const doc of numberDocs) {
-                if (doc.exists) {
-                    console.error(`TENTATIVA DE COMPRA DUPLA: O número ${doc.id} na rifa ${raffle_id} já foi vendido.`);
-                    return;
-                }
+                if (doc.exists) { return; }
             }
 
             const dataToSave = {
@@ -92,10 +74,13 @@ exports.handler = async function(event) {
             transaction.update(rifaDocRef, { soldCount: increment });
         });
 
+        // PASSO 3: Limpar o registro pendente após o sucesso
+        await pendingDocRef.delete();
+
     } catch (error) {
-        console.error("ERRO no processamento do webhook Asaas:", error);
+        console.error("ERRO no processamento do webhook:", error);
         return { statusCode: 500, body: `Erro interno: ${error.message}` };
     }
 
-    return { statusCode: 200, body: 'Webhook recebido com sucesso.' };
+    return { statusCode: 200, body: 'Webhook processado com sucesso.' };
 };
