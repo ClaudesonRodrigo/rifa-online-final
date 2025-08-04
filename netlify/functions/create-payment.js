@@ -22,7 +22,7 @@ exports.handler = async function(event) {
         const externalReference = `RIFA_${payerData.raffleId}_${new Date().getTime()}`;
 
         // 1. Criar o cliente no Asaas
-        const customerResponse = await fetch('https://api.asaas.com/v3/customers', {
+       const customerResponse = await fetch('https://sandbox.asaas.com/api/v3/customers, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -46,7 +46,7 @@ exports.handler = async function(event) {
 
 
         // 2. Criar a cobrança PIX
-        const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
+       const paymentResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -96,3 +96,4 @@ exports.handler = async function(event) {
         return { statusCode: 500, body: JSON.stringify({ error: `Falha ao gerar cobrança: ${error.message}` }) };
     }
 };
+
