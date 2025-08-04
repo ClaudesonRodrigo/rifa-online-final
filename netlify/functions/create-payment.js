@@ -21,8 +21,8 @@ exports.handler = async function(event) {
         const description = `Pagamento para a rifa: ${payerData.raffleId}. Números: ${items.map(i => i.id).join(', ')}`;
         const externalReference = `RIFA_${payerData.raffleId}_${new Date().getTime()}`;
 
-        // 1. Criar o cliente no Asaas
-       const customerResponse = await fetch('https://sandbox.asaas.com/api/v3/customers, {
+        // 1. Criar o cliente no Asaas (no ambiente de Testes/Sandbox)
+        const customerResponse = await fetch('https://sandbox.asaas.com/api/v3/customers', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -32,12 +32,12 @@ exports.handler = async function(event) {
                 name: payerData.name,
                 email: payerData.email,
                 cpfCnpj: payerData.cpf,
-                externalReference: payerData.userId // Usando o ID do Firebase como referência externa do cliente
+                externalReference: payerData.userId
             })
         });
 
         const customerData = await customerResponse.json();
-        // Se o cliente já existir pelo CPF, o Asaas retorna os dados dele, o que é ótimo.
+        
         if (!customerResponse.ok && !customerData.errors.some(e => e.code === 'invalid_customer')) {
              console.error('Erro ao criar cliente Asaas:', customerData.errors);
              throw new Error('Falha ao registrar dados do cliente.');
@@ -45,8 +45,8 @@ exports.handler = async function(event) {
         const customerId = customerData.id;
 
 
-        // 2. Criar a cobrança PIX
-       const paymentResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
+        // 2. Criar a cobrança PIX (no ambiente de Testes/Sandbox)
+        const paymentResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -58,8 +58,7 @@ exports.handler = async function(event) {
                 dueDate: new Date().toISOString().split('T')[0],
                 value: totalValue,
                 description: description,
-                externalReference: externalReference, // ID único da transação
-                // Passando os dados para o webhook via metadata
+                externalReference: externalReference,
                 metadata: {
                     selected_numbers: items.map(item => item.id),
                     raffle_id: payerData.raffleId,
@@ -96,4 +95,3 @@ exports.handler = async function(event) {
         return { statusCode: 500, body: JSON.stringify({ error: `Falha ao gerar cobrança: ${error.message}` }) };
     }
 };
-
