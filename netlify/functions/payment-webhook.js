@@ -1,17 +1,12 @@
 // netlify/functions/payment-webhook.js
 
 const admin = require('firebase-admin');
-const fetch = require('node-fetch'); // Precisamos do fetch aqui também
+const fetch = require('node-fetch');
 
-// Função para inicializar o Firebase Admin
 function initializeFirebaseAdmin() {
-    if (admin.apps.length) {
-        return admin.firestore();
-    }
+    if (admin.apps.length) { return admin.firestore(); }
     const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8'));
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     return admin.firestore();
 }
 
@@ -24,6 +19,9 @@ exports.handler = async function(event) {
     
     try {
         const notification = JSON.parse(event.body);
+        
+        // LOG 1: Mostrar a notificação crua que chega do Asaas
+        console.log('Webhook INICIAL recebido:', JSON.stringify(notification, null, 2));
 
         if (notification.event !== 'PAYMENT_CONFIRMED' && notification.event !== 'PAYMENT_RECEIVED') {
             return { statusCode: 200, body: 'Notificação não relevante, ignorada.' };
@@ -35,22 +33,23 @@ exports.handler = async function(event) {
              return { statusCode: 400, body: 'ID do pagamento ausente.' };
         }
 
-        // PASSO EXTRA: Buscar os detalhes completos do pagamento no Asaas
+        // LOG 2: Confirmar que estamos buscando os detalhes
+        console.log('Buscando detalhes completos para o ID:', paymentId);
         const fullPaymentResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${paymentId}`, {
             method: 'GET',
-            headers: {
-                'access_token': process.env.ASAAS_API_KEY
-            }
+            headers: { 'access_token': process.env.ASAAS_API_KEY }
         });
 
         const paymentInfo = await fullPaymentResponse.json();
+
+        // LOG 3: Mostrar o objeto COMPLETO que recebemos de volta do Asaas
+        console.log('Resposta COMPLETA do Asaas:', JSON.stringify(paymentInfo, null, 2));
 
         if (!fullPaymentResponse.ok) {
             console.error('Falha ao buscar detalhes do pagamento no Asaas:', paymentInfo.errors);
             throw new Error('Não foi possível obter os detalhes da cobrança.');
         }
 
-        // AGORA SIM, pegamos os metadados do objeto completo que buscamos
         const { metadata } = paymentInfo;
 
         if (!metadata || !metadata.raffle_id || !metadata.user_id || !metadata.selected_numbers) {
@@ -59,14 +58,8 @@ exports.handler = async function(event) {
         }
 
         const {
-            selected_numbers,
-            raffle_id,
-            user_id,
-            user_name,
-            user_email,
-            user_whatsapp,
-            user_pix,
-            vendor_id
+            selected_numbers, raffle_id, user_id, user_name,
+            user_email, user_whatsapp, user_pix, vendor_id
         } = metadata;
 
         const rifaDocRef = db.collection('rifas').doc(raffle_id);
@@ -84,19 +77,11 @@ exports.handler = async function(event) {
             }
 
             const dataToSave = {
-                name: user_name,
-                email: user_email,
-                whatsapp: user_whatsapp,
-                pix: user_pix,
-                userId: user_id,
-                createdAt: new Date(),
-                paymentProvider: 'asaas',
-                paymentId: paymentInfo.id
+                name: user_name, email: user_email, whatsapp: user_whatsapp, pix: user_pix,
+                userId: user_id, createdAt: new Date(), paymentProvider: 'asaas', paymentId: paymentInfo.id
             };
             
-            if (vendor_id) {
-                dataToSave.vendorId = vendor_id;
-            }
+            if (vendor_id) { dataToSave.vendorId = vendor_id; }
 
             selected_numbers.forEach(number => {
                 const newNumberDocRef = soldNumbersColRef.doc(String(number));
