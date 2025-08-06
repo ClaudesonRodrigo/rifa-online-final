@@ -1,50 +1,81 @@
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+// netlify/functions/create-payment.js - VERSÃO DE PRODUÇÃO
+
+const admin = require('firebase-admin');
+const fetch = require('node-fetch');
+
+function initializeFirebaseAdmin() {
+    if (admin.apps.length) { return; }
+    const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf-8'));
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+}
 
 exports.handler = async function(event) {
-  const { items, payerData } = JSON.parse(event.body);
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: 'Method Not Allowed' };
+    }
 
-  if (!items || items.length === 0 || !payerData || !payerData.raffleId) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Dados da compra inválidos ou ID da rifa em falta." }),
-    };
-  }
+    try {
+        const { items, payerData } = JSON.parse(event.body);
+        if (!items || !payerData || !payerData.cpf) {
+            return { statusCode: 400, body: JSON.stringify({ error: "Dados inválidos." }) };
+        }
 
-  const client = new MercadoPagoConfig({ accessToken: process.env.MERCADO_PAGO_ACCESS_TOKEN });
-  const preference = new Preference(client);
-  const siteUrl = process.env.URL || 'http://localhost:8888';
+        initializeFirebaseAdmin();
+        const db = admin.firestore();
 
-  try {
-    const metadata = {
-        selected_numbers: items.map(item => item.id),
-        raffle_id: payerData.raffleId,
-        user_id: payerData.userId,
-        user_name: payerData.name,
-        user_email: payerData.email,
-        user_whatsapp: payerData.whatsapp,
-        user_pix: payerData.pix,
-        vendor_id: payerData.vendorId || null 
-    };
+        const pendingRef = db.collection('pending_payments').doc();
+        const pendingId = pendingRef.id;
 
-    const result = await preference.create({
-      body: {
-        items,
-        payer: { name: payerData.name, email: payerData.email },
-        back_urls: {
-          success: `${siteUrl}/rifa.html?id=${payerData.raffleId}&status=approved`,
-          failure: `${siteUrl}/rifa.html?id=${payerData.raffleId}&status=failure`,
-          pending: `${siteUrl}/rifa.html?id=${payerData.raffleId}&status=pending`,
-        },
-        auto_return: "approved",
-        metadata: metadata,
-        notification_url: `${siteUrl}/.netlify/functions/payment-webhook`,
-      }
-    });
+        const dataToSave = {
+            selected_numbers: items.map(item => item.id),
+            raffle_id: payerData.raffleId,
+            user_id: payerData.userId,
+            user_name: payerData.name,
+            user_email: payerData.email,
+            user_whatsapp: payerData.whatsapp,
+            user_pix: payerData.pix,
+            vendor_id: payerData.vendorId || null,
+            createdAt: new Date()
+        };
+        await pendingRef.set(dataToSave);
 
-    return { statusCode: 200, body: JSON.stringify({ checkoutUrl: result.init_point }) };
+        const totalValue = items.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
+        
+        // ▼▼▼ URL DE PRODUÇÃO ABAIXO ▼▼▼
+        const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'access_token': process.env.ASAAS_API_KEY },
+            body: JSON.stringify({
+                customer: { name: payerData.name, cpfCnpj: payerData.cpf },
+                billingType: 'PIX',
+                dueDate: new Date().toISOString().split('T')[0],
+                value: totalValue,
+                description: `Pagamento Rifa - Pedido ${pendingId}`,
+                externalReference: pendingId,
+            })
+        });
 
-  } catch (error) {
-    console.error("Erro em create-payment:", error);
-    return { statusCode: 500, body: JSON.stringify({ error: "Falha ao comunicar com o Mercado Pago." }) };
-  }
+        const paymentData = await paymentResponse.json();
+        if (!paymentResponse.ok) { throw new Error(paymentData.errors[0].description); }
+
+        // ▼▼▼ URL DE PRODUÇÃO ABAIXO ▼▼▼
+        const qrCodeResponse = await fetch(`https://api.asaas.com/v3/payments/${paymentData.id}/pixQrCode`, {
+            method: 'GET',
+            headers: { 'access_token': process.env.ASAAS_API_KEY }
+        });
+        const qrCodeData = await qrCodeResponse.json();
+        if (!qrCodeResponse.ok) { throw new Error('Falha ao obter QR Code.'); }
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                paymentId: paymentData.id,
+                qrCodePayload: qrCodeData.payload,
+                qrCodeImage: qrCodeData.encodedImage
+            })
+        };
+    } catch (error) {
+        console.error("Erro em create-payment:", error);
+        return { statusCode: 500, body: JSON.stringify({ error: `Falha: ${error.message}` }) };
+    }
 };

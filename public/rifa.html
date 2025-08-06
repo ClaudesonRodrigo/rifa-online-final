@@ -24,6 +24,7 @@
                 <p class="text-center text-gray-400 mb-8">Para participar, por favor, preencha os seus dados abaixo.</p>
                 <div class="mb-4"><label for="name" class="block mb-2 text-sm font-medium">Nome Completo</label><input type="text" id="name" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-4"><label for="email" class="block mb-2 text-sm font-medium">E-mail</label><input type="email" id="email" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
+                <div class="mb-4"><label for="cpf" class="block mb-2 text-sm font-medium">CPF</label><input type="text" id="cpf" placeholder="Necessário para o pagamento PIX" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-4"><label for="whatsapp" class="block mb-2 text-sm font-medium">WhatsApp</label><input type="tel" id="whatsapp" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
                 <div class="mb-6"><label for="pix" class="block mb-2 text-sm font-medium">Chave PIX</label><input type="text" id="pix" class="bg-gray-700 border-gray-600 text-white rounded-lg block w-full p-2.5" required></div>
                 <button id="save-user-btn" class="w-full text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Entrar e Escolher Números</button>
@@ -116,6 +117,21 @@
                 <button id="share-twitter-btn" class="bg-blue-400 hover:bg-blue-500 text-white font-bold p-4 rounded-full"><i class="fab fa-twitter text-2xl"></i></button>
             </div>
             <button id="close-share-modal-btn" class="mt-8 text-sm text-gray-400 hover:text-white">Fechar</button>
+        </div>
+    </div>
+    <div id="pix-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 max-w-sm mx-auto relative border border-teal-500 text-center">
+            <h3 class="text-xl font-bold text-teal-300 mb-4">Pague com PIX para confirmar</h3>
+            <p class="text-gray-400 mb-4">Escaneie o QR Code com o app do seu banco.</p>
+            <img id="pix-qr-code" src="" alt="PIX QR Code" class="w-48 h-48 mx-auto rounded-lg bg-white p-2">
+            <p class="text-gray-400 my-4">Ou use o PIX Copia e Cola:</p>
+            <div class="flex items-center">
+                <input type="text" id="pix-copy-paste-input" readonly class="bg-gray-700 text-white text-xs p-2 rounded-l-lg w-full">
+                <button id="copy-pix-btn" class="bg-teal-600 hover:bg-teal-700 text-white font-bold p-2 rounded-r-lg">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-4">Aguardando pagamento... seus números serão reservados após a confirmação.</p>
         </div>
     </div>
 
