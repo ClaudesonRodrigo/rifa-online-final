@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteio em Manutenção</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-2xl mx-auto bg-gray-800 rounded-2xl shadow-2xl p-8 md:p-12 text-center">
+        <i class="fas fa-cogs text-6xl text-blue-400 mb-6 animate-spin"></i>
+        
+        <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-teal-300 mb-4">
+            Voltamos em Breve!
+        </h1>
+        
+        <p class="text-lg text-gray-300 mb-8">
+            No momento, estamos realizando melhorias importantes na nossa plataforma de pagamentos para garantir a melhor experiência para você.
+        </p>
+
+        <div class="bg-gray-900/50 p-6 rounded-lg border border-gray-700">
+            <h2 class="text-xl font-semibold text-amber-400 mb-4">Previsão de Retorno</h2>
+            <div id="countdown" class="text-4xl font-bold text-white tracking-widest">
+                <span id="hours">48</span>:<span id="minutes">00</span>:<span id="seconds">00</span>
+            </div>
+        </div>
+
+        <p class="text-sm text-gray-500 mt-8">
+            Agradecemos a sua paciência e compreensão.
+        </p>
+    </div>
+
+    <script>
+        function startCountdown() {
+            let duration = 48 * 60 * 60; // 48 horas em segundos
+            const countdownElement = document.getElementById('countdown');
+            const hoursElement = document.getElementById('hours');
+            const minutesElement = document.getElementById('minutes');
+            const secondsElement = document.getElementById('seconds');
+
+            const interval = setInterval(() => {
+                if (duration <= 0) {
+                    clearInterval(interval);
+                    countdownElement.textContent = "Estamos de Volta!";
+                    return;
+                }
+
+                duration--;
+
+                let hours = Math.floor(duration / 3600);
+                let minutes = Math.floor((duration % 3600) / 60);
+                let seconds = duration % 60;
+
+                hoursElement.textContent = String(hours).padStart(2, '0');
+                minutesElement.textContent = String(minutes).padStart(2, '0');
+                secondsElement.textContent = String(seconds).padStart(2, '0');
+            }, 1000);
+        }
+
+        window.onload = startCountdown;
+    </script>
+
+</body>
+</html>
