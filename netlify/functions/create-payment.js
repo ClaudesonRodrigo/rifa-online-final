@@ -1,4 +1,4 @@
-// netlify/functions/create-payment.js
+// netlify/functions/create-payment.js - VERSÃO DE PRODUÇÃO
 
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
@@ -41,7 +41,8 @@ exports.handler = async function(event) {
 
         const totalValue = items.reduce((acc, item) => acc + (item.unit_price * item.quantity), 0);
         
-        const paymentResponse = await fetch('https://sandbox.asaas.com/api/v3/payments', {
+        // ▼▼▼ URL DE PRODUÇÃO ABAIXO ▼▼▼
+        const paymentResponse = await fetch('https://api.asaas.com/v3/payments', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'access_token': process.env.ASAAS_API_KEY },
             body: JSON.stringify({
@@ -57,7 +58,8 @@ exports.handler = async function(event) {
         const paymentData = await paymentResponse.json();
         if (!paymentResponse.ok) { throw new Error(paymentData.errors[0].description); }
 
-        const qrCodeResponse = await fetch(`https://sandbox.asaas.com/api/v3/payments/${paymentData.id}/pixQrCode`, {
+        // ▼▼▼ URL DE PRODUÇÃO ABAIXO ▼▼▼
+        const qrCodeResponse = await fetch(`https://api.asaas.com/v3/payments/${paymentData.id}/pixQrCode`, {
             method: 'GET',
             headers: { 'access_token': process.env.ASAAS_API_KEY }
         });
