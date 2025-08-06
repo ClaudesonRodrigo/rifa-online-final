@@ -1,4 +1,4 @@
-// netlify/functions/payment-webhook.js - VERSÃO COM VERIFICAÇÃO DE SAÚDE
+// netlify/functions/payment-webhook.js - VERSÃO DE PRODUÇÃO
 
 const admin = require('firebase-admin');
 
@@ -10,13 +10,11 @@ function initializeFirebaseAdmin() {
 }
 
 exports.handler = async function(event) {
-    // AJUSTE CRÍTICO: Se a requisição não for POST (ex: um teste de saúde do Asaas),
-    // nós respondemos com sucesso (200), mas não fazemos nada.
+    // Responde a testes de 'saúde' do Asaas
     if (event.httpMethod !== 'POST') {
         return { statusCode: 200, body: 'Endpoint ativo. Apenas requisições POST são processadas.' };
     }
 
-    // O resto do nosso código só executa se a requisição for POST.
     const db = initializeFirebaseAdmin();
     
     try {
