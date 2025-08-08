@@ -131,13 +131,48 @@ document.addEventListener('DOMContentLoaded', () => {
         renderNumberGrid(totalNumbersInRaffle);
         shoppingCartSection.scrollIntoView({ behavior: 'smooth' });
     };
-
+    
     function loadUserDataOrShowLogin() {
         const savedUser = localStorage.getItem(`rifaUser`);
+    
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            setupFirestoreListeners();
+    
+            // ▼▼▼ LÓGICA NOVA E IMPORTANTE ABAIXO ▼▼▼
+    
+            // Verificamos se o usuário salvo já tem o campo CPF.
+            if (!currentUser.cpf) {
+                // Se NÃO tiver, o usuário é antigo.
+                // Mostramos a tela de formulário, mas já preenchemos com os dados que temos.
+                loadingSection.classList.add('hidden');
+                userSection.classList.remove('hidden');
+    
+                // Pré-preenche os campos
+                if (nameInput) nameInput.value = currentUser.name || '';
+                if (emailInput) emailInput.value = currentUser.email || '';
+                if (whatsappInput) whatsappInput.value = currentUser.whatsapp || '';
+                if (pixInput) pixInput.value = currentUser.pix || '';
+    
+                // Adiciona um aviso amigável (opcional, mas recomendado)
+                const welcomeTitle = userSection.querySelector('h2');
+                if (welcomeTitle) {
+                    const notice = document.createElement('p');
+                    notice.className = 'text-center text-amber-400 mb-6 -mt-4 text-sm';
+                    notice.textContent = 'Para continuar, por favor, preencha seu CPF. É um novo requisito para a segurança dos pagamentos.';
+                    welcomeTitle.insertAdjacentElement('afterend', notice);
+                }
+                
+                // O usuário vai apenas adicionar o CPF e clicar em "Salvar",
+                // e a função saveUserData() vai salvar o objeto completo.
+    
+            } else {
+                // Se o usuário já tem CPF, tudo certo! Pode entrar direto.
+                setupFirestoreListeners();
+            }
+            // ▲▲▲ FIM DA LÓGICA NOVA ▲▲▲
+    
         } else {
+            // Se não há usuário salvo, é um usuário novo. Mostra o formulário em branco.
             loadingSection.classList.add('hidden');
             userSection.classList.remove('hidden');
         }
@@ -650,3 +685,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAuthListener();
     setupShareButtons();
 });
+
